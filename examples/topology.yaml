@@ -1,3 +1,16 @@
+# Example: Home/Server Backup Topology
+#
+# Demonstrates a typical prosumer setup: laptop + home server + remote dedicated.
+# This example is designed to show:
+#   - Multi-tier backup strategy (local Time Machine, remote Borg/rsync)
+#   - Continuous sync for working documents (Resilio)
+#   - Offsite replication for disaster recovery
+#
+# Assumptions to note:
+#   - EU server pricing ($89/mo) based on Hetzner-class dedicated
+#   - Power costs assume US average residential rate
+#   - Growth rates are estimates - actual usage varies
+
 name: "Home/Server Backup Topology"
 version: "1.0"
 description: "MacBook + Mac mini hub + EU dedicated server"
@@ -28,6 +41,8 @@ nodes:
 
       - id: macbook-external
         type: external_ssd
+        product_id: samsung-t7-2tb
+        purchase_cost: 179.99
         raw_capacity: "2TB"
         usable_capacity: "1.8TB"
         used: "800GB"
@@ -51,6 +66,8 @@ nodes:
 
       - id: mini-external-array
         type: external_ssd
+        product_id: samsung-870-qvo-8tb
+        purchase_cost: 749.99
         raw_capacity: "8TB"
         usable_capacity: "7.5TB"
         hosts_datasets:
@@ -91,15 +108,15 @@ links:
     node_a: macbook-m4
     node_b: mac-mini-m4
     type: lan
-    bandwidth_up: "10Gbps"
-    bandwidth_down: "10Gbps"
+    bandwidth_up: "1Gbps"
+    bandwidth_down: "1Gbps"
     latency_ms: 1
 
   - id: home-to-eu
     node_a: mac-mini-m4
     node_b: eu-server
     type: wan
-    bandwidth_up: "500Mbps"
+    bandwidth_up: "100Mbps"
     bandwidth_down: "1Gbps"
     latency_ms: 30
 
@@ -107,7 +124,7 @@ links:
     node_a: macbook-m4
     node_b: eu-server
     type: wan
-    bandwidth_up: "500Mbps"
+    bandwidth_up: "100Mbps"
     bandwidth_down: "1Gbps"
     latency_ms: 30
 
