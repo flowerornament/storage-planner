@@ -163,7 +163,7 @@ def parse_growth_rate(rate_str: str) -> Optional[tuple[float, str, str]]:
     match = re.match(r"^([\d.]+)\s*([kmgtp]?b)/(\w+)$", rate_str)
     if match:
         size_bytes = parse_size(match.group(1) + match.group(2))
-        if size_bytes:
+        if size_bytes is not None:
             return (float(size_bytes), match.group(3), "absolute")
 
     return None

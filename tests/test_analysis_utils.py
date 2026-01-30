@@ -204,6 +204,15 @@ class TestParseGrowthRate:
         assert period == "year"
         assert kind == "absolute"
 
+    def test_zero_value(self):
+        """Regression test: zero values should not return None."""
+        result = parse_growth_rate("0GB/month")
+        assert result is not None
+        value, period, kind = result
+        assert value == 0.0
+        assert period == "month"
+        assert kind == "absolute"
+
     def test_invalid(self):
         assert parse_growth_rate("") is None
         assert parse_growth_rate("invalid") is None
