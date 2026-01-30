@@ -31,3 +31,13 @@ sp analyze diff <a.yaml> <b.yaml>       # Compare analysis summaries
 sp simulate <node|volume> <topology.yaml>
 sp simulate diff <node|volume> <a.yaml> <b.yaml>
 ```
+
+## Suggest
+
+```bash
+sp suggest hardware <topology.yaml> -c catalog
+sp suggest software <topology.yaml> -c catalog
+```
+
+Hardware suggestions include catalog-aware recommendations for redundancy gaps
+(capacity, use case, and noise constraints when available).
