@@ -7,8 +7,10 @@ from storage_planner.models.enums import (
     ChangeRate,
     Criticality,
     LinkType,
+    NodeStatus,
     NodeType,
     PowerProfile,
+    ProblemStatus,
     SyncDirection,
     SyncMethod,
     VolumeType,
@@ -40,6 +42,7 @@ class Node(BaseModel):
     id: str
     name: str
     type: NodeType
+    status: NodeStatus | None = None  # active, deprecated, planned
     location: str | None = None
     power_profile: PowerProfile | None = None
     uptime: str | None = None  # e.g., "24/7", "8h/day"
@@ -48,6 +51,7 @@ class Node(BaseModel):
     power_watts_active: float | None = None
     monthly_cost: float | None = None  # Hosting/operational cost
     volumes: list[Volume] = Field(default_factory=list)
+    problems: list[str] = Field(default_factory=list)  # Node-specific issues
 
 
 class Link(BaseModel):
@@ -100,6 +104,28 @@ class SyncRegime(BaseModel):
     achieved_rpo: str | None = None  # Actual RPO achieved
 
 
+class Problem(BaseModel):
+    """A documented problem with the storage system."""
+
+    id: str
+    title: str
+    status: ProblemStatus = ProblemStatus.ACTIVE
+    description: str | None = None
+    affects: list[str] = Field(default_factory=list)  # Node/volume IDs affected
+    discovered: str | None = None  # ISO date
+
+
+class Decision(BaseModel):
+    """A recorded decision about the storage system."""
+
+    date: str  # ISO date
+    title: str
+    choice: str
+    rationale: str | None = None
+    alternatives_considered: list[str] = Field(default_factory=list)
+    solves: list[str] = Field(default_factory=list)  # Problem IDs this solves
+
+
 class Constraints(BaseModel):
     """Global constraints for the topology.
 
@@ -126,11 +152,14 @@ class Topology(BaseModel):
     name: str
     version: str = "1.0"
     description: str | None = None
+    updated: str | None = None  # ISO date when last accurate
     constraints: Constraints = Field(default_factory=Constraints)
     nodes: list[Node] = Field(default_factory=list)
     links: list[Link] = Field(default_factory=list)
     datasets: list[Dataset] = Field(default_factory=list)
     sync_regimes: list[SyncRegime] = Field(default_factory=list)
+    problems: list[Problem] = Field(default_factory=list)  # Active problems to solve
+    decisions: list[Decision] = Field(default_factory=list)  # Decision history
 
     def get_node(self, node_id: str) -> Node | None:
         """Get a node by ID."""

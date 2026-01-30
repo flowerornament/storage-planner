@@ -92,3 +92,18 @@ class PowerProfile(str, Enum):
     ALWAYS_ON = "always_on"
     SCHEDULED = "scheduled"
     ON_DEMAND = "on_demand"
+
+
+class NodeStatus(str, Enum):
+    """Lifecycle status of a node."""
+
+    ACTIVE = "active"
+    DEPRECATED = "deprecated"
+    PLANNED = "planned"
+
+
+class ProblemStatus(str, Enum):
+    """Status of a documented problem."""
+
+    ACTIVE = "active"
+    SOLVED = "solved"

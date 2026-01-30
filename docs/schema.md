@@ -10,6 +10,7 @@ All configuration is YAML. This documents the schema for each file type.
 name: "Topology Name"           # Required
 version: "1.0"                  # Optional, default "1.0"
 description: "..."              # Optional
+updated: "2025-01-30"           # Optional, ISO date when last accurate
 
 constraints:                    # Optional, global constraints
   max_monthly_cost: 150.00
@@ -18,10 +19,12 @@ constraints:                    # Optional, global constraints
   min_locations_for_critical: 2 # Default: 2
   max_noise_db_home: 35         # For quiet setups
 
-nodes: []      # List of Node
-links: []      # List of Link
-datasets: []   # List of Dataset
+nodes: []        # List of Node
+links: []        # List of Link
+datasets: []     # List of Dataset
 sync_regimes: [] # List of SyncRegime
+problems: []     # List of Problem (optional)
+decisions: []    # List of Decision (optional)
 ```
 
 ### Node
@@ -30,6 +33,7 @@ sync_regimes: [] # List of SyncRegime
 - id: macbook-m4              # Required, unique identifier
   name: "MacBook Pro M4"      # Required, display name
   type: laptop                # Required: laptop|desktop|server|nas|cloud
+  status: active              # Optional: active|deprecated|planned
   location: home-office       # Optional, for redundancy location counting
   power_profile: mobile       # Optional: mobile|always_on|scheduled|on_demand
   uptime: "24/7"              # Optional, descriptive
@@ -38,6 +42,9 @@ sync_regimes: [] # List of SyncRegime
   power_watts_active: 25      # Optional
   monthly_cost: 89.00         # Optional, hosting/operational cost
   volumes: []                 # List of Volume
+  problems:                   # Optional, node-specific issues
+    - "Too loud for office"
+    - "Running out of space"
 ```
 
 ### Volume
@@ -117,6 +124,42 @@ sync_regimes: [] # List of SyncRegime
   continuous: true            # Optional, default false
   bandwidth_limit: "100MB/s"  # Optional (bits/s: Mbps/Gbps, bytes/s: MB/s/GB/s)
   achieved_rpo: "30s"         # Optional, actual RPO achieved
+```
+
+### Problem
+
+Documents issues with the storage system that need resolution.
+
+```yaml
+- id: noisy-nas                 # Required, unique identifier
+  title: "NAS too loud"         # Required, short description
+  status: active                # Optional: active|solved (default: active)
+  description: |                # Optional, detailed explanation
+    The Synology DS224+ generates 35dB of noise, making it
+    unsuitable for the home office environment.
+  affects:                      # Optional, node/volume IDs affected
+    - synology-ds224
+  discovered: "2025-01-15"      # Optional, ISO date
+```
+
+### Decision
+
+Records a decision made about the storage system for institutional knowledge.
+
+```yaml
+- date: "2025-01-20"            # Required, ISO date
+  title: "Replace NAS with Mac mini"  # Required
+  choice: |                     # Required, what was decided
+    Use Mac mini M4 as always-on hub with ThunderBay 4 mini
+    external enclosure for RAID1 storage.
+  rationale: |                  # Optional, why this choice
+    Mac mini is silent, integrates well with existing Apple
+    ecosystem, and can serve as homelab server.
+  alternatives_considered:      # Optional, what else was evaluated
+    - "Keep Synology in closet with long cables"
+    - "Switch to QNAP silent NAS"
+  solves:                       # Optional, problem IDs this resolves
+    - noisy-nas
 ```
 
 ## Hardware Catalog Schema

@@ -55,13 +55,67 @@ All state lives in YAML files. The tool reads configs → runs analysis → outp
 ## Project Structure
 
 ```
-src/storage_planner/
-├── cli/          # Typer commands
-├── models/       # Pydantic models (topology.py, catalog.py, enums.py)
-├── analysis/     # Pure analysis functions
-├── loaders/      # YAML loading + validation
-└── output/       # Rich console formatting
+storage-planner/
+├── system.yaml          # THE source of truth - user's current system
+├── catalog/             # Hardware/software knowledge base
+│   ├── hardware.yaml    # Product specs, pros/cons
+│   ├── software.yaml    # Sync/backup tools
+│   └── market-prices.yaml
+├── proposals/           # "What-if" topologies to evaluate
+├── examples/            # Reference examples
+└── src/storage_planner/
+    ├── cli/          # Typer commands
+    ├── models/       # Pydantic models
+    ├── analysis/     # Pure analysis functions
+    ├── loaders/      # YAML loading + validation
+    └── output/       # Rich console formatting
 ```
+
+## Agent Workflow for Storage Decisions
+
+When helping with storage decisions:
+
+1. **Read the system file** to understand current state:
+   ```bash
+   cat system.yaml
+   ```
+   - Which nodes are `active` vs `deprecated` vs `planned`
+   - What problems are documented (system-level and per-node)
+   - What constraints apply (noise, cost, redundancy requirements)
+   - What decisions have been made and why
+
+2. **Run analysis** on the current state:
+   ```bash
+   .venv/bin/sp analyze all system.yaml --json
+   .venv/bin/sp simulate <deprecated-node> system.yaml --json
+   .venv/bin/sp cost system.yaml -c catalog --json
+   ```
+
+3. **Research hardware options** from catalog:
+   ```bash
+   .venv/bin/sp catalog list -c catalog --tag <relevant-tag> --json
+   .venv/bin/sp catalog compare <product1> <product2> -c catalog --json
+   ```
+
+4. **Reason about tradeoffs** based on:
+   - User's documented constraints (in `system.yaml`)
+   - Analysis results (redundancy gaps, capacity projections)
+   - Hardware specs and prices from catalog
+   - Node-specific problems that need solving
+
+5. **Update system.yaml** when decisions are made:
+   - Add new nodes with `status: planned`
+   - Mark old nodes with `status: deprecated`
+   - Record decisions in the `decisions` section
+   - Update `problems` status when solved
+
+**System evolution pattern:**
+- `updated` field tracks when system.yaml was last accurate
+- Problems: `active` → `solved` (with decision recorded)
+- Nodes: `planned` → `active` → `deprecated`
+- Git history provides full version control
+
+Always use `--json` output for structured data when parsing results.
 
 ## Development
 

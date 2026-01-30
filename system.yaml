@@ -1,0 +1,585 @@
+name: "Morgan's Storage System"
+version: "1.0"
+description: |
+  Personal storage system centered around Mac mini M4 as always-on hub.
+  ThunderBay 4 mini provides RAID1 local storage, EU server for offsite.
+updated: "2025-01-30"
+
+constraints:
+  max_monthly_cost: 150.00
+  power_cost_per_kwh: 0.12
+  min_critical_data_copies: 3
+  min_important_data_copies: 2
+  min_locations_for_critical: 2
+  max_noise_db_home: 30
+
+# ==============================================================================
+# Problems - Active issues to solve
+# ==============================================================================
+problems: []
+
+# ==============================================================================
+# Decisions - Institutional knowledge
+# ==============================================================================
+decisions:
+  - date: "2025-01-29"
+    title: "Mac mini M4 as storage hub"
+    choice: |
+      Use Mac mini M4 as always-on hub with OWC ThunderBay 4 mini
+      enclosure containing 2x Crucial MX500 4TB in RAID1.
+    rationale: |
+      Silent operation priority for home office. Mac mini fanless in most
+      conditions, matches aesthetic, serves as homelab server.
+    alternatives_considered:
+      - "Keep Synology NAS in closet with long cables"
+      - "QNAP silent NAS"
+      - "Build custom mini-ITX server"
+
+# ==============================================================================
+# Nodes
+# ==============================================================================
+nodes:
+  # MacBook Pro - Mobile workstation
+  - id: macbook-m4
+    name: "MacBook Pro M4"
+    type: laptop
+    status: active
+    location: home-office
+    power_profile: mobile
+    noise_db: 0
+    volumes:
+      - id: macbook-internal
+        name: "Internal SSD"
+        type: internal_ssd
+        raw_capacity: "1TB"
+        usable_capacity: "900GB"
+        used: "400GB"
+        read_speed: "7000MB/s"
+        write_speed: "5000MB/s"
+        hosts_datasets:
+          - working-files
+          - source-code
+
+      - id: macbook-lexar-sl400
+        name: "Lexar SL400 Portable"
+        type: external_ssd
+        raw_capacity: "2TB"
+        usable_capacity: "1.8TB"
+        used: "800GB"
+        product_id: lexar-sl400-2tb
+        read_speed: "1050MB/s"
+        write_speed: "1000MB/s"
+        hosts_datasets:
+          - hot-storage-sync
+
+  # Mac mini M4 - Storage hub + homelab server
+  - id: mac-mini-m4
+    name: "Mac mini M4 Hub"
+    type: desktop
+    status: active
+    location: home-office
+    power_profile: always_on
+    power_watts_idle: 5
+    power_watts_active: 25
+    noise_db: 0
+    volumes:
+      - id: mini-internal
+        name: "Internal SSD (Services)"
+        type: internal_ssd
+        raw_capacity: "1TB"
+        usable_capacity: "900GB"
+        used: "100GB"
+        read_speed: "7000MB/s"
+        write_speed: "5000MB/s"
+        hosts_datasets:
+          - service-data
+          - postgresql-data
+          - sqlite-databases
+
+      - id: thunderbay-raid1
+        name: "ThunderBay 4 mini RAID1"
+        type: raid_array
+        raw_capacity: "8TB"
+        usable_capacity: "4TB"
+        used: "2.3TB"
+        raid_level: raid1
+        raid_disks: 2
+        product_id: owc-thunderbay-4-mini
+        read_speed: "560MB/s"
+        write_speed: "530MB/s"
+        purchase_cost: 719.00
+        hosts_datasets:
+          - photos-archive
+          - media-library
+          - hot-storage-sync
+          - project-archives
+          - source-code
+
+      - id: thunderbay-tm-dedicated
+        name: "Dedicated Time Machine SSD"
+        type: external_ssd
+        raw_capacity: "2TB"
+        usable_capacity: "1.8TB"
+        used: "1TB"
+        hosts_datasets:
+          - time-machine-backups
+
+      - id: emergency-recovery
+        name: "Emergency Recovery Drive"
+        type: external_ssd
+        raw_capacity: "1TB"
+        usable_capacity: "900GB"
+        hosts_datasets:
+          - emergency-bootable
+
+  # EU Server - Offsite backup
+  - id: eu-server
+    name: "Dedicated Server EU"
+    type: server
+    status: active
+    location: eu-datacenter
+    power_profile: always_on
+    monthly_cost: 89.00
+    volumes:
+      - id: eu-nvme-boot
+        name: "NVMe Boot/Services"
+        type: nvme
+        raw_capacity: "500GB"
+        usable_capacity: "450GB"
+        read_speed: "3500MB/s"
+        write_speed: "3000MB/s"
+        hosts_datasets:
+          - service-data
+          - postgresql-data
+          - sqlite-databases
+          - working-files
+          - source-code
+
+      - id: eu-hdd-array
+        name: "HDD Archive Array"
+        type: raid_array
+        raw_capacity: "40TB"
+        usable_capacity: "30TB"
+        raid_level: zfs_raidz1
+        raid_disks: 4
+        hosts_datasets:
+          - time-machine-backups
+          - photos-archive
+          - media-library
+          - project-archives
+
+  # Cold Storage - 8TB HDDs (occasional use)
+  - id: hdd-cold-storage
+    name: "Cold Storage Enclosure"
+    type: desktop
+    status: active
+    location: home-office
+    power_profile: on_demand
+    noise_db: 32
+    problems:
+      - "Noisy when running - only use for occasional archive access"
+    volumes:
+      - id: hdd-archive-1
+        name: "IronWolf 8TB #1"
+        type: external_hdd
+        raw_capacity: "8TB"
+        usable_capacity: "7.3TB"
+        product_id: seagate-ironwolf-8tb
+        hosts_datasets:
+          - cold-archives
+
+      - id: hdd-archive-2
+        name: "IronWolf 8TB #2"
+        type: external_hdd
+        raw_capacity: "8TB"
+        usable_capacity: "7.3TB"
+        product_id: seagate-ironwolf-8tb
+        hosts_datasets:
+          - offsite-rotation
+
+# ==============================================================================
+# Network Links
+# ==============================================================================
+links:
+  - id: home-lan
+    node_a: macbook-m4
+    node_b: mac-mini-m4
+    type: lan
+    bandwidth_up: "10Gbps"
+    bandwidth_down: "10Gbps"
+    latency_ms: 1
+
+  - id: thunderbolt-storage
+    node_a: mac-mini-m4
+    node_b: mac-mini-m4
+    type: thunderbolt
+    bandwidth_up: "40Gbps"
+    bandwidth_down: "40Gbps"
+    latency_ms: 0
+
+  - id: mini-to-eu
+    node_a: mac-mini-m4
+    node_b: eu-server
+    type: wan
+    bandwidth_up: "500Mbps"
+    bandwidth_down: "1Gbps"
+    latency_ms: 30
+
+  - id: macbook-to-eu
+    node_a: macbook-m4
+    node_b: eu-server
+    type: wan
+    bandwidth_up: "500Mbps"
+    bandwidth_down: "1Gbps"
+    latency_ms: 30
+
+# ==============================================================================
+# Datasets
+# ==============================================================================
+datasets:
+  # Critical - Real-time sync required
+  - id: working-files
+    name: "Active Working Files"
+    current_size: "50GB"
+    growth_rate: "2GB/month"
+    criticality: critical
+    change_rate: high
+    data_type: documents
+    required_copies: 3
+    required_locations: 2
+    max_rpo: "1h"
+    max_rto: "4h"
+    stored_on:
+      - macbook-internal
+      - thunderbay-raid1
+      - eu-nvme-boot
+    accessible_from:
+      - macbook-m4
+      - mac-mini-m4
+    primary_volume: macbook-internal
+
+  - id: source-code
+    name: "Source Code Repositories"
+    current_size: "20GB"
+    growth_rate: "500MB/month"
+    criticality: critical
+    change_rate: high
+    data_type: code
+    required_copies: 3
+    required_locations: 2
+    max_rpo: "1h"
+    stored_on:
+      - macbook-internal
+      - thunderbay-raid1
+      - eu-nvme-boot
+    accessible_from:
+      - macbook-m4
+    primary_volume: macbook-internal
+
+  - id: service-data
+    name: "Homelab Service Data"
+    current_size: "50GB"
+    growth_rate: "2GB/month"
+    criticality: important
+    change_rate: high
+    data_type: application
+    required_copies: 2
+    required_locations: 2
+    max_rpo: "30m"
+    max_rto: "1h"
+    stored_on:
+      - mini-internal
+      - eu-nvme-boot
+    accessible_from:
+      - mac-mini-m4
+
+  - id: postgresql-data
+    name: "PostgreSQL Databases (Primary + Replica)"
+    current_size: "10GB"
+    growth_rate: "500MB/month"
+    criticality: critical
+    change_rate: realtime
+    data_type: database
+    required_copies: 2
+    required_locations: 2
+    max_rpo: "5m"
+    max_rto: "30m"
+    stored_on:
+      - mini-internal
+      - eu-nvme-boot
+    accessible_from:
+      - mac-mini-m4
+      - eu-server
+
+  - id: sqlite-databases
+    name: "SQLite Databases (Primary + Litestream)"
+    current_size: "5GB"
+    growth_rate: "200MB/month"
+    criticality: critical
+    change_rate: high
+    data_type: database
+    required_copies: 2
+    required_locations: 2
+    max_rpo: "5m"
+    stored_on:
+      - mini-internal
+      - eu-nvme-boot
+    accessible_from:
+      - mac-mini-m4
+      - eu-server
+
+  - id: hot-storage-sync
+    name: "Hot Storage (2TB Sync)"
+    current_size: "800GB"
+    growth_rate: "10GB/month"
+    criticality: important
+    change_rate: high
+    data_type: mixed
+    required_copies: 2
+    required_locations: 1
+    max_rpo: "1h"
+    stored_on:
+      - macbook-lexar-sl400
+      - thunderbay-raid1
+    accessible_from:
+      - macbook-m4
+      - mac-mini-m4
+    primary_volume: macbook-lexar-sl400
+
+  - id: media-library
+    name: "Plex Media Library"
+    current_size: "500GB"
+    growth_rate: "10GB/month"
+    criticality: important
+    change_rate: low
+    data_type: media
+    required_copies: 2
+    required_locations: 2
+    max_rpo: "7d"
+    stored_on:
+      - thunderbay-raid1
+      - eu-hdd-array
+    accessible_from:
+      - mac-mini-m4
+
+  - id: photos-archive
+    name: "Photos Archive"
+    current_size: "800GB"
+    growth_rate: "5GB/month"
+    criticality: critical
+    change_rate: low
+    data_type: photos
+    required_copies: 2
+    required_locations: 2
+    max_rpo: "24h"
+    stored_on:
+      - thunderbay-raid1
+      - eu-hdd-array
+    accessible_from:
+      - mac-mini-m4
+
+  - id: project-archives
+    name: "Completed Project Archives"
+    current_size: "200GB"
+    growth_rate: "5GB/month"
+    criticality: important
+    change_rate: static
+    data_type: archives
+    required_copies: 2
+    required_locations: 2
+    max_rpo: "30d"
+    stored_on:
+      - thunderbay-raid1
+      - eu-hdd-array
+
+  - id: time-machine-backups
+    name: "Time Machine Backups"
+    current_size: "1.5TB"
+    growth_rate: "20GB/month"
+    criticality: important
+    change_rate: medium
+    data_type: backup
+    required_copies: 2
+    required_locations: 2
+    max_rpo: "24h"
+    stored_on:
+      - thunderbay-tm-dedicated
+      - eu-hdd-array
+    accessible_from:
+      - macbook-m4
+      - mac-mini-m4
+
+  - id: cold-archives
+    name: "Cold Archives (HDD)"
+    current_size: "2TB"
+    growth_rate: "1GB/month"
+    criticality: replaceable
+    change_rate: static
+    data_type: archives
+    required_copies: 1
+    required_locations: 1
+    max_rpo: "90d"
+    stored_on:
+      - hdd-archive-1
+
+  - id: offsite-rotation
+    name: "Monthly Offsite Rotation"
+    current_size: "4TB"
+    growth_rate: "5GB/month"
+    criticality: replaceable
+    change_rate: static
+    data_type: backup
+    required_copies: 1
+    required_locations: 1
+    max_rpo: "30d"
+    stored_on:
+      - hdd-archive-2
+
+  - id: emergency-bootable
+    name: "Emergency Recovery Image"
+    current_size: "100GB"
+    growth_rate: "0GB/month"
+    criticality: replaceable
+    change_rate: static
+    data_type: backup
+    required_copies: 1
+    required_locations: 1
+    max_rpo: "90d"
+    stored_on:
+      - emergency-recovery
+
+# ==============================================================================
+# Sync Regimes
+# ==============================================================================
+sync_regimes:
+  - id: hot-storage-resilio
+    dataset: hot-storage-sync
+    source_volume: macbook-lexar-sl400
+    target_volumes:
+      - thunderbay-raid1
+    method: resilio_sync
+    software_id: resilio_sync
+    direction: bidirectional
+    continuous: true
+    achieved_rpo: "30s"
+
+  - id: working-files-sync
+    dataset: working-files
+    source_volume: macbook-internal
+    target_volumes:
+      - thunderbay-raid1
+      - eu-nvme-boot
+    method: resilio_sync
+    software_id: resilio_sync
+    direction: bidirectional
+    continuous: true
+    achieved_rpo: "30s"
+
+  - id: code-sync
+    dataset: source-code
+    source_volume: macbook-internal
+    target_volumes:
+      - eu-nvme-boot
+    method: resilio_sync
+    software_id: resilio_sync
+    direction: bidirectional
+    continuous: true
+    achieved_rpo: "30s"
+
+  - id: postgres-streaming
+    dataset: postgresql-data
+    source_volume: mini-internal
+    target_volumes:
+      - eu-nvme-boot
+    method: postgres_replication
+    software_id: postgres_replication
+    direction: source_to_target
+    continuous: true
+    achieved_rpo: "5m"
+
+  - id: sqlite-litestream
+    dataset: sqlite-databases
+    source_volume: mini-internal
+    target_volumes:
+      - eu-nvme-boot
+    method: litestream
+    software_id: litestream
+    direction: source_to_target
+    continuous: true
+    achieved_rpo: "5m"
+
+  - id: service-data-sync
+    dataset: service-data
+    source_volume: mini-internal
+    target_volumes:
+      - eu-nvme-boot
+    method: rsync
+    software_id: rsync
+    direction: source_to_target
+    schedule: "*/15 * * * *"
+    achieved_rpo: "15m"
+
+  - id: tm-macbook
+    dataset: time-machine-backups
+    source_volume: macbook-internal
+    target_volumes:
+      - thunderbay-tm-dedicated
+    method: time_machine
+    software_id: time_machine
+    direction: source_to_target
+    continuous: true
+    achieved_rpo: "1h"
+
+  - id: tm-offsite
+    dataset: time-machine-backups
+    source_volume: thunderbay-tm-dedicated
+    target_volumes:
+      - eu-hdd-array
+    method: rsync
+    software_id: rsync
+    direction: source_to_target
+    schedule: "0 4 * * *"
+    achieved_rpo: "24h"
+
+  - id: photos-borg
+    dataset: photos-archive
+    source_volume: thunderbay-raid1
+    target_volumes:
+      - eu-hdd-array
+    method: borg
+    software_id: borg
+    direction: source_to_target
+    schedule: "0 3 * * *"
+    achieved_rpo: "24h"
+
+  - id: media-rsync
+    dataset: media-library
+    source_volume: thunderbay-raid1
+    target_volumes:
+      - eu-hdd-array
+    method: rsync
+    software_id: rsync
+    direction: source_to_target
+    schedule: "0 3 * * 0"
+    achieved_rpo: "7d"
+
+  - id: archives-borg
+    dataset: project-archives
+    source_volume: thunderbay-raid1
+    target_volumes:
+      - eu-hdd-array
+    method: borg
+    software_id: borg
+    direction: source_to_target
+    schedule: "0 2 * * 0"
+    achieved_rpo: "7d"
+
+  - id: offsite-rotation-manual
+    dataset: offsite-rotation
+    source_volume: thunderbay-raid1
+    target_volumes:
+      - hdd-archive-2
+    method: manual
+    direction: source_to_target
+    schedule: "monthly"
+    achieved_rpo: "30d"
