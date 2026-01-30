@@ -1,6 +1,48 @@
 # Storage Planner
 
-CLI tool for modeling and analyzing storage/backup topologies. Pure function of YAML inputs.
+CLI tool for **evaluating storage decisions** by modeling and analyzing storage/backup topologies. Pure function of YAML inputs.
+
+## What This Tool Is For
+
+This tool helps you make informed storage decisions by:
+1. **Encoding requirements** - Document constraints, redundancy needs, noise limits, budgets
+2. **Modeling current state** - Capture your existing nodes, volumes, and sync regimes
+3. **Evaluating proposals** - Model "what-if" scenarios before buying hardware
+4. **Running analysis** - Identify gaps in redundancy, capacity runway, RPO misses
+5. **Iterating toward solutions** - Refine proposals based on analysis results
+
+The primary workflow is: **understand requirements → model → analyze → iterate → decide**
+
+## Getting Started (New Session Workflow)
+
+```bash
+# 1. Understand current state
+cat system.yaml                          # Review nodes, volumes, constraints, problems
+.venv/bin/sp analyze all system.yaml     # See current analysis
+
+# 2. Discuss requirements with user
+# - What problems need solving?
+# - What are the constraints (noise, cost, redundancy)?
+# - What decisions have already been made?
+
+# 3. Model proposed changes
+# Create proposals/ files for "what-if" scenarios
+
+# 4. Run analysis on proposals
+.venv/bin/sp validate proposals/option-a.yaml
+.venv/bin/sp analyze all proposals/option-a.yaml --json
+.venv/bin/sp cost proposals/option-a.yaml -c catalog
+
+# 5. Iterate based on results
+# - Redundancy gaps? Add more copies or locations
+# - Capacity concerns? Larger drives or different allocation
+# - Over budget? Explore cheaper hardware options
+
+# 6. Update system.yaml when decisions are made
+# - Add new nodes with status: planned
+# - Mark old nodes with status: deprecated
+# - Record decisions in the decisions section
+```
 
 ## Quick Reference
 

@@ -37,10 +37,10 @@ products:
       tbw: "2880TB"
       warranty_years: 3
       nand_type: "QLC"
-    retail_price: 749.99
+    retail_price: 679.99
     retail_url: "https://www.amazon.com/dp/B089C5P5SX"
     noise_db: 0
-    last_verified: "2025-01-15"
+    last_verified: "2026-01-30"
     notes: "Best for read-heavy archive workloads. QLC fine for backup use."
 
   - id: samsung-870-qvo-4tb
@@ -50,22 +50,20 @@ products:
     category: ssd
     tags:
       - high-capacity
-      - budget-per-tb
       - quiet
       - sata
       - qlc
-      - value
     use_cases:
       - time-machine-target
       - media-archive
       - portable-backup
     pros:
-      - Good price per TB
       - Silent
       - Reliable
     cons:
       - QLC write endurance
       - Slower sustained writes
+      - Prices elevated Jan 2026
     specs:
       capacity: "4TB"
       interface: "SATA"
@@ -75,10 +73,10 @@ products:
       tbw: "1440TB"
       warranty_years: 3
       nand_type: "QLC"
-    retail_price: 299.99
+    retail_price: 368.00
     noise_db: 0
-    last_verified: "2025-01-15"
-    notes: "Sweet spot for backup. Two of these + enclosure cheaper than 8TB."
+    last_verified: "2026-01-30"
+    notes: "Jan 2026 ~$368 (was ~$200 in mid-2023). NAND shortage impact."
 
   - id: samsung-870-evo-4tb
     name: "Samsung 870 EVO 4TB"
@@ -102,8 +100,8 @@ products:
       - 5-year warranty
       - Higher TBW rating
     cons:
-      - More expensive than QVO
-      - Still SATA speeds
+      - Prices elevated Jan 2026
+      - SATA speeds
     specs:
       capacity: "4TB"
       interface: "SATA"
@@ -113,10 +111,10 @@ products:
       tbw: "2400TB"
       warranty_years: 5
       nand_type: "TLC"
-    retail_price: 349.99
+    retail_price: 389.99
     noise_db: 0
-    last_verified: "2025-01-15"
-    notes: "Best reliability for SATA SSDs. Worth premium for write-heavy use."
+    last_verified: "2026-01-30"
+    notes: "Jan 2026 ~$390 (was ~$170 in mid-2023). Best reliability for SATA."
 
   - id: crucial-mx500-4tb
     name: "Crucial MX500 4TB"
@@ -125,7 +123,6 @@ products:
     category: ssd
     tags:
       - high-capacity
-      - value
       - quiet
       - sata
       - tlc
@@ -134,7 +131,6 @@ products:
       - media-archive
       - budget-backup
     pros:
-      - Often cheapest 4TB TLC SSD
       - Good reliability
       - Power-loss protection
     cons:
@@ -149,10 +145,10 @@ products:
       tbw: "1000TB"
       warranty_years: 5
       nand_type: "TLC"
-    retail_price: 209.99
+    retail_price: 280.00
     noise_db: 0
-    last_verified: "2025-01-15"
-    notes: "Best budget 4TB option. TLC reliability at near-QLC price."
+    last_verified: "2026-01-30"
+    notes: "Jan 2026 ~$280 (was ~$165 in mid-2023). Best budget 4TB SATA option."
 
   - id: crucial-t700-4tb
     name: "Crucial T700 4TB"
@@ -406,8 +402,6 @@ products:
     tags:
       - nvme
       - pcie4
-      - budget
-      - value
       - high-capacity
       - quiet
     use_cases:
@@ -415,12 +409,11 @@ products:
       - time-machine-target
       - media-archive
     pros:
-      - Best budget 4TB NVMe
       - Reliable TLC NAND
-      - Beats direct rivals on price
+      - Good endurance (3000 TBW)
     cons:
       - Not fastest sequential
-      - No larger capacity available
+      - Prices elevated Jan 2026
     specs:
       capacity: "4TB"
       interface: "NVMe PCIe 4.0"
@@ -430,10 +423,10 @@ products:
       tbw: "3000TB"
       warranty_years: 5
       nand_type: "TLC"
-    retail_price: 239.99
+    retail_price: 420.99
     noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Value champion for 4TB. Recommended by PC Gamer."
+    last_verified: "2026-01-30"
+    notes: "Jan 2026 ~$421 (was ~$240 in early 2025). NAND shortage impact."
 
   - id: teamgroup-mp44q-2tb
     name: "TeamGroup MP44Q 2TB (QLC)"
@@ -576,7 +569,7 @@ products:
       - Samsung reliability
       - Best 4TB consumer NVMe
     cons:
-      - Premium price
+      - Premium price (elevated Jan 2026)
       - Max 4TB capacity
     specs:
       capacity: "4TB"
@@ -587,10 +580,10 @@ products:
       tbw: "2400TB"
       warranty_years: 5
       nand_type: "TLC"
-    retail_price: 339.99
+    retail_price: 549.99
     noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Buy once cry once for 4TB. Single-sided is rare at this capacity."
+    last_verified: "2026-01-30"
+    notes: "Jan 2026 ~$550 (was ~$340 in early 2025). Sometimes drops to $330 on sale."
 
   - id: wd-black-sn850x-4tb
     name: "WD Black SN850X 4TB"
@@ -605,19 +598,17 @@ products:
       - gaming
       - high-capacity
       - quiet
-      - value
     use_cases:
       - working-drive
       - video-editing
       - gaming
     pros:
-      - Excellent price/performance at 4TB
       - Matches 990 Pro performance
       - Available with heatsink
       - 8TB option available
     cons:
       - Double-sided (thicker)
-      - No heatsink-free option
+      - Prices elevated Jan 2026 due to NAND shortage
     specs:
       capacity: "4TB"
       interface: "NVMe PCIe 4.0"
@@ -627,10 +618,10 @@ products:
       tbw: "2400TB"
       warranty_years: 5
       nand_type: "TLC"
-    retail_price: 249.99
+    retail_price: 764.99
     noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Best value premium 4TB. Cheaper than 990 Pro with similar performance."
+    last_verified: "2026-01-30"
+    notes: "Jan 2026 prices severely elevated due to NAND shortage. Was ~$250 in early 2025."
 
   - id: wd-black-sn850x-8tb
     name: "WD Black SN850X 8TB"
@@ -654,9 +645,9 @@ products:
       - Excellent performance
       - Single drive simplicity
     cons:
-      - Expensive
+      - Very expensive (Jan 2026)
       - Double-sided
-      - Price volatility (AI demand)
+      - Price volatility (NAND shortage)
     specs:
       capacity: "8TB"
       interface: "NVMe PCIe 4.0"
@@ -666,10 +657,10 @@ products:
       tbw: "4800TB"
       warranty_years: 5
       nand_type: "TLC"
-    retail_price: 549.99
+    retail_price: 1119.99
     noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Only premium 8TB NVMe. Prices volatile due to AI demand."
+    last_verified: "2026-01-30"
+    notes: "Jan 2026 ~$1120 (was ~$550 in 2024). NAND shortage until Q4 2027."
 
   - id: crucial-t500-2tb
     name: "Crucial T500 2TB"
@@ -726,11 +717,10 @@ products:
       - mixed-workload
     pros:
       - Good 4TB performance
-      - Reasonable price
       - Solid endurance
     cons:
       - Double-sided
-      - Not cheapest 4TB
+      - Prices elevated Jan 2026
     specs:
       capacity: "4TB"
       interface: "NVMe PCIe 4.0"
@@ -740,10 +730,10 @@ products:
       tbw: "2400TB"
       warranty_years: 5
       nand_type: "TLC"
-    retail_price: 279.99
+    retail_price: 679.00
     noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Middle ground between budget and premium 4TB."
+    last_verified: "2026-01-30"
+    notes: "Jan 2026 ~$679 with heatsink (was ~$280 in early 2025). NAND shortage impact."
 
   # =============================================================================
   # ADDITIONAL PREMIUM M.2 NVMe SSDs
@@ -872,8 +862,6 @@ products:
     tags:
       - nvme
       - pcie4
-      - budget
-      - value
       - single-sided
       - quiet
     use_cases:
@@ -881,7 +869,6 @@ products:
       - gaming
       - budget-backup
     pros:
-      - Excellent price/performance
       - Single-sided at 4TB
       - Good endurance (4000 TBW)
       - PS5 compatible
@@ -897,10 +884,10 @@ products:
       tbw: "4000TB"
       warranty_years: 5
       nand_type: "TLC"
-    retail_price: 219.99
+    retail_price: 230.00
     noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Strong budget competitor. Often on sale around $200."
+    last_verified: "2026-01-30"
+    notes: "Jan 2026 ~$230 (MSRP). Check Costco for deals."
 
   - id: lexar-nm790-8tb
     name: "Lexar NM790 8TB"
@@ -910,8 +897,6 @@ products:
     tags:
       - nvme
       - pcie4
-      - budget
-      - value
       - high-capacity
       - quiet
     use_cases:
@@ -935,10 +920,10 @@ products:
       tbw: "8000TB"
       warranty_years: 5
       nand_type: "TLC"
-    retail_price: 649.99
+    retail_price: 644.00
     noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Cheapest 8TB NVMe option. Great for capacity over speed."
+    last_verified: "2026-01-30"
+    notes: "Jan 2026 ~$644. Most affordable 8TB NVMe option."
 
   - id: silicon-power-ud90-4tb
     name: "Silicon Power UD90 4TB"
@@ -1290,8 +1275,8 @@ products:
     retail_price: 119.99
     noise_db: 0
     aesthetic_notes: "5x5x0.63 inch, aluminum, Mac mini matching"
-    last_verified: "2025-01-29"
-    notes: "SSD not included. Best value Mac mini matching enclosure."
+    last_verified: "2026-01-30"
+    notes: "SSD not included. Use code CES2026 for 20% off through Jan 31."
 
   - id: acasis-tbu405-usb4-nvme
     name: "ACASIS TBU405 USB4 NVMe Enclosure"
@@ -1575,6 +1560,43 @@ products:
     last_verified: "2025-01-15"
     notes: "Best portable SSD for most people."
 
+  - id: samsung-t7-4tb
+    name: "Samsung T7 Portable 4TB"
+    brand: Samsung
+    model: "MU-PC4T0T/AM"
+    category: ssd
+    tags:
+      - portable
+      - compact
+      - quiet
+      - usb-c
+      - travel
+      - high-capacity
+    use_cases:
+      - travel-backup
+      - portable-working-drive
+      - mac-mini-expansion
+      - hot-storage-sync
+    pros:
+      - 4TB in compact form factor
+      - Fast USB 3.2 Gen 2 speeds
+      - Samsung reliability
+      - Hardware encryption
+    cons:
+      - Expensive (Jan 2026 pricing elevated)
+      - USB speeds only (no Thunderbolt)
+    specs:
+      capacity: "4TB"
+      interface: "USB-C 3.2 Gen 2"
+      form_factor: "portable"
+      read_speed: "1050MB/s"
+      write_speed: "1000MB/s"
+    retail_price: 474.00
+    noise_db: 0
+    aesthetic_notes: "Compact, available in gray, blue, red"
+    last_verified: "2026-01-30"
+    notes: "Jan 2026 pricing ~$474. SSD prices elevated due to AI/NAND demand."
+
   - id: samsung-t7-shield-2tb
     name: "Samsung T7 Shield 2TB"
     brand: Samsung
@@ -1645,6 +1667,122 @@ products:
     aesthetic_notes: "Orange loop, rugged design"
     last_verified: "2025-01-15"
     notes: "Highest capacity rugged portable."
+
+  # =============================================================================
+  # HIGH-CAPACITY PORTABLE SSDs (8TB) - Jan 2026 pricing elevated due to AI/NAND
+  # =============================================================================
+
+  - id: samsung-t5-evo-8tb
+    name: "Samsung T5 EVO 8TB"
+    brand: Samsung
+    model: "MU-PH8T0S/AM"
+    category: ssd
+    tags:
+      - portable
+      - high-capacity
+      - quiet
+      - usb-c
+      - value
+    use_cases:
+      - media-archive
+      - cold-storage
+      - travel-backup
+      - offsite-rotation
+    pros:
+      - Largest Samsung portable SSD
+      - Good value per TB for portable
+      - Compact for 8TB
+      - Samsung reliability
+    cons:
+      - USB 3.2 Gen 1 only (460MB/s)
+      - Slower than other portables
+      - QLC NAND (lower endurance)
+    specs:
+      capacity: "8TB"
+      interface: "USB-C 3.2 Gen 1"
+      form_factor: "portable"
+      read_speed: "460MB/s"
+      write_speed: "460MB/s"
+    retail_price: 649.99
+    noise_db: 0
+    aesthetic_notes: "Black, compact rectangular"
+    last_verified: "2026-01-30"
+    notes: "Prices elevated Jan 2026 ($550-715 range). Best for archive/backup where speed matters less."
+
+  - id: sandisk-extreme-8tb
+    name: "SanDisk Extreme Portable 8TB"
+    brand: SanDisk
+    model: "SDSSDE61-8T00"
+    category: ssd
+    tags:
+      - portable
+      - high-capacity
+      - quiet
+      - usb-c
+      - rugged
+      - ip65
+    use_cases:
+      - media-archive
+      - travel-backup
+      - video-editing
+      - field-work
+    pros:
+      - USB 3.2 Gen 2 (1050MB/s)
+      - IP65 dust/water resistant
+      - Carabiner loop
+      - Better speed than T5 EVO
+    cons:
+      - More expensive than T5 EVO
+      - Still not fastest portable
+    specs:
+      capacity: "8TB"
+      interface: "USB-C 3.2 Gen 2"
+      form_factor: "portable"
+      read_speed: "1050MB/s"
+      write_speed: "1000MB/s"
+    retail_price: 649.99
+    noise_db: 0
+    aesthetic_notes: "Orange accent, rugged design"
+    last_verified: "2026-01-30"
+    notes: "Jan 2026 ~$650. Faster than T5 EVO. Good middle ground."
+
+  - id: crucial-x10-8tb
+    name: "Crucial X10 Pro 8TB"
+    brand: Crucial
+    model: "CT8000X10PROSSD9"
+    category: ssd
+    tags:
+      - portable
+      - high-capacity
+      - quiet
+      - usb-c
+      - fast
+    use_cases:
+      - video-editing
+      - working-drive
+      - media-archive
+      - travel-backup
+    pros:
+      - USB 3.2 Gen 2x2 (2100MB/s)
+      - Fastest 8TB portable
+      - IP55 rated
+      - Good build quality
+    cons:
+      - Requires 20Gbps USB-C for full speed
+      - Brand ending Feb 2026 (support uncertain)
+      - Premium price
+    specs:
+      capacity: "8TB"
+      interface: "USB-C 3.2 Gen 2x2"
+      form_factor: "portable"
+      read_speed: "2100MB/s"
+      write_speed: "2000MB/s"
+    retail_price: 799.99
+    noise_db: 0
+    aesthetic_notes: "Navy blue, premium feel"
+    last_verified: "2026-01-30"
+    discontinued: true
+    notes: "Jan 2026 $724-846. Fastest but Crucial brand ending Feb 2026. Buy while available if you need speed."
 
   # =============================================================================
   # PREMIUM EXTERNAL SSDs - Thunderbolt, high-speed

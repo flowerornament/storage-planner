@@ -582,3 +582,38 @@ prices:
     last_updated: "2025-01-29"
     sample_size: 4
     notes: "New pricing. Retail $299.99"
+
+  # =============================================================================
+  # HIGH-CAPACITY PORTABLE SSDs (8TB) - Jan 2026 pricing volatile
+  # =============================================================================
+
+  - product_id: samsung-t5-evo-8tb
+    source: amazon
+    price_low: 550
+    price_mid: 630
+    price_high: 715
+    last_updated: "2026-01-30"
+    sample_size: 5
+    notes: "8TB pricing volatile Jan 2026. AI/NAND demand affecting prices. Often better to buy 2×4TB."
+
+  - product_id: sandisk-extreme-8tb
+    source: amazon
+    price_low: 580
+    price_mid: 650
+    price_high: 720
+    last_updated: "2026-01-30"
+    sample_size: 4
+    notes: "Faster than T5 EVO. Jan 2026 pricing elevated."
+
+  - product_id: crucial-x10-8tb
+    source: amazon
+    price_low: 724
+    price_mid: 780
+    price_high: 846
+    last_updated: "2026-01-30"
+    sample_size: 3
+    notes: "Fastest 8TB portable. Brand ending Feb 2026 - buy while available if needed."
+
+  # Market insight: 8TB single-drive pricing is erratic
+  # 2×4TB NVMe in enclosure often better value than single 8TB portable
+  # Example: 2× TeamGroup MP44 4TB ($480) + OWC Express 4M2 ($240) = $720 for 8TB at faster speeds
