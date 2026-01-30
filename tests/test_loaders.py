@@ -149,3 +149,12 @@ class TestValidateReferences:
         full_topology.datasets[0].stored_on.append("bad3")
         errors = validate_topology_references(full_topology)
         assert len(errors) == 3
+
+    def test_duplicate_ids(self, full_topology):
+        full_topology.nodes[1].id = full_topology.nodes[0].id
+        full_topology.nodes[1].volumes[0].id = full_topology.nodes[0].volumes[0].id
+        full_topology.datasets[1].id = full_topology.datasets[0].id
+        errors = validate_topology_references(full_topology)
+        assert any("Duplicate node ID" in e for e in errors)
+        assert any("Duplicate volume ID" in e for e in errors)
+        assert any("Duplicate dataset ID" in e for e in errors)

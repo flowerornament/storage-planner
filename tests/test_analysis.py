@@ -64,6 +64,7 @@ class TestRpoRtoAnalysis:
         docs = next(r for r in results if r.dataset_id == "docs")
         assert docs.max_rpo == "1h"
         assert docs.achieved_rpo == "30s"
+        assert docs.achieved_rpo_source == "explicit"
         assert docs.rpo_met is True
 
     def test_scheduled_sync_rpo(self, full_topology):
@@ -71,6 +72,7 @@ class TestRpoRtoAnalysis:
 
         backups = next(r for r in results if r.dataset_id == "backups")
         assert backups.achieved_rpo == "24h"
+        assert backups.achieved_rpo_source == "explicit"
         assert backups.rpo_met is True  # 24h <= 24h
 
     def test_no_sync_regime_unknown_rpo(self, full_topology):
@@ -78,7 +80,19 @@ class TestRpoRtoAnalysis:
 
         media = next(r for r in results if r.dataset_id == "media")
         assert media.achieved_rpo is None
+        assert media.achieved_rpo_source == "unknown"
         assert media.rpo_met is None  # Can't determine
+
+    def test_schedule_estimates_rpo_when_missing(self, full_topology):
+        # Remove explicit achieved_rpo; rely on schedule estimate
+        full_topology.sync_regimes[2].achieved_rpo = None
+
+        results = analyze_rpo_rto(full_topology)
+
+        backups = next(r for r in results if r.dataset_id == "backups")
+        assert backups.achieved_rpo == "1d"
+        assert backups.achieved_rpo_source == "estimated"
+        assert backups.rpo_met is True
 
 
 class TestBandwidthAnalysis:
@@ -96,6 +110,7 @@ class TestBandwidthAnalysis:
         assert docs_sync is not None
         assert docs_sync.link_id == "home-wan"
         assert docs_sync.effective_bandwidth == "100Mbps"
+        assert docs_sync.target_volume == "server-raid"
 
     def test_estimates_transfer_time(self, full_topology):
         results = analyze_bandwidth(full_topology)

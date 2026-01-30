@@ -63,23 +63,18 @@ def analyze_capacity(topology: Topology, projection_months: int = 12) -> list[Ca
                     if dataset.growth_rate:
                         growth = parse_growth_rate(dataset.growth_rate)
                         if growth:
-                            value, period = growth
-                            if isinstance(value, float) and value < 100:
-                                # Percentage growth
-                                if period in ("month", "monthly"):
-                                    monthly_growth_bytes += int(
-                                        current_used_bytes * (value / 100)
-                                    )
-                                elif period in ("year", "yearly"):
-                                    monthly_growth_bytes += int(
-                                        current_used_bytes * (value / 100) / 12
-                                    )
+                            value, period, kind = growth
+                            if kind == "percent":
+                                if size:
+                                    if period in ("month", "monthly"):
+                                        monthly_growth_bytes += int(size * (value / 100))
+                                    elif period in ("year", "yearly"):
+                                        monthly_growth_bytes += int(size * (value / 100) / 12)
                             else:
-                                # Absolute growth
                                 if period in ("month", "monthly"):
-                                    monthly_growth_bytes += value
+                                    monthly_growth_bytes += int(value)
                                 elif period in ("year", "yearly"):
-                                    monthly_growth_bytes += value // 12
+                                    monthly_growth_bytes += int(value / 12)
 
             # Override with volume.used if specified
             if volume.used:

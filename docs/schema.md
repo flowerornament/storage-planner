@@ -69,8 +69,8 @@ sync_regimes: [] # List of SyncRegime
   node_a: macbook-m4          # Required, node ID
   node_b: mac-mini-m4         # Required, node ID
   type: lan                   # Optional: lan|wan|vpn|thunderbolt|usb|internal
-  bandwidth_up: "10Gbps"      # Optional
-  bandwidth_down: "10Gbps"    # Optional
+  bandwidth_up: "10Gbps"      # Optional (bits/s: Mbps/Gbps, bytes/s: MB/s/GB/s)
+  bandwidth_down: "10Gbps"    # Optional (bits/s: Mbps/Gbps, bytes/s: MB/s/GB/s)
   latency_ms: 1               # Optional
   availability_percent: 99.9  # Optional
   cost_per_gb: 0.0            # Optional, for metered connections
@@ -115,7 +115,7 @@ sync_regimes: [] # List of SyncRegime
   direction: bidirectional    # Optional: source_to_target|bidirectional
   schedule: "0 2 * * *"       # Optional, cron or description
   continuous: true            # Optional, default false
-  bandwidth_limit: "100MB/s"  # Optional
+  bandwidth_limit: "100MB/s"  # Optional (bits/s: Mbps/Gbps, bytes/s: MB/s/GB/s)
   achieved_rpo: "30s"         # Optional, actual RPO achieved
 ```
 

@@ -7,16 +7,15 @@ import typer
 from rich.table import Table
 
 from storage_planner.loaders import load_topology, load_all_catalogs, ValidationError
-from storage_planner.output import console, print_error
+from storage_planner.output import console, print_error, print_json
 from storage_planner.analysis.cost import analyze_cost
+from storage_planner.cli.paths import resolve_config_path, resolve_catalog_path
 
 
 def cost_cmd(
-    config: Path = typer.Argument(
-        ...,
-        help="Path to topology YAML file",
-        exists=True,
-        readable=True,
+    config: Optional[Path] = typer.Argument(
+        None,
+        help="Path to topology YAML file (defaults to ./topology.yaml)",
     ),
     catalog_dir: Optional[Path] = typer.Option(
         None, "--catalog", "-c", help="Path to catalog directory"
@@ -24,21 +23,32 @@ def cost_cmd(
     power_cost: float = typer.Option(
         0.12, "--power-cost", help="Cost per kWh for power calculations"
     ),
+    json_output: bool = typer.Option(False, "--json", help="Output JSON"),
 ) -> None:
     """Calculate cost breakdown and projections.
 
     Shows monthly operational costs, hardware costs, and 5-year projection.
     """
     try:
-        topology = load_topology(config)
+        config_path = resolve_config_path(config)
+        topology = load_topology(config_path)
 
         # Load catalog if available
         hardware = None
         prices = None
         if catalog_dir:
-            hardware, _, prices = load_all_catalogs(catalog_dir)
+            hardware, _, prices = load_all_catalogs(resolve_catalog_path(catalog_dir))
 
         summary = analyze_cost(topology, hardware, prices, power_cost)
+
+        if json_output:
+            print_json(
+                {
+                    "topology": {"name": topology.name, "path": config_path},
+                    "summary": summary,
+                }
+            )
+            return
 
         console.print(f"[bold]Cost Analysis: {topology.name}[/bold]\n")
 

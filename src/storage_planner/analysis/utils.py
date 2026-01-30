@@ -53,23 +53,27 @@ def format_size(bytes_val: int) -> str:
 
 
 def parse_bandwidth(bw_str: str) -> Optional[int]:
-    """Parse a bandwidth string like '10Gbps', '500Mbps' to bits per second.
+    """Parse a bandwidth string like '10Gbps', '500Mbps', '100MB/s' to bits per second.
 
     Returns None if parsing fails.
     """
     if not bw_str:
         return None
 
-    bw_str = bw_str.strip().upper()
-    # Handle both "BPS" and "B/S" formats
-    bw_str = bw_str.replace("/S", "PS")
+    bw_str = bw_str.strip()
+    has_slash = "/s" in bw_str.lower()
 
-    match = re.match(r"^([\d.]+)\s*([KMGT]?)BPS$", bw_str)
+    match = re.match(
+        r"^([\d.]+)\s*([KMGT]?)\s*([bB])(?:PS|/S)$",
+        bw_str,
+        re.IGNORECASE,
+    )
     if not match:
         return None
 
     value = float(match.group(1))
-    unit = match.group(2)
+    unit = match.group(2).upper()
+    bit_or_byte = match.group(3)
 
     multipliers = {
         "": 1,
@@ -79,7 +83,26 @@ def parse_bandwidth(bw_str: str) -> Optional[int]:
         "T": 1000**4,
     }
 
-    return int(value * multipliers.get(unit, 1))
+    bps = value * multipliers.get(unit, 1)
+    # Treat explicit "/s" with uppercase B as bytes per second; otherwise default to bits.
+    if bit_or_byte == "B" and has_slash:
+        bps *= 8
+
+    return int(bps)
+
+
+def format_bandwidth(bps: int) -> str:
+    """Format bits per second as human-readable string."""
+    if bps < 1000:
+        return f"{bps}bps"
+    elif bps < 1000**2:
+        return f"{bps / 1000:.1f}Kbps"
+    elif bps < 1000**3:
+        return f"{bps / 1000**2:.1f}Mbps"
+    elif bps < 1000**4:
+        return f"{bps / 1000**3:.1f}Gbps"
+    else:
+        return f"{bps / 1000**4:.1f}Tbps"
 
 
 def parse_duration(duration_str: str) -> Optional[int]:
@@ -121,10 +144,10 @@ def format_duration(seconds: int) -> str:
         return f"{seconds // 86400}d"
 
 
-def parse_growth_rate(rate_str: str) -> Optional[tuple[int, str]]:
+def parse_growth_rate(rate_str: str) -> Optional[tuple[float, str, str]]:
     """Parse a growth rate string like '1GB/month', '10%/year'.
 
-    Returns (value_bytes_or_percent, period) or None.
+    Returns (value, period, kind) where kind is "percent" or "absolute".
     """
     if not rate_str:
         return None
@@ -134,13 +157,13 @@ def parse_growth_rate(rate_str: str) -> Optional[tuple[int, str]]:
     # Percentage format: 10%/year
     match = re.match(r"^([\d.]+)%/(\w+)$", rate_str)
     if match:
-        return (float(match.group(1)), match.group(2))
+        return (float(match.group(1)), match.group(2), "percent")
 
     # Absolute format: 1GB/month
     match = re.match(r"^([\d.]+)\s*([kmgtp]?b)/(\w+)$", rate_str)
     if match:
         size_bytes = parse_size(match.group(1) + match.group(2))
         if size_bytes:
-            return (size_bytes, match.group(3))
+            return (float(size_bytes), match.group(3), "absolute")
 
     return None

@@ -2,9 +2,17 @@
 
 from dataclasses import dataclass
 from typing import Optional
+import heapq
+
+import networkx as nx
 
 from storage_planner.models import Topology
-from storage_planner.analysis.utils import parse_size, parse_bandwidth, format_duration
+from storage_planner.analysis.utils import (
+    parse_size,
+    parse_bandwidth,
+    format_duration,
+    format_bandwidth,
+)
 
 
 @dataclass
@@ -15,10 +23,11 @@ class BandwidthResult:
     dataset_id: str
     dataset_size: str
     source_volume: str
-    target_volumes: list[str]
+    target_volume: str
     link_id: Optional[str]  # Link used for transfer
     effective_bandwidth: Optional[str]  # Available bandwidth
     estimated_sync_time: Optional[str]  # Time for full sync
+    estimated_sync_time_seconds: Optional[int]  # Raw seconds, if available
     is_bottleneck: bool
 
 
@@ -50,6 +59,8 @@ def analyze_bandwidth(topology: Topology) -> list[BandwidthResult]:
             "down": link.bandwidth_up,
         }
 
+    graph = _build_bandwidth_graph(topology)
+
     for regime in topology.sync_regimes:
         dataset = topology.get_dataset(regime.dataset)
         if not dataset:
@@ -65,6 +76,7 @@ def analyze_bandwidth(topology: Topology) -> list[BandwidthResult]:
             link_id: Optional[str] = None
             effective_bandwidth: Optional[str] = None
             estimated_time: Optional[str] = None
+            estimated_time_seconds: Optional[int] = None
             is_bottleneck = False
 
             if source_node and target_node:
@@ -75,20 +87,28 @@ def analyze_bandwidth(topology: Topology) -> list[BandwidthResult]:
                     # Estimate based on SSD speeds
                     estimated_time = "fast"
                 else:
-                    # Find link between nodes
-                    link_info = link_map.get((source_node, target_node))
-                    if link_info:
-                        link_id = link_info["id"]
-                        effective_bandwidth = link_info["up"]
+                    # Find widest path between nodes
+                    path_info = _find_widest_path(graph, source_node, target_node)
+                    if path_info:
+                        path_links = path_info["links"]
+                        link_id = " -> ".join(path_links)
+
+                        # Prefer original bandwidth string for direct links
+                        if len(path_links) == 1:
+                            link_info = link_map.get((source_node, target_node))
+                            effective_bandwidth = link_info["up"] if link_info else None
+                        if not effective_bandwidth:
+                            effective_bandwidth = format_bandwidth(path_info["capacity"])
 
                         # Calculate transfer time
                         size_bytes = parse_size(dataset_size)
-                        bw_bps = parse_bandwidth(effective_bandwidth) if effective_bandwidth else None
+                        bw_bps = path_info["capacity"]
 
                         if size_bytes and bw_bps:
                             # Convert bandwidth to bytes per second
                             bw_bytes_per_sec = bw_bps / 8
                             transfer_seconds = int(size_bytes / bw_bytes_per_sec)
+                            estimated_time_seconds = transfer_seconds
                             estimated_time = format_duration(transfer_seconds)
 
                             # Flag as bottleneck if transfer would take > 1 hour
@@ -101,12 +121,88 @@ def analyze_bandwidth(topology: Topology) -> list[BandwidthResult]:
                     dataset_id=regime.dataset,
                     dataset_size=dataset_size,
                     source_volume=regime.source_volume,
-                    target_volumes=regime.target_volumes,
+                    target_volume=target_vol,
                     link_id=link_id,
                     effective_bandwidth=effective_bandwidth,
                     estimated_sync_time=estimated_time,
+                    estimated_sync_time_seconds=estimated_time_seconds,
                     is_bottleneck=is_bottleneck,
                 )
             )
 
     return results
+
+
+def _build_bandwidth_graph(topology: Topology) -> nx.DiGraph:
+    """Build a directed graph with bandwidth capacities for each link direction."""
+    graph = nx.DiGraph()
+    for link in topology.links:
+        if link.bandwidth_up:
+            capacity = parse_bandwidth(link.bandwidth_up)
+            if capacity:
+                graph.add_edge(
+                    link.node_a,
+                    link.node_b,
+                    capacity=capacity,
+                    link_id=link.id,
+                )
+        if link.bandwidth_down:
+            capacity = parse_bandwidth(link.bandwidth_down)
+            if capacity:
+                graph.add_edge(
+                    link.node_b,
+                    link.node_a,
+                    capacity=capacity,
+                    link_id=link.id,
+                )
+    return graph
+
+
+def _find_widest_path(
+    graph: nx.DiGraph, source: str, target: str
+) -> Optional[dict[str, list[str] | int]]:
+    """Find path maximizing the minimum bandwidth (widest path)."""
+    if source not in graph or target not in graph:
+        return None
+
+    best_capacity: dict[str, int] = {source: 10**18}
+    prev_node: dict[str, str] = {}
+    prev_link: dict[str, str] = {}
+    heap: list[tuple[int, str]] = [(-best_capacity[source], source)]
+
+    while heap:
+        neg_cap, node = heapq.heappop(heap)
+        capacity = -neg_cap
+        if node == target:
+            break
+        if capacity < best_capacity.get(node, 0):
+            continue
+        for neighbor, attrs in graph[node].items():
+            edge_cap = attrs.get("capacity")
+            if edge_cap is None:
+                continue
+            new_cap = min(capacity, edge_cap)
+            if new_cap > best_capacity.get(neighbor, 0):
+                best_capacity[neighbor] = new_cap
+                prev_node[neighbor] = node
+                prev_link[neighbor] = attrs.get("link_id")
+                heapq.heappush(heap, (-new_cap, neighbor))
+
+    if target not in best_capacity:
+        return None
+
+    # Reconstruct path
+    nodes: list[str] = [target]
+    links: list[str] = []
+    while nodes[-1] != source:
+        node = nodes[-1]
+        prev = prev_node.get(node)
+        if prev is None:
+            return None
+        links.append(prev_link.get(node, ""))
+        nodes.append(prev)
+
+    nodes.reverse()
+    links.reverse()
+
+    return {"capacity": best_capacity[target], "nodes": nodes, "links": links}

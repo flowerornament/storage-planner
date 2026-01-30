@@ -4,7 +4,9 @@ from dataclasses import dataclass
 from typing import Optional
 
 from storage_planner.models import Topology
-from storage_planner.analysis.utils import parse_duration
+from storage_planner.analysis.utils import parse_duration, format_duration
+from croniter import croniter
+from datetime import datetime
 
 
 @dataclass
@@ -16,8 +18,23 @@ class RpoRtoResult:
     max_rpo: Optional[str]  # Required RPO
     max_rto: Optional[str]  # Required RTO
     achieved_rpo: Optional[str]  # Best achieved RPO from sync regimes
+    achieved_rpo_source: str  # "explicit", "estimated", "unknown"
     rpo_met: Optional[bool]  # None if can't determine
     sync_regimes: list[str]  # Sync regime IDs covering this dataset
+
+
+def _estimate_rpo_from_schedule(schedule: str) -> Optional[int]:
+    """Estimate RPO in seconds from a cron schedule."""
+    if not schedule:
+        return None
+    try:
+        base = datetime(2025, 1, 1, 0, 0, 0)
+        itr = croniter(schedule, base)
+        t1 = itr.get_next(datetime)
+        t2 = itr.get_next(datetime)
+    except Exception:
+        return None
+    return int((t2 - t1).total_seconds())
 
 
 def analyze_rpo_rto(topology: Topology) -> list[RpoRtoResult]:
@@ -36,6 +53,7 @@ def analyze_rpo_rto(topology: Topology) -> list[RpoRtoResult]:
         # Find the best (smallest) achieved RPO
         achieved_rpo: Optional[str] = None
         achieved_rpo_seconds: Optional[int] = None
+        achieved_rpo_source = "unknown"
 
         for regime in regimes:
             if regime.achieved_rpo:
@@ -44,6 +62,14 @@ def analyze_rpo_rto(topology: Topology) -> list[RpoRtoResult]:
                     if achieved_rpo_seconds is None or rpo_sec < achieved_rpo_seconds:
                         achieved_rpo_seconds = rpo_sec
                         achieved_rpo = regime.achieved_rpo
+                        achieved_rpo_source = "explicit"
+            elif regime.schedule:
+                estimated = _estimate_rpo_from_schedule(regime.schedule)
+                if estimated is not None:
+                    if achieved_rpo_seconds is None or estimated < achieved_rpo_seconds:
+                        achieved_rpo_seconds = estimated
+                        achieved_rpo = format_duration(estimated)
+                        achieved_rpo_source = "estimated"
             # Note: We do NOT assume RPO for continuous sync.
             # Users must specify achieved_rpo explicitly.
 
@@ -61,6 +87,7 @@ def analyze_rpo_rto(topology: Topology) -> list[RpoRtoResult]:
                 max_rpo=dataset.max_rpo,
                 max_rto=dataset.max_rto,
                 achieved_rpo=achieved_rpo,
+                achieved_rpo_source=achieved_rpo_source,
                 rpo_met=rpo_met,
                 sync_regimes=regime_ids,
             )

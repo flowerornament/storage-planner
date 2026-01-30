@@ -8,7 +8,7 @@ from rich.table import Table
 from rich.panel import Panel
 
 from storage_planner.loaders import load_all_catalogs, ValidationError
-from storage_planner.output import console, print_error
+from storage_planner.output import console, print_error, print_json
 from storage_planner.models import ProductCategory
 
 app = typer.Typer(no_args_is_help=True)
@@ -31,6 +31,7 @@ def list_cmd(
     tag: Optional[list[str]] = typer.Option(None, "--tag", "-t", help="Filter by tag (can repeat)"),
     use_case: Optional[str] = typer.Option(None, "--use-case", "-u", help="Filter by use case"),
     include_discontinued: bool = typer.Option(False, "--include-discontinued", help="Include discontinued products"),
+    json_output: bool = typer.Option(False, "--json", help="Output JSON"),
 ) -> None:
     """List products in the catalog."""
     try:
@@ -71,7 +72,28 @@ def list_cmd(
             products = [p for p in products if not p.discontinued]
 
         if not products:
+            if json_output:
+                print_json({"products": []})
+                return
             console.print("[dim]No products found[/dim]")
+            return
+
+        if json_output:
+            print_json(
+                {
+                    "products": [
+                        {
+                            "id": p.id,
+                            "name": p.name,
+                            "category": p.category.value,
+                            "retail_price": p.retail_price,
+                            "used_price_mid": (prices.get_best_price(p.id).price_mid if prices.get_best_price(p.id) else None),
+                            "tags": p.tags,
+                        }
+                        for p in products
+                    ]
+                }
+            )
             return
 
         table = Table(title="Hardware Catalog")
@@ -112,6 +134,7 @@ def list_cmd(
 def show_cmd(
     product_id: str = typer.Argument(..., help="Product ID to show"),
     catalog_dir: Optional[Path] = typer.Option(None, "--catalog", "-c", help="Catalog directory"),
+    json_output: bool = typer.Option(False, "--json", help="Output JSON"),
 ) -> None:
     """Show detailed product information."""
     try:
@@ -120,8 +143,20 @@ def show_cmd(
 
         product = hardware.get_product(product_id)
         if not product:
+            if json_output:
+                print_json({"error": f"Product not found: {product_id}"})
             print_error(f"Product not found: {product_id}")
             raise typer.Exit(1)
+
+        if json_output:
+            market_prices = prices.get_for_product(product_id)
+            print_json(
+                {
+                    "product": product,
+                    "market_prices": market_prices,
+                }
+            )
+            return
 
         # Basic info
         console.print(Panel(f"[bold]{product.name}[/bold]", subtitle=product.brand))
@@ -169,6 +204,7 @@ def show_cmd(
 def search_cmd(
     query: str = typer.Argument(..., help="Search query"),
     catalog_dir: Optional[Path] = typer.Option(None, "--catalog", "-c", help="Catalog directory"),
+    json_output: bool = typer.Option(False, "--json", help="Output JSON"),
 ) -> None:
     """Search products by name, brand, or notes."""
     try:
@@ -177,7 +213,14 @@ def search_cmd(
 
         results = hardware.search(query)
         if not results:
+            if json_output:
+                print_json({"query": query, "results": []})
+                return
             console.print(f"[dim]No products matching '{query}'[/dim]")
+            return
+
+        if json_output:
+            print_json({"query": query, "results": results})
             return
 
         table = Table(title=f"Search Results: '{query}'")
@@ -205,6 +248,7 @@ def search_cmd(
 def compare_cmd(
     product_ids: list[str] = typer.Argument(..., help="Product IDs to compare"),
     catalog_dir: Optional[Path] = typer.Option(None, "--catalog", "-c", help="Catalog directory"),
+    json_output: bool = typer.Option(False, "--json", help="Output JSON"),
 ) -> None:
     """Compare products side-by-side."""
     try:
@@ -215,6 +259,8 @@ def compare_cmd(
         for pid in product_ids:
             product = hardware.get_product(pid)
             if not product:
+                if json_output:
+                    print_json({"error": f"Product not found: {pid}"})
                 print_error(f"Product not found: {pid}")
                 raise typer.Exit(1)
             products.append(product)
@@ -223,6 +269,10 @@ def compare_cmd(
         all_specs: set[str] = set()
         for p in products:
             all_specs.update(p.specs.keys())
+
+        if json_output:
+            print_json({"products": products, "spec_keys": sorted(all_specs)})
+            return
 
         # Build comparison table
         table = Table(title="Product Comparison")
@@ -269,6 +319,7 @@ def compare_cmd(
 @app.command("software")
 def software_cmd(
     catalog_dir: Optional[Path] = typer.Option(None, "--catalog", "-c", help="Catalog directory"),
+    json_output: bool = typer.Option(False, "--json", help="Output JSON"),
 ) -> None:
     """List software definitions in the catalog."""
     try:
@@ -276,7 +327,14 @@ def software_cmd(
         _, software, _ = load_all_catalogs(cat_dir)
 
         if not software.software:
+            if json_output:
+                print_json({"software": []})
+                return
             console.print("[dim]No software defined[/dim]")
+            return
+
+        if json_output:
+            print_json({"software": software.software})
             return
 
         table = Table(title="Software Catalog")
@@ -309,6 +367,7 @@ def software_cmd(
 @app.command("summary")
 def summary_cmd(
     catalog_dir: Optional[Path] = typer.Option(None, "--catalog", "-c", help="Catalog directory"),
+    json_output: bool = typer.Option(False, "--json", help="Output JSON"),
 ) -> None:
     """Show catalog summary - what's cached and available."""
     try:
@@ -316,6 +375,16 @@ def summary_cmd(
         hardware, software, prices = load_all_catalogs(cat_dir)
 
         summary = hardware.summary()
+
+        if json_output:
+            print_json(
+                {
+                    "summary": summary,
+                    "software_count": len(software.software),
+                    "priced_products": len(set(p.product_id for p in prices.prices)),
+                }
+            )
+            return
 
         console.print("[bold]Catalog Summary[/bold]\n")
 

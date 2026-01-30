@@ -106,6 +106,34 @@ def validate_topology_references(topology: Topology) -> list[str]:
     all_node_ids = topology.get_all_node_ids()
     all_dataset_ids = {d.id for d in topology.datasets}
 
+    def find_duplicates(values: list[str]) -> set[str]:
+        seen: set[str] = set()
+        dupes: set[str] = set()
+        for value in values:
+            if value in seen:
+                dupes.add(value)
+            else:
+                seen.add(value)
+        return dupes
+
+    # Check for duplicate IDs
+    node_ids = [n.id for n in topology.nodes]
+    volume_ids = [v.id for n in topology.nodes for v in n.volumes]
+    dataset_ids = [d.id for d in topology.datasets]
+    link_ids = [l.id for l in topology.links]
+    sync_ids = [s.id for s in topology.sync_regimes]
+
+    for dup in sorted(find_duplicates(node_ids)):
+        errors.append(f"Duplicate node ID: {dup}")
+    for dup in sorted(find_duplicates(volume_ids)):
+        errors.append(f"Duplicate volume ID: {dup}")
+    for dup in sorted(find_duplicates(dataset_ids)):
+        errors.append(f"Duplicate dataset ID: {dup}")
+    for dup in sorted(find_duplicates(link_ids)):
+        errors.append(f"Duplicate link ID: {dup}")
+    for dup in sorted(find_duplicates(sync_ids)):
+        errors.append(f"Duplicate sync_regime ID: {dup}")
+
     # Check links reference valid nodes
     for link in topology.links:
         if link.node_a not in all_node_ids:

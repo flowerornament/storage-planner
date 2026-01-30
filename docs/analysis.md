@@ -32,7 +32,8 @@ Checks if sync regimes meet recovery point objectives.
 1. For each dataset:
    - Find all sync regimes targeting this dataset
    - Get best `achieved_rpo` (smallest duration)
-   - Continuous regimes assumed ~1 minute RPO
+   - If `achieved_rpo` is missing but a `schedule` is present, estimate RPO from the schedule interval
+   - Continuous regimes are **not** assumed; `achieved_rpo` must be explicitly set
    - Compare against `max_rpo`
 
 **Output:** `RpoRtoResult` with achieved vs required RPO.
@@ -47,12 +48,11 @@ Estimates transfer times and identifies bottlenecks.
 **Algorithm:**
 1. For each sync regime:
    - Find source and target nodes via volume mapping
-   - Find link between nodes
+   - Find widest path between nodes (multi-hop supported)
    - Calculate: `transfer_time = dataset_size / bandwidth`
    - Flag as bottleneck if transfer > 1 hour
 
 **Limitations:**
-- Assumes direct links (no multi-hop routing)
 - Uses raw bandwidth (no overhead calculation)
 - Full sync time (not incremental)
 

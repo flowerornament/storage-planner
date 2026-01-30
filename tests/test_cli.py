@@ -92,6 +92,21 @@ class TestAnalyzeCommand:
         assert result.exit_code == 0
         assert "24 months" in result.stdout
 
+    def test_analyze_quick(self, temp_yaml_dir):
+        result = runner.invoke(
+            app, ["analyze", "quick", str(temp_yaml_dir / "topology.yaml")]
+        )
+        assert result.exit_code == 0
+        assert "Quick Analysis" in result.stdout
+        assert "Insight Summary" in result.stdout
+
+    def test_analyze_json(self, temp_yaml_dir):
+        result = runner.invoke(
+            app, ["analyze", "redundancy", str(temp_yaml_dir / "topology.yaml"), "--json"]
+        )
+        assert result.exit_code == 0
+        assert "\"summary\"" in result.stdout
+
 
 class TestCostCommand:
     """Test cost command."""
@@ -163,6 +178,12 @@ class TestSimulateCommand:
             app, ["simulate", "nonexistent", str(temp_yaml_dir / "topology.yaml")]
         )
         assert result.exit_code == 1
+
+    def test_simulate_diff(self, temp_yaml_dir):
+        topo = str(temp_yaml_dir / "topology.yaml")
+        result = runner.invoke(app, ["simulate", "diff", "laptop", topo, topo])
+        assert result.exit_code == 0
+        assert "Simulation Diff" in result.stdout
 
 
 class TestCatalogCommand:

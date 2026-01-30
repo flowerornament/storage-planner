@@ -26,8 +26,17 @@ sp validate examples/topology.yaml
 # Run full analysis
 sp analyze all examples/topology.yaml
 
+# Run quick summaries (redundancy, RPO/RTO, capacity)
+sp analyze quick examples/topology.yaml
+
+# Compare analysis between two topologies
+sp analyze diff topologies/a.yaml topologies/b.yaml
+
 # Simulate a failure
 sp simulate macbook-m4 examples/topology.yaml
+
+# Compare failure impact between two topologies
+sp simulate diff macbook-m4 topologies/a.yaml topologies/b.yaml
 
 # Browse hardware catalog
 sp catalog summary -c catalog
@@ -35,6 +44,9 @@ sp catalog list --use-case time-machine-target -c catalog
 
 # Compare products
 sp catalog compare samsung-870-qvo-4tb crucial-mx500-4tb -c catalog
+
+# JSON output for agents/tools
+sp analyze redundancy examples/topology.yaml --json
 ```
 
 ## Documentation
@@ -42,6 +54,7 @@ sp catalog compare samsung-870-qvo-4tb crucial-mx500-4tb -c catalog
 - **[AGENTS.md](AGENTS.md)** - Quick reference for agents/users
 - **[docs/schema.md](docs/schema.md)** - YAML schema reference
 - **[docs/analysis.md](docs/analysis.md)** - How analysis works
+- **[docs/cli.md](docs/cli.md)** - CLI reference & JSON output
 - **[docs/extending.md](docs/extending.md)** - Adding features
 - **[docs/research-workflow.md](docs/research-workflow.md)** - Populating the catalog
 

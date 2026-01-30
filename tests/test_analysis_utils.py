@@ -6,6 +6,7 @@ from storage_planner.analysis.utils import (
     parse_size,
     format_size,
     parse_bandwidth,
+    format_bandwidth,
     parse_duration,
     format_duration,
     parse_growth_rate,
@@ -100,10 +101,30 @@ class TestParseBandwidth:
     def test_alternative_format(self):
         assert parse_bandwidth("1Gb/s") == 1_000_000_000
 
+    def test_bytes_per_second(self):
+        assert parse_bandwidth("100MB/s") == 800_000_000
+        assert parse_bandwidth("1GB/s") == 8_000_000_000
+
     def test_invalid(self):
         assert parse_bandwidth("") is None
         assert parse_bandwidth("invalid") is None
         assert parse_bandwidth("100bytes") is None
+
+
+class TestFormatBandwidth:
+    """Test bandwidth formatting."""
+
+    def test_bits(self):
+        assert format_bandwidth(500) == "500bps"
+
+    def test_kilobits(self):
+        assert format_bandwidth(1_000) == "1.0Kbps"
+
+    def test_megabits(self):
+        assert format_bandwidth(100_000_000) == "100.0Mbps"
+
+    def test_gigabits(self):
+        assert format_bandwidth(1_000_000_000) == "1.0Gbps"
 
 
 class TestParseDuration:
@@ -161,25 +182,27 @@ class TestParseGrowthRate:
 
     def test_percentage_monthly(self):
         result = parse_growth_rate("10%/month")
-        assert result == (10.0, "month")
+        assert result == (10.0, "month", "percent")
 
     def test_percentage_yearly(self):
         result = parse_growth_rate("25%/year")
-        assert result == (25.0, "year")
+        assert result == (25.0, "year", "percent")
 
     def test_absolute_monthly(self):
         result = parse_growth_rate("1GB/month")
         assert result is not None
-        value, period = result
+        value, period, kind = result
         assert value == 1024**3
         assert period == "month"
+        assert kind == "absolute"
 
     def test_absolute_yearly(self):
         result = parse_growth_rate("10TB/year")
         assert result is not None
-        value, period = result
+        value, period, kind = result
         assert value == 10 * 1024**4
         assert period == "year"
+        assert kind == "absolute"
 
     def test_invalid(self):
         assert parse_growth_rate("") is None

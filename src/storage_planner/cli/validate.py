@@ -1,6 +1,7 @@
 """Validate command for storage planner."""
 
 from pathlib import Path
+from typing import Optional
 
 import typer
 
@@ -10,15 +11,14 @@ from storage_planner.analysis.completeness import (
     format_completeness_report,
     IssueSeverity,
 )
-from storage_planner.output import console, print_error, print_success, print_warning
+from storage_planner.output import console, print_error, print_success, print_warning, print_json
+from storage_planner.cli.paths import resolve_config_path
 
 
 def validate_cmd(
-    config: Path = typer.Argument(
-        ...,
-        help="Path to topology YAML file",
-        exists=True,
-        readable=True,
+    config: Optional[Path] = typer.Argument(
+        None,
+        help="Path to topology YAML file (defaults to ./topology.yaml)",
     ),
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show detailed output"),
     strict: bool = typer.Option(
@@ -27,6 +27,7 @@ def validate_cmd(
         "-s",
         help="Check for complete explicit configuration (no implicit assumptions)",
     ),
+    json_output: bool = typer.Option(False, "--json", help="Output JSON"),
 ) -> None:
     """Validate a topology configuration file.
 
@@ -37,23 +38,56 @@ def validate_cmd(
     """
     try:
         # Load and validate schema
-        topology = load_topology(config)
-        if verbose:
+        config_path = resolve_config_path(config)
+        topology = load_topology(config_path)
+        if verbose and not json_output:
             console.print(f"[dim]Loaded topology: {topology.name}[/dim]")
 
         # Validate references
         ref_errors = validate_topology_references(topology)
 
         if ref_errors:
-            print_warning(f"Found {len(ref_errors)} referential integrity issue(s):")
-            for err in ref_errors:
-                console.print(f"  [yellow]•[/yellow] {err}")
+            if not json_output:
+                print_warning(f"Found {len(ref_errors)} referential integrity issue(s):")
+                for err in ref_errors:
+                    console.print(f"  [yellow]•[/yellow] {err}")
+            if json_output:
+                print_json(
+                    {
+                        "valid": False,
+                        "errors": ref_errors,
+                        "completeness": None,
+                    }
+                )
             raise typer.Exit(1)
 
         # Completeness validation (strict mode or always show if errors)
         completeness_report = validate_completeness(topology)
 
-        if strict or completeness_report.has_errors:
+        if json_output and completeness_report.has_errors:
+            print_json(
+                {
+                    "valid": False,
+                    "path": config_path,
+                    "errors": [],
+                    "completeness": {
+                        "is_complete": False,
+                        "issues": [
+                            {
+                                "severity": i.severity.value,
+                                "location": i.location,
+                                "field": i.field,
+                                "message": i.message,
+                                "suggestion": i.suggestion,
+                            }
+                            for i in completeness_report.issues
+                        ],
+                    },
+                }
+            )
+            raise typer.Exit(1)
+
+        if (strict or completeness_report.has_errors) and not json_output:
             if not completeness_report.is_complete:
                 console.print()
                 console.print(format_completeness_report(completeness_report))
@@ -71,8 +105,38 @@ def validate_cmd(
                         "(use explicit values for reproducible analysis)"
                     )
 
+        if json_output:
+            total_volumes = sum(len(n.volumes) for n in topology.nodes)
+            print_json(
+                {
+                    "valid": True,
+                    "path": config_path,
+                    "counts": {
+                        "nodes": len(topology.nodes),
+                        "links": len(topology.links),
+                        "datasets": len(topology.datasets),
+                        "sync_regimes": len(topology.sync_regimes),
+                        "volumes": total_volumes,
+                    },
+                    "completeness": {
+                        "is_complete": completeness_report.is_complete,
+                        "issues": [
+                            {
+                                "severity": i.severity.value,
+                                "location": i.location,
+                                "field": i.field,
+                                "message": i.message,
+                                "suggestion": i.suggestion,
+                            }
+                            for i in completeness_report.issues
+                        ],
+                    },
+                }
+            )
+            return
+
         # Summary
-        print_success(f"Valid: {config}")
+        print_success(f"Valid: {config_path}")
         console.print(f"  Nodes: {len(topology.nodes)}")
         console.print(f"  Links: {len(topology.links)}")
         console.print(f"  Datasets: {len(topology.datasets)}")
@@ -87,4 +151,6 @@ def validate_cmd(
         print_error(e.message)
         for err in e.errors:
             console.print(f"  [red]•[/red] {err}")
+        if json_output:
+            print_json({"valid": False, "errors": [e.message] + e.errors})
         raise typer.Exit(1)
