@@ -73,6 +73,8 @@ pytest
 
 **Note for agents:** In non-interactive shells, `source .venv/bin/activate` may not put `sp` on PATH. Use `.venv/bin/sp` or `.venv/bin/python -m pytest` directly instead.
 
+**Environment:** Python is installed via nix. See `~/.nix-config` for system configuration.
+
 ## Landing the Plane (Session Completion)
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
