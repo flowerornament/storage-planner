@@ -41,14 +41,24 @@ constraints:
   min_important_data_copies: 2
   min_locations_for_critical: 2  # Base requirement; irreplaceables explicitly set to 3
   max_noise_db_home: 30
-  local_storage_budget: "4TB"  # Hard cap - will manage by deleting, not expanding
+  local_storage_budget: "8TB"  # Replacing 8TB NAS (3.8TB used) - need headroom for growth
   hardware_budget: 1000  # USD, one-time
   local_redundancy: false  # Offsite copies (EU + Google) sufficient; no RAID needed
 
 # ==============================================================================
 # Problems - Active issues to solve
 # ==============================================================================
-problems: []
+problems:
+  - id: replace-synology-nas
+    title: "Replace Synology DS224+ NAS"
+    status: active
+    description: |
+      Current Synology DS224+ with 2×8TB RAID1 (7TB usable, 3.8TB used) needs
+      replacement. NAS is too loud for home office and too slow (weak CPU, HDD).
+      Mac mini M4 + external SSD will replace it as storage hub.
+    affects:
+      - mac-mini-m4
+    discovered: "2025-01-29"
 
 # ==============================================================================
 # Decisions - Institutional knowledge
@@ -69,9 +79,9 @@ decisions:
       - "QNAP silent NAS"
       - "RAID1 for local redundancy (rejected: cost, offsite sufficient)"
     hardware_options:
-      - "4TB portable SSD (~$250-300)"
-      - "8TB portable SSD (~$550-650, more headroom)"
-      - "4TB NVMe in USB4 enclosure (~$270, faster)"
+      - "8TB portable SSD (Samsung T5 EVO ~$650, SanDisk Extreme ~$650)"
+      - "8TB NVMe + enclosure (Lexar NM790 8TB ~$644 + enclosure ~$55-120)"
+      - "2×4TB NVMe in multi-bay enclosure (if RAID1 wanted later)"
 
   - date: "2026-01-30"
     title: "No local RAID - offsite is the redundancy"
@@ -176,15 +186,15 @@ nodes:
           - sqlite-databases
 
       - id: mini-storage
-        name: "External Storage"
+        name: "External Storage (NAS Replacement)"
         type: external_ssd
-        raw_capacity: "4TB"
-        usable_capacity: "3.6TB"
-        used: "2.4TB"  # Measured: ~2.4TB (vault 1.19TB + sync 1.14TB + misc)
+        raw_capacity: "8TB"
+        usable_capacity: "7.3TB"
+        used: "3.8TB"  # Measured: Total NAS usage from Synology
         # product_id: TBD - single SSD, no RAID (offsite provides redundancy)
         read_speed: "1000MB/s"  # Typical USB 3.2 Gen 2 portable SSD
         write_speed: "1000MB/s"
-        # purchase_cost: ~$474 for Samsung T7 4TB, or ~$350 for Lexar NM790 4TB + Satechi enclosure
+        # Replaces: Synology DS224+ with 2×8TB RAID1
         hosts_datasets:
           - photos-archive
           - media-library

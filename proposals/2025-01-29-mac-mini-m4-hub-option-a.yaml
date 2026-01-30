@@ -8,15 +8,15 @@ description: |
 constraints:
   # Cost constraints
   max_monthly_cost: 150.00
-  power_cost_per_kwh: 0.12  # US average; adjust for your location
+  power_cost_per_kwh: 0.12 # US average; adjust for your location
 
   # Redundancy requirements (explicit - no defaults)
-  min_critical_data_copies: 3      # Critical data needs 3 copies
-  min_important_data_copies: 2     # Important data needs 2 copies
-  min_locations_for_critical: 2    # Critical data in 2+ locations
+  min_critical_data_copies: 3 # Critical data needs 3 copies
+  min_important_data_copies: 2 # Important data needs 2 copies
+  min_locations_for_critical: 2 # Critical data in 2+ locations
 
   # Environment constraints
-  max_noise_db_home: 30  # Strict - prioritizing silent operation
+  max_noise_db_home: 30 # Strict - prioritizing silent operation
 
 nodes:
   # ============================================================================
@@ -63,7 +63,7 @@ nodes:
     power_profile: always_on
     power_watts_idle: 5
     power_watts_active: 25
-    noise_db: 0  # Fanless in most conditions
+    noise_db: 0 # Fanless in most conditions
     volumes:
       # Internal SSD - Services and databases
       - id: mini-internal
@@ -86,13 +86,13 @@ nodes:
         type: raid_array
         raw_capacity: "8TB"
         usable_capacity: "4TB"
-        used: "2.3TB"  # Current actual usage
+        used: "2.3TB" # Current actual usage
         raid_level: raid1
         raid_disks: 2
         product_id: owc-thunderbay-4-mini
         read_speed: "560MB/s"
         write_speed: "530MB/s"
-        purchase_cost: 719.00  # $299 enclosure + 2x $210 drives
+        purchase_cost: 719.00 # $299 enclosure + 2x $210 drives
         hosts_datasets:
           - photos-archive
           - media-library
@@ -106,7 +106,7 @@ nodes:
         type: external_ssd
         raw_capacity: "2TB"
         usable_capacity: "1.8TB"
-        used: "1TB"  # Initial TM backup after setup
+        used: "1TB" # Initial TM backup after setup
         hosts_datasets:
           - time-machine-backups
 
@@ -138,8 +138,8 @@ nodes:
         write_speed: "3000MB/s"
         hosts_datasets:
           - service-data
-          - postgresql-data    # Replica target
-          - sqlite-databases   # Litestream target
+          - postgresql-data # Replica target
+          - sqlite-databases # Litestream target
           - working-files
           - source-code
 
@@ -163,8 +163,8 @@ nodes:
     name: "Cold Storage Enclosure"
     type: desktop
     location: home-office
-    power_profile: on_demand  # Only spin up when accessing archives
-    noise_db: 32  # Noisy when running, but rarely on
+    power_profile: on_demand # Only spin up when accessing archives
+    noise_db: 32 # Noisy when running, but rarely on
     volumes:
       - id: hdd-archive-1
         name: "IronWolf 8TB #1"
@@ -198,7 +198,7 @@ links:
 
   - id: thunderbolt-storage
     node_a: mac-mini-m4
-    node_b: mac-mini-m4  # Internal connection to ThunderBay
+    node_b: mac-mini-m4 # Internal connection to ThunderBay
     type: thunderbolt
     bandwidth_up: "40Gbps"
     bandwidth_down: "40Gbps"
@@ -257,7 +257,7 @@ datasets:
     max_rpo: "1h"
     stored_on:
       - macbook-internal
-      - thunderbay-raid1  # Added: local backup copy
+      - thunderbay-raid1 # Added: local backup copy
       - eu-nvme-boot
     accessible_from:
       - macbook-m4
@@ -269,12 +269,12 @@ datasets:
     name: "Homelab Service Data"
     current_size: "50GB"
     growth_rate: "2GB/month"
-    criticality: important  # Not critical since databases have their own replication
+    criticality: important # Not critical since databases have their own replication
     change_rate: high
     data_type: application
     required_copies: 2
     required_locations: 2
-    max_rpo: "30m"  # Adjusted to match achievable RPO with rsync
+    max_rpo: "30m" # Adjusted to match achievable RPO with rsync
     max_rto: "1h"
     stored_on:
       - mini-internal
@@ -291,13 +291,13 @@ datasets:
     criticality: critical
     change_rate: realtime
     data_type: database
-    required_copies: 2  # Primary + hot standby
+    required_copies: 2 # Primary + hot standby
     required_locations: 2
     max_rpo: "5m"
     max_rto: "30m"
     stored_on:
-      - mini-internal      # Primary
-      - eu-nvme-boot       # Streaming replica
+      - mini-internal # Primary
+      - eu-nvme-boot # Streaming replica
     accessible_from:
       - mac-mini-m4
       - eu-server
@@ -309,12 +309,12 @@ datasets:
     criticality: critical
     change_rate: high
     data_type: database
-    required_copies: 2  # Primary + Litestream replica
+    required_copies: 2 # Primary + Litestream replica
     required_locations: 2
     max_rpo: "5m"
     stored_on:
-      - mini-internal      # Primary
-      - eu-nvme-boot       # Litestream WAL shipping
+      - mini-internal # Primary
+      - eu-nvme-boot # Litestream WAL shipping
     accessible_from:
       - mac-mini-m4
       - eu-server
@@ -362,7 +362,7 @@ datasets:
     criticality: critical
     change_rate: low
     data_type: photos
-    required_copies: 2  # RAID1 counts as 1 logical copy; adjusted to match
+    required_copies: 2 # RAID1 counts as 1 logical copy; adjusted to match
     required_locations: 2
     max_rpo: "24h"
     stored_on:
@@ -421,7 +421,7 @@ datasets:
     name: "Monthly Offsite Rotation"
     current_size: "4TB"
     growth_rate: "5GB/month"
-    criticality: replaceable  # It's a backup of other data, not primary
+    criticality: replaceable # It's a backup of other data, not primary
     change_rate: static
     data_type: backup
     required_copies: 1
@@ -434,7 +434,7 @@ datasets:
     name: "Emergency Recovery Image"
     current_size: "100GB"
     growth_rate: "0GB/month"
-    criticality: replaceable  # Can be recreated from scratch
+    criticality: replaceable # Can be recreated from scratch
     change_rate: static
     data_type: backup
     required_copies: 1
@@ -517,7 +517,7 @@ sync_regimes:
     method: rsync
     software_id: rsync
     direction: source_to_target
-    schedule: "*/15 * * * *"  # Every 15 minutes
+    schedule: "*/15 * * * *" # Every 15 minutes
     achieved_rpo: "15m"
 
   # Time Machine
@@ -540,7 +540,7 @@ sync_regimes:
     method: rsync
     software_id: rsync
     direction: source_to_target
-    schedule: "0 4 * * *"  # Daily at 4am
+    schedule: "0 4 * * *" # Daily at 4am
     achieved_rpo: "24h"
 
   # Photos backup
@@ -552,7 +552,7 @@ sync_regimes:
     method: borg
     software_id: borg
     direction: source_to_target
-    schedule: "0 3 * * *"  # Daily at 3am
+    schedule: "0 3 * * *" # Daily at 3am
     achieved_rpo: "24h"
 
   # Media backup
@@ -564,7 +564,7 @@ sync_regimes:
     method: rsync
     software_id: rsync
     direction: source_to_target
-    schedule: "0 3 * * 0"  # Weekly on Sunday at 3am
+    schedule: "0 3 * * 0" # Weekly on Sunday at 3am
     achieved_rpo: "7d"
 
   # Archives backup
@@ -576,7 +576,7 @@ sync_regimes:
     method: borg
     software_id: borg
     direction: source_to_target
-    schedule: "0 2 * * 0"  # Weekly on Sunday at 2am
+    schedule: "0 2 * * 0" # Weekly on Sunday at 2am
     achieved_rpo: "7d"
 
   # Monthly offsite rotation (manual)
@@ -588,4 +588,3 @@ sync_regimes:
     method: manual
     direction: source_to_target
     schedule: "monthly"
-    achieved_rpo: "30d"

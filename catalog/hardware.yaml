@@ -483,12 +483,12 @@ products:
       - media-archive
       - budget-backup
     pros:
-      - Cheapest 4TB NVMe
       - Single-sided at 4TB
       - Decent performance
     cons:
       - QLC write endurance
       - Lower TBW rating
+      - Prices elevated Jan 2026
     specs:
       capacity: "4TB"
       interface: "NVMe PCIe 4.0"
@@ -498,9 +498,10 @@ products:
       tbw: "720TB"
       warranty_years: 3
       nand_type: "QLC"
-    retail_price: 219.99
+    retail_price: 373.00
     noise_db: 0
-    last_verified: "2025-01-29"
+    last_verified: "2026-01-30"
+    notes: "Jan 2026 $373 (Newegg sale) - $433 (list). Often out of stock."
     notes: "Best for cold storage. QLC trade-off for price."
 
   # =============================================================================
@@ -884,10 +885,10 @@ products:
       tbw: "4000TB"
       warranty_years: 5
       nand_type: "TLC"
-    retail_price: 230.00
+    retail_price: 420.00
     noise_db: 0
     last_verified: "2026-01-30"
-    notes: "Jan 2026 ~$230 (MSRP). Check Costco for deals."
+    notes: "Jan 2026 $420 (Micro Center) - $551 (Newegg). NAND shortage impact."
 
   - id: lexar-nm790-8tb
     name: "Lexar NM790 8TB"
@@ -1682,7 +1683,6 @@ products:
       - high-capacity
       - quiet
       - usb-c
-      - value
     use_cases:
       - media-archive
       - cold-storage
@@ -1690,24 +1690,24 @@ products:
       - offsite-rotation
     pros:
       - Largest Samsung portable SSD
-      - Good value per TB for portable
       - Compact for 8TB
       - Samsung reliability
     cons:
       - USB 3.2 Gen 1 only (460MB/s)
       - Slower than other portables
       - QLC NAND (lower endurance)
+      - Prices elevated Jan 2026
     specs:
       capacity: "8TB"
       interface: "USB-C 3.2 Gen 1"
       form_factor: "portable"
       read_speed: "460MB/s"
       write_speed: "460MB/s"
-    retail_price: 649.99
+    retail_price: 715.00
     noise_db: 0
     aesthetic_notes: "Black, compact rectangular"
     last_verified: "2026-01-30"
-    notes: "Prices elevated Jan 2026 ($550-715 range). Best for archive/backup where speed matters less."
+    notes: "Jan 2026 $715 (Samsung.com) - $900 (Newegg). Often out of stock."
 
   - id: sandisk-extreme-8tb
     name: "SanDisk Extreme Portable 8TB"
@@ -2757,3 +2757,226 @@ products:
     aesthetic_notes: "Slim aluminum, space gray"
     last_verified: "2025-01-29"
     notes: "High capacity portable option."
+
+  - id: orico-minitower-m435
+    name: "ORICO MiniTower M435 Hybrid Storage"
+    brand: ORICO
+    model: "M435"
+    category: enclosure
+    tags:
+      - mac-mini-stand
+      - hybrid
+      - nvme
+      - sata
+      - hdd
+      - raid
+      - usb-hub
+    use_cases:
+      - mac-mini-expansion
+      - nas-replacement
+      - hybrid-storage
+      - hdd-reuse
+    pros:
+      - Combines NVMe + 2x SATA in one unit
+      - RAID support (RAID0/1/JBOD) for SATA bays
+      - Reuse existing HDDs
+      - USB hub + SD card reader included
+      - Compact tower design
+    cons:
+      - 10Gbps max (USB, not Thunderbolt)
+      - HDDs will be audible when active
+      - Requires multiple drive types
+    specs:
+      bays: 3
+      interface: "USB-C 3.2 Gen 2 (10Gbps)"
+      nvme_slots: 1
+      sata_bays: 2
+      max_capacity_per_bay: "20TB (SATA), 4TB (NVMe)"
+      form_factor: "Tower"
+      m4_mini_compatible: true
+      raid_support:
+        - JBOD
+        - RAID0
+        - RAID1
+      ports:
+        - "1x USB-A 3.2 (10Gbps)"
+        - "3x USB-A 2.0 (480Mbps)"
+        - "2x SD/TF card readers"
+    retail_price: 109.99
+    retail_url: "https://oricotechs.com/collections/mac-mini/products/minitower-hybrid-storage-system"
+    noise_db: 0
+    aesthetic_notes: "Silver aluminum, tower design"
+    last_verified: "2026-01-30"
+    notes: "Hybrid NVMe+HDD solution. Great for reusing existing HDDs while adding fast NVMe cache."
+
+  # =============================================================================
+  # 4-BAY RAID ENCLOSURES - For mixed SSD/HDD setups
+  # =============================================================================
+
+  - id: mediasonic-hfr7-su31ch
+    name: "Mediasonic ProRaid 4-Bay USB 3.2"
+    brand: Mediasonic
+    model: "HFR7-SU31CH"
+    category: enclosure
+    tags:
+      - 4-bay
+      - raid
+      - usb-c
+      - 3.5-inch
+      - 2.5-inch
+    use_cases:
+      - nas-replacement
+      - hdd-reuse
+      - hybrid-storage
+      - backup-array
+    pros:
+      - USB 3.2 Gen 2 (10Gbps)
+      - Hardware RAID controller
+      - Daisy chain support
+      - Supports 2.5" with bracket
+    cons:
+      - Fan noise when active
+      - External power required
+      - 3.5" form factor (bulky)
+    specs:
+      bays: 4
+      interface: "USB-C 3.2 Gen 2 (10Gbps)"
+      max_capacity_per_bay: "30TB"
+      form_factor: "3.5in (2.5in with bracket)"
+      raid_support:
+        - Single
+        - RAID0
+        - RAID1
+      daisy_chain: true
+    retail_price: 149.99
+    retail_url: "https://mediasonicstore.com/products/mediasonic-raid-4-bay-3-5-sata-hard-drive-enclosure-usb-3-1-gen-2-10gbps-usb-3-1-hub-usb-type-c-hfr7-su31ch"
+    noise_db: 30
+    last_verified: "2026-01-30"
+    notes: "Solid 4-bay option. Can mix SSDs and HDDs. Fan runs when powered."
+
+  - id: maiwo-k35274d-4bay
+    name: "MAIWO 4-Bay RAID Enclosure"
+    brand: MAIWO
+    model: "K35274D"
+    category: enclosure
+    tags:
+      - 4-bay
+      - raid
+      - usb-c
+      - 3.5-inch
+      - 2.5-inch
+      - budget
+    use_cases:
+      - nas-replacement
+      - hdd-reuse
+      - hybrid-storage
+      - backup-array
+    pros:
+      - 8 RAID modes
+      - Supports 2.5" and 3.5" drives
+      - Dual cooling fans
+      - Budget-friendly
+    cons:
+      - USB 3.1 Gen 1 (5Gbps) only
+      - Fan noise
+      - External power required
+    specs:
+      bays: 4
+      interface: "USB-C 3.1 Gen 1 (5Gbps)"
+      max_capacity_per_bay: "24TB"
+      form_factor: "3.5in / 2.5in"
+      raid_support:
+        - Normal
+        - RAID0
+        - RAID1
+        - RAID3
+        - RAID5
+        - RAID10
+        - Clone
+        - JBOD
+    retail_price: 129.99
+    noise_db: 35
+    last_verified: "2026-01-30"
+    notes: "Budget 4-bay option. Good for backup arrays where speed isn't critical."
+
+  - id: owc-mercury-elite-pro-quad
+    name: "OWC Mercury Elite Pro Quad"
+    brand: OWC
+    model: "MEQCTJB000"
+    category: enclosure
+    tags:
+      - 4-bay
+      - usb-c
+      - 3.5-inch
+      - 2.5-inch
+      - raid
+      - owc
+      - quality
+    use_cases:
+      - nas-replacement
+      - hdd-reuse
+      - hybrid-storage
+      - backup-array
+      - video-editing
+    pros:
+      - Mix 2.5" SSDs and 3.5" HDDs freely
+      - OWC build quality
+      - USB-C 10Gbps (plenty for SATA/HDD)
+      - SoftRAID available ($150 more)
+      - Quiet operation
+    cons:
+      - USB not Thunderbolt
+      - Fan noise under load
+      - External power brick
+    specs:
+      bays: 4
+      interface: "USB-C 3.2 Gen 2 (10Gbps)"
+      max_capacity_per_bay: "24TB"
+      form_factor: "3.5in / 2.5in universal"
+      raid_support:
+        - JBOD
+        - RAID0
+        - RAID1
+        - RAID4
+        - RAID5
+        - RAID10
+    retail_price: 219.99
+    retail_url: "https://eshop.macsales.com/shop/owc-mercury-elite-pro-quad/raid-5"
+    noise_db: 25
+    last_verified: "2026-01-30"
+    notes: "Best value OWC 4-bay. $220 without SoftRAID, $370 with. Mix SSDs and HDDs."
+
+  - id: sabrent-usbc-sata-enclosure
+    name: "Sabrent USB-C 2.5\" SATA Enclosure"
+    brand: Sabrent
+    model: "EC-UASP"
+    category: enclosure
+    tags:
+      - single-bay
+      - usb-c
+      - 2.5-inch
+      - budget
+      - passive
+      - compact
+    use_cases:
+      - portable-backup
+      - simple-enclosure
+      - ssd-housing
+    pros:
+      - Cheap and simple
+      - Tool-free installation
+      - Passive cooling (silent)
+      - Compact
+    cons:
+      - Single drive only
+      - No RAID
+      - Basic plastic construction
+    specs:
+      bays: 1
+      interface: "USB-C 3.2 (5Gbps)"
+      max_capacity_per_bay: "8TB"
+      form_factor: "2.5in"
+    retail_price: 19.99
+    noise_db: 0
+    last_verified: "2026-01-30"
+    notes: "Dead simple. Perfect for single SSD backup drive."
