@@ -3,15 +3,47 @@ version: "1.0"
 description: |
   Personal storage system centered around Mac mini M4 as always-on hub.
   ThunderBay 4 mini provides RAID1 local storage, EU server for offsite.
-updated: "2025-01-30"
+updated: "2026-01-30"
+
+# ==============================================================================
+# Measured Data (from Synology Storage Analyzer 2026-01-30)
+# ==============================================================================
+# Total NAS usage: 3.8 TB / 7 TB (2×8TB RAID1)
+#
+# homes share by file type (2.4TB total):
+#   Pictures: 903 GB
+#   Videos:   761 GB
+#   Audio:    608 GB
+#   Other:    333 GB (documents, archives, etc.)
+#
+# vault/ (hot storage) - 1.19TB:
+#   Photos:     616 GB (irreplaceable)
+#   Video:      224 GB (RAW, irreplaceable)
+#   Recordings: 125 GB (irreplaceable)
+#   Libraries:  112 GB (replaceable with effort)
+#   Downloads:   69 GB (temporary)
+#   Samples:     42 GB (replaceable with effort)
+#
+# sync/ (archival storage) - ~1.14TB:
+#   Production: 716 GB (samples, projects, acapellas)
+#   Media:      371 GB (films, music, books - replaceable)
+#   Projects:    26 GB (code repos, critical)
+#   Reference:  352 MB (documents)
+#   Archive:    TBD (historical)
+#   Downloads:  small
+#
+# Ishikawa Time Machine backup: 827 GB
 
 constraints:
-  max_monthly_cost: 150.00
+  max_monthly_cost: 140.00  # €125 Seedhost + ~$12 Google Workspace 2TB
   power_cost_per_kwh: 0.12
-  min_critical_data_copies: 3
+  min_critical_data_copies: 3  # 3 copies for irreplaceables (local + EU + cloud)
   min_important_data_copies: 2
-  min_locations_for_critical: 2
+  min_locations_for_critical: 2  # Base requirement; irreplaceables explicitly set to 3
   max_noise_db_home: 30
+  local_storage_budget: "4TB"  # Hard cap - will manage by deleting, not expanding
+  hardware_budget: 1000  # USD, one-time
+  local_redundancy: false  # Offsite copies (EU + Google) sufficient; no RAID needed
 
 # ==============================================================================
 # Problems - Active issues to solve
@@ -25,15 +57,62 @@ decisions:
   - date: "2025-01-29"
     title: "Mac mini M4 as storage hub"
     choice: |
-      Use Mac mini M4 as always-on hub with OWC ThunderBay 4 mini
-      enclosure containing 2x Crucial MX500 4TB in RAID1.
+      Use Mac mini M4 as always-on hub with external SSD storage.
+      Single drive (no RAID) - offsite copies provide redundancy.
     rationale: |
       Silent operation priority for home office. Mac mini fanless in most
       conditions, matches aesthetic, serves as homelab server.
+      Local RAID1 too expensive given offsite redundancy already exists
+      (EU server + Google Drive).
     alternatives_considered:
       - "Keep Synology NAS in closet with long cables"
       - "QNAP silent NAS"
-      - "Build custom mini-ITX server"
+      - "RAID1 for local redundancy (rejected: cost, offsite sufficient)"
+    hardware_options:
+      - "4TB portable SSD (~$250-300)"
+      - "8TB portable SSD (~$550-650, more headroom)"
+      - "4TB NVMe in USB4 enclosure (~$270, faster)"
+
+  - date: "2026-01-30"
+    title: "No local RAID - offsite is the redundancy"
+    choice: |
+      Single SSD locally, rely on offsite copies for redundancy.
+    rationale: |
+      Local RAID1 doubles drive cost for protection against drive failure.
+      But with nightly backups to EU server + cloud backup to Google Drive,
+      a local drive failure means at most 24h of data loss and a few hours
+      of restore time. That's acceptable for the cost savings.
+
+      Protection layers:
+      1. EU server: nightly rsync/borg (RAIDZ1 on server side)
+      2. Google Drive: daily photos, 6-hourly database dumps
+      3. Versioning via Borg for point-in-time recovery
+
+      Local drive failure recovery: restore from EU server over WAN.
+    alternatives_considered:
+      - "RAID1 for instant local recovery (rejected: ~$250 extra for marginal benefit)"
+      - "Keep 3 local copies (rejected: same cost concern)"
+
+  - date: "2026-01-30"
+    title: "Google Drive for irreplaceable data"
+    choice: |
+      Add Google Workspace 2TB as 3rd location for irreplaceable data:
+      photos-archive, postgresql-data, sqlite-databases.
+      Use rclone for scheduled sync (daily photos, 6-hourly databases).
+    rationale: |
+      True 3-location protection for irreplaceable data covers the
+      "simultaneous loss of home + EU datacenter" scenario. Cloud backup
+      via Google provides:
+      - Different infrastructure provider (not self-hosted)
+      - Geographic redundancy (Google's multi-region)
+      - Enables downgrade from 5TB to 2TB plan (cost savings)
+
+      Working-files and source-code remain 2-location because:
+      - High change rate makes cloud sync expensive/slow
+      - Source code has implicit redundancy via git remotes (GitHub)
+    alternatives_considered:
+      - "Backblaze B2 (~$5/TB/mo) - cheaper but less integrated"
+      - "Keep 5TB Google plan - unnecessary, 2TB sufficient"
 
 # ==============================================================================
 # Nodes
@@ -65,7 +144,7 @@ nodes:
         type: external_ssd
         raw_capacity: "2TB"
         usable_capacity: "1.8TB"
-        used: "800GB"
+        used: "1.19TB"  # Measured: vault folder total
         product_id: lexar-sl400-2tb
         read_speed: "1050MB/s"
         write_speed: "1000MB/s"
@@ -96,18 +175,16 @@ nodes:
           - postgresql-data
           - sqlite-databases
 
-      - id: thunderbay-raid1
-        name: "ThunderBay 4 mini RAID1"
-        type: raid_array
-        raw_capacity: "8TB"
-        usable_capacity: "4TB"
-        used: "2.3TB"
-        raid_level: raid1
-        raid_disks: 2
-        product_id: owc-thunderbay-4-mini
-        read_speed: "560MB/s"
-        write_speed: "530MB/s"
-        purchase_cost: 719.00
+      - id: mini-storage
+        name: "External Storage"
+        type: external_ssd
+        raw_capacity: "4TB"
+        usable_capacity: "3.6TB"
+        used: "2.4TB"  # Measured: ~2.4TB (vault 1.19TB + sync 1.14TB + misc)
+        # product_id: TBD - single SSD, no RAID (offsite provides redundancy)
+        read_speed: "1000MB/s"  # Typical USB 3.2 Gen 2 portable SSD
+        write_speed: "1000MB/s"
+        # purchase_cost: ~$474 for Samsung T7 4TB, or ~$350 for Lexar NM790 4TB + Satechi enclosure
         hosts_datasets:
           - photos-archive
           - media-library
@@ -115,12 +192,13 @@ nodes:
           - project-archives
           - source-code
 
-      - id: thunderbay-tm-dedicated
-        name: "Dedicated Time Machine SSD"
+      - id: mini-tm-drive
+        name: "Time Machine Drive"
         type: external_ssd
         raw_capacity: "2TB"
         usable_capacity: "1.8TB"
-        used: "1TB"
+        used: "827GB"  # Measured: current TM backup size
+        # Could be separate drive or partition on RAID enclosure
         hosts_datasets:
           - time-machine-backups
 
@@ -132,20 +210,26 @@ nodes:
         hosts_datasets:
           - emergency-bootable
 
-  # EU Server - Offsite backup
+  # EU Server - Offsite backup (Seedhost TG 40TN)
   - id: eu-server
-    name: "Dedicated Server EU"
+    name: "Seedhost TG 40TN (NL)"
     type: server
     status: active
     location: eu-datacenter
     power_profile: always_on
-    monthly_cost: 89.00
+    monthly_cost: 125.00  # €125/mo
+    notes: |
+      Seedhost TG 40TN plan:
+      - 2× Xeon Gold 5118 (24c/48t total @ 2.3GHz)
+      - 64GB RAM
+      - 2TB NVMe SSD + 4×10TB HDD
+      - 100TB monthly traffic
     volumes:
       - id: eu-nvme-boot
         name: "NVMe Boot/Services"
         type: nvme
-        raw_capacity: "500GB"
-        usable_capacity: "450GB"
+        raw_capacity: "2TB"
+        usable_capacity: "1.8TB"
         read_speed: "3500MB/s"
         write_speed: "3000MB/s"
         hosts_datasets:
@@ -156,7 +240,7 @@ nodes:
           - source-code
 
       - id: eu-hdd-array
-        name: "HDD Archive Array"
+        name: "HDD Archive Array (4×10TB)"
         type: raid_array
         raw_capacity: "40TB"
         usable_capacity: "30TB"
@@ -167,6 +251,26 @@ nodes:
           - photos-archive
           - media-library
           - project-archives
+
+  # Google Drive - Cloud backup for irreplaceables
+  - id: google-drive
+    name: "Google Workspace"
+    type: cloud
+    status: active
+    location: cloud-google
+    power_profile: always_on
+    monthly_cost: 12.00  # Google Workspace 2TB tier (potential downgrade from 5TB)
+    volumes:
+      - id: gdrive-backup
+        name: "Google Drive Backup"
+        type: cloud
+        raw_capacity: "2TB"
+        usable_capacity: "2TB"
+        used: "915GB"  # Calculated: photos 900GB + postgres 10GB + sqlite 5GB
+        hosts_datasets:
+          - photos-archive
+          - postgresql-data
+          - sqlite-databases
 
   # Cold Storage - 8TB HDDs (occasional use)
   - id: hdd-cold-storage
@@ -233,6 +337,14 @@ links:
     bandwidth_down: "1Gbps"
     latency_ms: 30
 
+  - id: mini-to-gdrive
+    node_a: mac-mini-m4
+    node_b: google-drive
+    type: wan
+    bandwidth_up: "500Mbps"
+    bandwidth_down: "1Gbps"
+    latency_ms: 50
+
 # ==============================================================================
 # Datasets
 # ==============================================================================
@@ -241,17 +353,17 @@ datasets:
   - id: working-files
     name: "Active Working Files"
     current_size: "50GB"
-    growth_rate: "2GB/month"
+    growth_rate: "0GB/month"
     criticality: critical
     change_rate: high
     data_type: documents
     required_copies: 3
-    required_locations: 2
+    required_locations: 2  # 2 locations OK - high change rate makes cloud sync impractical
     max_rpo: "1h"
     max_rto: "4h"
     stored_on:
       - macbook-internal
-      - thunderbay-raid1
+      - mini-storage
       - eu-nvme-boot
     accessible_from:
       - macbook-m4
@@ -260,17 +372,17 @@ datasets:
 
   - id: source-code
     name: "Source Code Repositories"
-    current_size: "20GB"
-    growth_rate: "500MB/month"
+    current_size: "26GB"  # Measured: sync/Projects
+    growth_rate: "0GB/month"
     criticality: critical
     change_rate: high
     data_type: code
     required_copies: 3
-    required_locations: 2
+    required_locations: 2  # 2 locations OK - git remotes (GitHub) provide additional redundancy
     max_rpo: "1h"
     stored_on:
       - macbook-internal
-      - thunderbay-raid1
+      - mini-storage
       - eu-nvme-boot
     accessible_from:
       - macbook-m4
@@ -279,7 +391,7 @@ datasets:
   - id: service-data
     name: "Homelab Service Data"
     current_size: "50GB"
-    growth_rate: "2GB/month"
+    growth_rate: "0GB/month"
     criticality: important
     change_rate: high
     data_type: application
@@ -296,17 +408,18 @@ datasets:
   - id: postgresql-data
     name: "PostgreSQL Databases (Primary + Replica)"
     current_size: "10GB"
-    growth_rate: "500MB/month"
+    growth_rate: "0GB/month"
     criticality: critical
     change_rate: realtime
     data_type: database
-    required_copies: 2
-    required_locations: 2
+    required_copies: 3
+    required_locations: 3  # local + EU + cloud
     max_rpo: "5m"
     max_rto: "30m"
     stored_on:
       - mini-internal
       - eu-nvme-boot
+      - gdrive-backup
     accessible_from:
       - mac-mini-m4
       - eu-server
@@ -314,33 +427,35 @@ datasets:
   - id: sqlite-databases
     name: "SQLite Databases (Primary + Litestream)"
     current_size: "5GB"
-    growth_rate: "200MB/month"
+    growth_rate: "0GB/month"
     criticality: critical
     change_rate: high
     data_type: database
-    required_copies: 2
-    required_locations: 2
+    required_copies: 3
+    required_locations: 3  # local + EU + cloud
     max_rpo: "5m"
     stored_on:
       - mini-internal
       - eu-nvme-boot
+      - gdrive-backup
     accessible_from:
       - mac-mini-m4
       - eu-server
 
   - id: hot-storage-sync
-    name: "Hot Storage (2TB Sync)"
-    current_size: "800GB"
-    growth_rate: "10GB/month"
+    name: "Hot Storage (vault folder)"
+    current_size: "1.19TB"  # Measured: Photos 616GB + Video 224GB + Recordings 125GB + Libraries 112GB + Downloads 69GB + Samples 42GB
+    growth_rate: "0GB/month"  # Managed manually within 4TB budget
     criticality: important
     change_rate: high
     data_type: mixed
-    required_copies: 2
-    required_locations: 1
+    required_copies: 3
+    required_locations: 2  # home + EU datacenter
     max_rpo: "1h"
     stored_on:
       - macbook-lexar-sl400
-      - thunderbay-raid1
+      - mini-storage
+      - eu-hdd-array
     accessible_from:
       - macbook-m4
       - mac-mini-m4
@@ -348,8 +463,8 @@ datasets:
 
   - id: media-library
     name: "Plex Media Library"
-    current_size: "500GB"
-    growth_rate: "10GB/month"
+    current_size: "371GB"  # Measured: sync/Media (films, music, books)
+    growth_rate: "0GB/month"  # Managed manually within 4TB budget
     criticality: important
     change_rate: low
     data_type: media
@@ -357,31 +472,32 @@ datasets:
     required_locations: 2
     max_rpo: "7d"
     stored_on:
-      - thunderbay-raid1
+      - mini-storage
       - eu-hdd-array
     accessible_from:
       - mac-mini-m4
 
   - id: photos-archive
     name: "Photos Archive"
-    current_size: "800GB"
-    growth_rate: "5GB/month"
+    current_size: "900GB"  # Measured: 903GB Pictures (vault/Photos: 616GB)
+    growth_rate: "0GB/month"  # Managed manually within 4TB budget
     criticality: critical
     change_rate: low
     data_type: photos
-    required_copies: 2
-    required_locations: 2
+    required_copies: 3
+    required_locations: 3  # local + EU + cloud
     max_rpo: "24h"
     stored_on:
-      - thunderbay-raid1
+      - mini-storage
       - eu-hdd-array
+      - gdrive-backup
     accessible_from:
       - mac-mini-m4
 
   - id: project-archives
     name: "Completed Project Archives"
-    current_size: "200GB"
-    growth_rate: "5GB/month"
+    current_size: "716GB"  # Measured: sync/Production (samples, projects, acapellas)
+    growth_rate: "0GB/month"  # Managed manually within 4TB budget
     criticality: important
     change_rate: static
     data_type: archives
@@ -389,13 +505,13 @@ datasets:
     required_locations: 2
     max_rpo: "30d"
     stored_on:
-      - thunderbay-raid1
+      - mini-storage
       - eu-hdd-array
 
   - id: time-machine-backups
     name: "Time Machine Backups"
-    current_size: "1.5TB"
-    growth_rate: "20GB/month"
+    current_size: "827GB"  # Measured: 827GB on Synology
+    growth_rate: "0GB/month"  # TM manages its own retention
     criticality: important
     change_rate: medium
     data_type: backup
@@ -403,7 +519,7 @@ datasets:
     required_locations: 2
     max_rpo: "24h"
     stored_on:
-      - thunderbay-tm-dedicated
+      - mini-tm-drive
       - eu-hdd-array
     accessible_from:
       - macbook-m4
@@ -412,7 +528,7 @@ datasets:
   - id: cold-archives
     name: "Cold Archives (HDD)"
     current_size: "2TB"
-    growth_rate: "1GB/month"
+    growth_rate: "0GB/month"
     criticality: replaceable
     change_rate: static
     data_type: archives
@@ -425,7 +541,7 @@ datasets:
   - id: offsite-rotation
     name: "Monthly Offsite Rotation"
     current_size: "4TB"
-    growth_rate: "5GB/month"
+    growth_rate: "0GB/month"  # Managed manually within 4TB budget
     criticality: replaceable
     change_rate: static
     data_type: backup
@@ -456,7 +572,7 @@ sync_regimes:
     dataset: hot-storage-sync
     source_volume: macbook-lexar-sl400
     target_volumes:
-      - thunderbay-raid1
+      - mini-storage
     method: resilio_sync
     software_id: resilio_sync
     direction: bidirectional
@@ -467,7 +583,7 @@ sync_regimes:
     dataset: working-files
     source_volume: macbook-internal
     target_volumes:
-      - thunderbay-raid1
+      - mini-storage
       - eu-nvme-boot
     method: resilio_sync
     software_id: resilio_sync
@@ -523,7 +639,7 @@ sync_regimes:
     dataset: time-machine-backups
     source_volume: macbook-internal
     target_volumes:
-      - thunderbay-tm-dedicated
+      - mini-tm-drive
     method: time_machine
     software_id: time_machine
     direction: source_to_target
@@ -532,7 +648,7 @@ sync_regimes:
 
   - id: tm-offsite
     dataset: time-machine-backups
-    source_volume: thunderbay-tm-dedicated
+    source_volume: mini-tm-drive
     target_volumes:
       - eu-hdd-array
     method: rsync
@@ -543,7 +659,7 @@ sync_regimes:
 
   - id: photos-borg
     dataset: photos-archive
-    source_volume: thunderbay-raid1
+    source_volume: mini-storage
     target_volumes:
       - eu-hdd-array
     method: borg
@@ -554,7 +670,7 @@ sync_regimes:
 
   - id: media-rsync
     dataset: media-library
-    source_volume: thunderbay-raid1
+    source_volume: mini-storage
     target_volumes:
       - eu-hdd-array
     method: rsync
@@ -565,7 +681,7 @@ sync_regimes:
 
   - id: archives-borg
     dataset: project-archives
-    source_volume: thunderbay-raid1
+    source_volume: mini-storage
     target_volumes:
       - eu-hdd-array
     method: borg
@@ -576,10 +692,58 @@ sync_regimes:
 
   - id: offsite-rotation-manual
     dataset: offsite-rotation
-    source_volume: thunderbay-raid1
+    source_volume: mini-storage
     target_volumes:
       - hdd-archive-2
     method: manual
     direction: source_to_target
     schedule: "monthly"
     achieved_rpo: "30d"
+
+  # Cloud backups to Google Drive (3rd location)
+  - id: photos-gdrive
+    dataset: photos-archive
+    source_volume: mini-storage
+    target_volumes:
+      - gdrive-backup
+    method: rclone
+    software_id: rclone
+    direction: source_to_target
+    schedule: "0 5 * * *"  # Daily at 5am
+    achieved_rpo: "24h"
+
+  - id: postgres-gdrive
+    dataset: postgresql-data
+    source_volume: mini-internal
+    target_volumes:
+      - gdrive-backup
+    method: rclone
+    software_id: rclone
+    direction: source_to_target
+    schedule: "0 */6 * * *"  # Every 6 hours
+    achieved_rpo: "6h"
+    notes: "pg_dump exports, not live replication"
+
+  - id: sqlite-gdrive
+    dataset: sqlite-databases
+    source_volume: mini-internal
+    target_volumes:
+      - gdrive-backup
+    method: rclone
+    software_id: rclone
+    direction: source_to_target
+    schedule: "0 */6 * * *"  # Every 6 hours
+    achieved_rpo: "6h"
+    notes: "Litestream snapshots synced to cloud"
+
+  - id: hot-storage-offsite
+    dataset: hot-storage-sync
+    source_volume: mini-storage
+    target_volumes:
+      - eu-hdd-array
+    method: rsync
+    software_id: rsync
+    direction: source_to_target
+    schedule: "0 2 * * *"  # Daily at 2am
+    achieved_rpo: "24h"
+    notes: "Offsite backup of hot storage for disaster recovery"
