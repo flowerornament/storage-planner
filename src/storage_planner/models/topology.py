@@ -1,17 +1,17 @@
 """Topology models for storage planner."""
 
-from typing import Optional
+
 from pydantic import BaseModel, Field
 
 from storage_planner.models.enums import (
-    NodeType,
-    VolumeType,
-    LinkType,
-    Criticality,
     ChangeRate,
-    SyncMethod,
-    SyncDirection,
+    Criticality,
+    LinkType,
+    NodeType,
     PowerProfile,
+    SyncDirection,
+    SyncMethod,
+    VolumeType,
 )
 
 
@@ -19,18 +19,18 @@ class Volume(BaseModel):
     """A storage volume attached to a node."""
 
     id: str
-    name: Optional[str] = None
+    name: str | None = None
     type: VolumeType
     raw_capacity: str  # e.g., "8TB", "500GB"
-    usable_capacity: Optional[str] = None
-    used: Optional[str] = None
-    raid_level: Optional[str] = None  # e.g., "zfs_raidz1", "raid5"
-    raid_disks: Optional[int] = None
-    read_speed: Optional[str] = None  # e.g., "560MB/s"
-    write_speed: Optional[str] = None
-    purchase_cost: Optional[float] = None
-    purchase_date: Optional[str] = None
-    product_id: Optional[str] = None  # Reference to hardware catalog
+    usable_capacity: str | None = None
+    used: str | None = None
+    raid_level: str | None = None  # e.g., "zfs_raidz1", "raid5"
+    raid_disks: int | None = None
+    read_speed: str | None = None  # e.g., "560MB/s"
+    write_speed: str | None = None
+    purchase_cost: float | None = None
+    purchase_date: str | None = None
+    product_id: str | None = None  # Reference to hardware catalog
     hosts_datasets: list[str] = Field(default_factory=list)
 
 
@@ -40,13 +40,13 @@ class Node(BaseModel):
     id: str
     name: str
     type: NodeType
-    location: Optional[str] = None
-    power_profile: Optional[PowerProfile] = None
-    uptime: Optional[str] = None  # e.g., "24/7", "8h/day"
-    noise_db: Optional[float] = None
-    power_watts_idle: Optional[float] = None
-    power_watts_active: Optional[float] = None
-    monthly_cost: Optional[float] = None  # Hosting/operational cost
+    location: str | None = None
+    power_profile: PowerProfile | None = None
+    uptime: str | None = None  # e.g., "24/7", "8h/day"
+    noise_db: float | None = None
+    power_watts_idle: float | None = None
+    power_watts_active: float | None = None
+    monthly_cost: float | None = None  # Hosting/operational cost
     volumes: list[Volume] = Field(default_factory=list)
 
 
@@ -57,11 +57,11 @@ class Link(BaseModel):
     node_a: str  # Node ID
     node_b: str  # Node ID
     type: LinkType = LinkType.LAN
-    bandwidth_up: Optional[str] = None  # e.g., "10Gbps", "500Mbps"
-    bandwidth_down: Optional[str] = None
-    latency_ms: Optional[float] = None
-    availability_percent: Optional[float] = None
-    cost_per_gb: Optional[float] = None  # For metered connections
+    bandwidth_up: str | None = None  # e.g., "10Gbps", "500Mbps"
+    bandwidth_down: str | None = None
+    latency_ms: float | None = None
+    availability_percent: float | None = None
+    cost_per_gb: float | None = None  # For metered connections
 
 
 class Dataset(BaseModel):
@@ -70,18 +70,18 @@ class Dataset(BaseModel):
     id: str
     name: str
     current_size: str  # e.g., "50GB"
-    growth_rate: Optional[str] = None  # e.g., "1GB/month", "10%/year"
+    growth_rate: str | None = None  # e.g., "1GB/month", "10%/year"
     criticality: Criticality = Criticality.IMPORTANT
     change_rate: ChangeRate = ChangeRate.MEDIUM
-    data_type: Optional[str] = None  # e.g., "documents", "photos", "database"
+    data_type: str | None = None  # e.g., "documents", "photos", "database"
     required_copies: int = 2
     required_locations: int = 1
-    max_rpo: Optional[str] = None  # e.g., "1h", "24h", "7d"
-    max_rto: Optional[str] = None  # Recovery time objective
+    max_rpo: str | None = None  # e.g., "1h", "24h", "7d"
+    max_rto: str | None = None  # Recovery time objective
     stored_on: list[str] = Field(default_factory=list)  # Volume IDs
     accessible_from: list[str] = Field(default_factory=list)  # Node IDs
-    primary_volume: Optional[str] = None  # For transparent switching
-    fallback_volume: Optional[str] = None
+    primary_volume: str | None = None  # For transparent switching
+    fallback_volume: str | None = None
 
 
 class SyncRegime(BaseModel):
@@ -92,12 +92,12 @@ class SyncRegime(BaseModel):
     source_volume: str  # Volume ID
     target_volumes: list[str]  # Volume IDs
     method: SyncMethod
-    software_id: Optional[str] = None  # Reference to software catalog
+    software_id: str | None = None  # Reference to software catalog
     direction: SyncDirection = SyncDirection.SOURCE_TO_TARGET
-    schedule: Optional[str] = None  # Cron expression or description
+    schedule: str | None = None  # Cron expression or description
     continuous: bool = False
-    bandwidth_limit: Optional[str] = None  # e.g., "100MB/s"
-    achieved_rpo: Optional[str] = None  # Actual RPO achieved
+    bandwidth_limit: str | None = None  # e.g., "100MB/s"
+    achieved_rpo: str | None = None  # Actual RPO achieved
 
 
 class Constraints(BaseModel):
@@ -108,16 +108,16 @@ class Constraints(BaseModel):
     """
 
     # Cost constraints
-    max_monthly_cost: Optional[float] = None
-    power_cost_per_kwh: Optional[float] = None  # e.g., 0.12 for $0.12/kWh
+    max_monthly_cost: float | None = None
+    power_cost_per_kwh: float | None = None  # e.g., 0.12 for $0.12/kWh
 
     # Redundancy constraints (defaults shown - override for your requirements)
-    min_critical_data_copies: Optional[int] = None  # No default - must be explicit
-    min_important_data_copies: Optional[int] = None  # No default - must be explicit
-    min_locations_for_critical: Optional[int] = None  # No default - must be explicit
+    min_critical_data_copies: int | None = None  # No default - must be explicit
+    min_important_data_copies: int | None = None  # No default - must be explicit
+    min_locations_for_critical: int | None = None  # No default - must be explicit
 
     # Environment constraints
-    max_noise_db_home: Optional[float] = None
+    max_noise_db_home: float | None = None
 
 
 class Topology(BaseModel):
@@ -125,21 +125,21 @@ class Topology(BaseModel):
 
     name: str
     version: str = "1.0"
-    description: Optional[str] = None
+    description: str | None = None
     constraints: Constraints = Field(default_factory=Constraints)
     nodes: list[Node] = Field(default_factory=list)
     links: list[Link] = Field(default_factory=list)
     datasets: list[Dataset] = Field(default_factory=list)
     sync_regimes: list[SyncRegime] = Field(default_factory=list)
 
-    def get_node(self, node_id: str) -> Optional[Node]:
+    def get_node(self, node_id: str) -> Node | None:
         """Get a node by ID."""
         for node in self.nodes:
             if node.id == node_id:
                 return node
         return None
 
-    def get_volume(self, volume_id: str) -> Optional[tuple[Node, Volume]]:
+    def get_volume(self, volume_id: str) -> tuple[Node, Volume] | None:
         """Get a volume by ID, returns (node, volume) tuple."""
         for node in self.nodes:
             for volume in node.volumes:
@@ -147,14 +147,14 @@ class Topology(BaseModel):
                     return (node, volume)
         return None
 
-    def get_dataset(self, dataset_id: str) -> Optional[Dataset]:
+    def get_dataset(self, dataset_id: str) -> Dataset | None:
         """Get a dataset by ID."""
         for dataset in self.datasets:
             if dataset.id == dataset_id:
                 return dataset
         return None
 
-    def get_link(self, link_id: str) -> Optional[Link]:
+    def get_link(self, link_id: str) -> Link | None:
         """Get a link by ID."""
         for link in self.links:
             if link.id == link_id:

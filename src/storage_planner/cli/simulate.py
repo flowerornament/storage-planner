@@ -1,28 +1,27 @@
 """Simulate command for storage planner."""
 
 from pathlib import Path
-from typing import Optional
 
 import typer
-from rich.table import Table
 from rich.panel import Panel
+from rich.table import Table
 
-from storage_planner.loaders import load_topology, ValidationError
-from storage_planner.output import console, print_error, print_warning, print_json
 from storage_planner.analysis.failure_sim import simulate_node_failure, simulate_volume_failure
-from storage_planner.models import Criticality
 from storage_planner.cli.paths import resolve_config_path
+from storage_planner.loaders import ValidationError, load_topology
+from storage_planner.models import Criticality
+from storage_planner.output import console, print_error, print_json, print_warning
 
 
 def simulate_cmd(
     mode: str = typer.Argument(..., help="Node/volume ID, or 'diff' for comparison"),
-    arg1: Optional[str] = typer.Argument(
+    arg1: str | None = typer.Argument(
         None, help="Topology path, or entity ID when using 'diff'"
     ),
-    arg2: Optional[str] = typer.Argument(
+    arg2: str | None = typer.Argument(
         None, help="Baseline topology path when using 'diff'"
     ),
-    arg3: Optional[str] = typer.Argument(
+    arg3: str | None = typer.Argument(
         None, help="Comparison topology path when using 'diff'"
     ),
     entity_type: str = typer.Option(
@@ -49,7 +48,7 @@ def simulate_cmd(
 
 def _run_simulation(
     entity: str,
-    config: Optional[Path],
+    config: Path | None,
     entity_type: str,
     json_output: bool,
 ) -> None:

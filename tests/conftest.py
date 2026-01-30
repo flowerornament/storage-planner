@@ -1,34 +1,35 @@
 """Shared test fixtures."""
 
-import pytest
-from pathlib import Path
 import tempfile
+from pathlib import Path
+
+import pytest
 import yaml
 
 from storage_planner.models import (
-    Topology,
-    Node,
-    Volume,
-    Link,
-    Dataset,
-    SyncRegime,
-    Constraints,
-    NodeType,
-    VolumeType,
-    LinkType,
-    Criticality,
     ChangeRate,
-    SyncMethod,
-    SyncDirection,
-    PowerProfile,
+    Constraints,
+    Criticality,
+    Dataset,
     HardwareCatalog,
+    Link,
+    LinkType,
+    MarketPrice,
+    MarketPrices,
+    Node,
+    NodeType,
+    PowerProfile,
     Product,
     ProductCategory,
-    SoftwareCatalog,
     Software,
     SoftwareBestFor,
-    MarketPrices,
-    MarketPrice,
+    SoftwareCatalog,
+    SyncDirection,
+    SyncMethod,
+    SyncRegime,
+    Topology,
+    Volume,
+    VolumeType,
 )
 
 

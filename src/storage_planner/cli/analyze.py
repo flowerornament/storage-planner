@@ -1,33 +1,32 @@
 """Analyze commands for storage planner."""
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.table import Table
 
-from storage_planner.loaders import load_topology, load_all_catalogs, ValidationError
+from storage_planner.analysis import bandwidth, capacity, redundancy, rpo_rto
+from storage_planner.analysis.completeness import IssueSeverity, validate_completeness
+from storage_planner.cli.paths import resolve_config_path
+from storage_planner.loaders import ValidationError, load_topology
 from storage_planner.output import (
     console,
     print_error,
-    print_warning,
-    print_success,
     print_json,
+    print_success,
+    print_warning,
 )
-from storage_planner.analysis import redundancy, bandwidth, rpo_rto, capacity
-from storage_planner.analysis.completeness import validate_completeness, IssueSeverity
-from storage_planner.cli.paths import resolve_config_path
 
 app = typer.Typer(no_args_is_help=True)
 
 
 @app.command("all")
 def analyze_all(
-    config: Optional[Path] = typer.Argument(
+    config: Path | None = typer.Argument(
         None,
         help="Path to topology YAML file (defaults to ./topology.yaml)",
     ),
-    catalog_dir: Optional[Path] = typer.Option(
+    catalog_dir: Path | None = typer.Option(
         None, "--catalog", "-c", help="Path to catalog directory"
     ),
     json_output: bool = typer.Option(False, "--json", help="Output JSON"),
@@ -127,7 +126,7 @@ def analyze_diff(
 
 @app.command("redundancy")
 def analyze_redundancy(
-    config: Optional[Path] = typer.Argument(
+    config: Path | None = typer.Argument(
         None,
         help="Path to topology YAML file (defaults to ./topology.yaml)",
     ),
@@ -155,7 +154,7 @@ def analyze_redundancy(
 
 @app.command("bandwidth")
 def analyze_bandwidth_cmd(
-    config: Optional[Path] = typer.Argument(
+    config: Path | None = typer.Argument(
         None,
         help="Path to topology YAML file (defaults to ./topology.yaml)",
     ),
@@ -183,7 +182,7 @@ def analyze_bandwidth_cmd(
 
 @app.command("rpo-rto")
 def analyze_rpo_rto_cmd(
-    config: Optional[Path] = typer.Argument(
+    config: Path | None = typer.Argument(
         None,
         help="Path to topology YAML file (defaults to ./topology.yaml)",
     ),
@@ -211,7 +210,7 @@ def analyze_rpo_rto_cmd(
 
 @app.command("capacity")
 def analyze_capacity_cmd(
-    config: Optional[Path] = typer.Argument(
+    config: Path | None = typer.Argument(
         None,
         help="Path to topology YAML file (defaults to ./topology.yaml)",
     ),
@@ -238,7 +237,7 @@ def analyze_capacity_cmd(
         raise typer.Exit(1)
 
 
-def _run_redundancy_analysis(topology, payload: Optional[dict] = None) -> None:
+def _run_redundancy_analysis(topology, payload: dict | None = None) -> None:
     """Run redundancy analysis and print results."""
     payload = payload or _redundancy_payload(topology)
     results = payload["results"]
@@ -285,7 +284,7 @@ def _run_redundancy_analysis(topology, payload: Optional[dict] = None) -> None:
         print_success("All datasets meet redundancy requirements")
 
 
-def _run_rpo_rto_analysis(topology, payload: Optional[dict] = None) -> None:
+def _run_rpo_rto_analysis(topology, payload: dict | None = None) -> None:
     """Run RPO/RTO analysis and print results."""
     payload = payload or _rpo_payload(topology)
     results = payload["results"]
@@ -322,7 +321,7 @@ def _run_rpo_rto_analysis(topology, payload: Optional[dict] = None) -> None:
     console.print(table)
 
 
-def _run_bandwidth_analysis(topology, payload: Optional[dict] = None) -> None:
+def _run_bandwidth_analysis(topology, payload: dict | None = None) -> None:
     """Run bandwidth analysis and print results."""
     payload = payload or _bandwidth_payload(topology)
     results = payload["results"]
@@ -359,7 +358,7 @@ def _run_bandwidth_analysis(topology, payload: Optional[dict] = None) -> None:
     console.print(table)
 
 
-def _run_capacity_analysis(topology, months: int = 12, payload: Optional[dict] = None) -> None:
+def _run_capacity_analysis(topology, months: int = 12, payload: dict | None = None) -> None:
     """Run capacity analysis and print results."""
     payload = payload or _capacity_payload(topology, months)
     results = payload["results"]
@@ -400,7 +399,7 @@ def _run_capacity_analysis(topology, months: int = 12, payload: Optional[dict] =
 
 @app.command("quick")
 def analyze_quick(
-    config: Optional[Path] = typer.Argument(
+    config: Path | None = typer.Argument(
         None,
         help="Path to topology YAML file (defaults to ./topology.yaml)",
     ),

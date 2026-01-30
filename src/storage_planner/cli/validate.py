@@ -1,22 +1,21 @@
 """Validate command for storage planner."""
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 
-from storage_planner.loaders import load_topology, validate_topology_references, ValidationError
 from storage_planner.analysis.completeness import (
-    validate_completeness,
-    format_completeness_report,
     IssueSeverity,
+    format_completeness_report,
+    validate_completeness,
 )
-from storage_planner.output import console, print_error, print_success, print_warning, print_json
 from storage_planner.cli.paths import resolve_config_path
+from storage_planner.loaders import ValidationError, load_topology, validate_topology_references
+from storage_planner.output import console, print_error, print_json, print_success, print_warning
 
 
 def validate_cmd(
-    config: Optional[Path] = typer.Argument(
+    config: Path | None = typer.Argument(
         None,
         help="Path to topology YAML file (defaults to ./topology.yaml)",
     ),
@@ -145,7 +144,7 @@ def validate_cmd(
         console.print(f"  Total volumes: {total_volumes}")
 
         if strict and completeness_report.is_complete:
-            console.print(f"  [green]✓ All configuration is explicit[/green]")
+            console.print("  [green]✓ All configuration is explicit[/green]")
 
     except ValidationError as e:
         print_error(e.message)

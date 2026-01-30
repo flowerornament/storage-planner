@@ -1,31 +1,21 @@
 """Tests for data models."""
 
-import pytest
-from pydantic import ValidationError
 
 from storage_planner.models import (
-    Topology,
-    Node,
-    Volume,
-    Link,
-    Dataset,
-    SyncRegime,
-    Constraints,
-    NodeType,
-    VolumeType,
-    LinkType,
-    Criticality,
     ChangeRate,
-    SyncMethod,
-    SyncDirection,
+    Criticality,
+    Dataset,
+    Link,
+    LinkType,
+    Node,
+    NodeType,
     PowerProfile,
-    HardwareCatalog,
-    Product,
     ProductCategory,
-    SoftwareCatalog,
-    Software,
-    MarketPrices,
-    MarketPrice,
+    SyncDirection,
+    SyncMethod,
+    SyncRegime,
+    Volume,
+    VolumeType,
 )
 
 

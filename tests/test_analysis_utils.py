@@ -1,15 +1,14 @@
 """Tests for analysis utility functions."""
 
-import pytest
 
 from storage_planner.analysis.utils import (
-    parse_size,
+    format_bandwidth,
+    format_duration,
     format_size,
     parse_bandwidth,
-    format_bandwidth,
     parse_duration,
-    format_duration,
     parse_growth_rate,
+    parse_size,
 )
 
 

@@ -1,9 +1,8 @@
 """Cost analysis for storage planner."""
 
 from dataclasses import dataclass, field
-from typing import Optional
 
-from storage_planner.models import Topology, HardwareCatalog, MarketPrices
+from storage_planner.models import HardwareCatalog, MarketPrices, Topology
 
 
 class CostConfigError(Exception):
@@ -37,9 +36,9 @@ class CostSummary:
 
 def analyze_cost(
     topology: Topology,
-    hardware_catalog: Optional[HardwareCatalog] = None,
-    market_prices: Optional[MarketPrices] = None,
-    power_cost_per_kwh: Optional[float] = None,  # Override from CLI
+    hardware_catalog: HardwareCatalog | None = None,
+    market_prices: MarketPrices | None = None,
+    power_cost_per_kwh: float | None = None,  # Override from CLI
 ) -> CostSummary:
     """Analyze costs for the topology.
 

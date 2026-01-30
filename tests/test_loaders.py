@@ -1,20 +1,20 @@
 """Tests for YAML loaders."""
 
-import pytest
-from pathlib import Path
 import tempfile
+from pathlib import Path
+
+import pytest
 import yaml
 
 from storage_planner.loaders import (
-    load_topology,
-    load_hardware_catalog,
-    load_software_catalog,
-    load_market_prices,
-    load_all_catalogs,
-    validate_topology_references,
     ValidationError,
+    load_all_catalogs,
+    load_hardware_catalog,
+    load_market_prices,
+    load_software_catalog,
+    load_topology,
+    validate_topology_references,
 )
-from storage_planner.models import Topology
 
 
 class TestLoadTopology:

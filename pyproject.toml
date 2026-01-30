@@ -22,6 +22,7 @@ sp = "storage_planner.cli.main:app"
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
+    "ruff>=0.4.0",
 ]
 
 [build-system]
@@ -34,3 +35,30 @@ packages = ["src/storage_planner"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "SIM",    # flake8-simplify
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # function call in default arg (typer pattern)
+    "SIM102", # nested if (often clearer than combined)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/storage_planner/cli/*.py" = ["B904"]  # typer.Exit doesn't need chaining
+
+[tool.ruff.lint.isort]
+known-first-party = ["storage_planner"]

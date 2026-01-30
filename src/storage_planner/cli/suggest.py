@@ -1,39 +1,35 @@
 """Suggest commands for storage planner."""
 
 from pathlib import Path
-from typing import Optional
 
 import typer
-from rich.table import Table
-from rich.panel import Panel
 
-from storage_planner.loaders import load_topology, load_all_catalogs, ValidationError
-from storage_planner.output import console, print_error, print_info, print_json
 from storage_planner.analysis.redundancy import analyze_redundancy
-from storage_planner.models import (
-    Topology,
-    HardwareCatalog,
-    SoftwareCatalog,
-    MarketPrices,
-    Dataset,
-    ChangeRate,
-    SyncDirection,
-)
 from storage_planner.cli.paths import resolve_config_path
+from storage_planner.loaders import ValidationError, load_all_catalogs, load_topology
+from storage_planner.models import (
+    ChangeRate,
+    Dataset,
+    HardwareCatalog,
+    MarketPrices,
+    SoftwareCatalog,
+    Topology,
+)
+from storage_planner.output import console, print_error, print_info, print_json
 
 app = typer.Typer(no_args_is_help=True)
 
 
 @app.command("hardware")
 def suggest_hardware(
-    config: Optional[Path] = typer.Argument(
+    config: Path | None = typer.Argument(
         None,
         help="Path to topology YAML file (defaults to ./topology.yaml)",
     ),
-    catalog_dir: Optional[Path] = typer.Option(
+    catalog_dir: Path | None = typer.Option(
         None, "--catalog", "-c", help="Path to catalog directory"
     ),
-    budget: Optional[float] = typer.Option(
+    budget: float | None = typer.Option(
         None, "--budget", "-b", help="Maximum budget for recommendations"
     ),
     json_output: bool = typer.Option(False, "--json", help="Output JSON"),
@@ -256,11 +252,11 @@ def _suggest_for_redundancy_gap(result, topology, hardware, prices, budget, json
 
 @app.command("software")
 def suggest_software(
-    config: Optional[Path] = typer.Argument(
+    config: Path | None = typer.Argument(
         None,
         help="Path to topology YAML file (defaults to ./topology.yaml)",
     ),
-    catalog_dir: Optional[Path] = typer.Option(
+    catalog_dir: Path | None = typer.Option(
         None, "--catalog", "-c", help="Path to catalog directory"
     ),
     json_output: bool = typer.Option(False, "--json", help="Output JSON"),

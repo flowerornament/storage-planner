@@ -1,9 +1,8 @@
 """Failure simulation for storage planner."""
 
 from dataclasses import dataclass, field
-from typing import Optional
 
-from storage_planner.models import Topology, Criticality
+from storage_planner.models import Criticality, Topology
 
 
 @dataclass
@@ -97,8 +96,6 @@ def _analyze_volume_failure(
     affected_ds_ids: set[str] = set()
     for vol_id in failed_volumes:
         affected_ds_ids.update(volume_datasets.get(vol_id, set()))
-
-    all_volume_ids = topology.get_all_volume_ids()
 
     for ds_id in affected_ds_ids:
         dataset = topology.get_dataset(ds_id)

@@ -1,9 +1,10 @@
 """Catalog models for hardware and software."""
 
-from typing import Optional, Any
+from typing import Any
+
 from pydantic import BaseModel, Field
 
-from storage_planner.models.enums import ProductCategory, ChangeRate, SyncDirection
+from storage_planner.models.enums import ChangeRate, ProductCategory, SyncDirection
 
 
 class DriveSpecs(BaseModel):
@@ -12,11 +13,11 @@ class DriveSpecs(BaseModel):
     capacity: str  # e.g., "8TB"
     interface: str  # e.g., "SATA", "NVMe", "USB-C"
     form_factor: str  # e.g., "2.5in", "M.2", "3.5in"
-    read_speed: Optional[str] = None
-    write_speed: Optional[str] = None
-    tbw: Optional[str] = None  # Total bytes written endurance
-    warranty_years: Optional[int] = None
-    nand_type: Optional[str] = None  # e.g., "QLC", "TLC", "MLC"
+    read_speed: str | None = None
+    write_speed: str | None = None
+    tbw: str | None = None  # Total bytes written endurance
+    warranty_years: int | None = None
+    nand_type: str | None = None  # e.g., "QLC", "TLC", "MLC"
 
 
 class EnclosureSpecs(BaseModel):
@@ -24,12 +25,12 @@ class EnclosureSpecs(BaseModel):
 
     bays: int
     interface: str  # e.g., "USB-C", "Thunderbolt 4"
-    max_capacity_per_bay: Optional[str] = None
-    form_factor: Optional[str] = None  # e.g., "2.5in", "3.5in", "M.2"
+    max_capacity_per_bay: str | None = None
+    form_factor: str | None = None  # e.g., "2.5in", "3.5in", "M.2"
     stackable: bool = False
     m4_mini_compatible: bool = True
     raid_support: list[str] = Field(default_factory=list)  # e.g., ["JBOD", "RAID0", "RAID1"]
-    power_delivery_watts: Optional[int] = None
+    power_delivery_watts: int | None = None
 
 
 class Product(BaseModel):
@@ -38,14 +39,14 @@ class Product(BaseModel):
     id: str
     name: str
     brand: str
-    model: Optional[str] = None
+    model: str | None = None
     category: ProductCategory
     specs: dict[str, Any] = Field(default_factory=dict)  # Flexible specs
-    retail_price: Optional[float] = None
-    retail_url: Optional[str] = None
-    noise_db: Optional[float] = None
-    aesthetic_notes: Optional[str] = None
-    notes: Optional[str] = None
+    retail_price: float | None = None
+    retail_url: str | None = None
+    noise_db: float | None = None
+    aesthetic_notes: str | None = None
+    notes: str | None = None
 
     # Research/caching fields
     tags: list[str] = Field(default_factory=list)  # e.g., ["quiet", "high-capacity", "budget"]
@@ -53,15 +54,15 @@ class Product(BaseModel):
     pros: list[str] = Field(default_factory=list)
     cons: list[str] = Field(default_factory=list)
     discontinued: bool = False
-    last_verified: Optional[str] = None  # ISO date when info was last checked
+    last_verified: str | None = None  # ISO date when info was last checked
 
-    def get_drive_specs(self) -> Optional[DriveSpecs]:
+    def get_drive_specs(self) -> DriveSpecs | None:
         """Parse specs as drive specifications."""
         if self.category in (ProductCategory.SSD, ProductCategory.HDD):
             return DriveSpecs(**self.specs)
         return None
 
-    def get_enclosure_specs(self) -> Optional[EnclosureSpecs]:
+    def get_enclosure_specs(self) -> EnclosureSpecs | None:
         """Parse specs as enclosure specifications."""
         if self.category == ProductCategory.ENCLOSURE:
             return EnclosureSpecs(**self.specs)
@@ -78,18 +79,18 @@ class MarketPrice(BaseModel):
     price_high: float
     last_updated: str  # ISO date
     sample_size: int = 1
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class SoftwareBestFor(BaseModel):
     """Conditions under which software is recommended."""
 
     change_rate: list[ChangeRate] = Field(default_factory=list)
-    direction: Optional[SyncDirection] = None
+    direction: SyncDirection | None = None
     criticality: list[str] = Field(default_factory=list)
     data_type: list[str] = Field(default_factory=list)
-    target: Optional[str] = None  # e.g., "local-network", "remote-server", "cloud"
-    max_rpo: Optional[str] = None  # Recommended when RPO is this or stricter
+    target: str | None = None  # e.g., "local-network", "remote-server", "cloud"
+    max_rpo: str | None = None  # Recommended when RPO is this or stricter
 
 
 class Software(BaseModel):
@@ -102,8 +103,8 @@ class Software(BaseModel):
     weaknesses: list[str] = Field(default_factory=list)
     best_for: SoftwareBestFor = Field(default_factory=SoftwareBestFor)
     platforms: list[str] = Field(default_factory=list)  # e.g., ["macos", "linux", "windows"]
-    url: Optional[str] = None
-    notes: Optional[str] = None
+    url: str | None = None
+    notes: str | None = None
 
 
 class HardwareCatalog(BaseModel):
@@ -111,7 +112,7 @@ class HardwareCatalog(BaseModel):
 
     products: list[Product] = Field(default_factory=list)
 
-    def get_product(self, product_id: str) -> Optional[Product]:
+    def get_product(self, product_id: str) -> Product | None:
         """Get a product by ID."""
         for product in self.products:
             if product.id == product_id:
@@ -213,7 +214,7 @@ class MarketPrices(BaseModel):
         """Get all market prices for a product."""
         return [p for p in self.prices if p.product_id == product_id]
 
-    def get_best_price(self, product_id: str) -> Optional[MarketPrice]:
+    def get_best_price(self, product_id: str) -> MarketPrice | None:
         """Get the most recent market price for a product."""
         prices = self.get_for_product(product_id)
         if not prices:
@@ -226,7 +227,7 @@ class SoftwareCatalog(BaseModel):
 
     software: list[Software] = Field(default_factory=list)
 
-    def get_software(self, software_id: str) -> Optional[Software]:
+    def get_software(self, software_id: str) -> Software | None:
         """Get software by ID."""
         for sw in self.software:
             if sw.id == software_id:

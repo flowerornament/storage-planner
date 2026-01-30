@@ -6,9 +6,8 @@ with no implicit assumptions or defaults being used.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 
-from storage_planner.models import Topology, Criticality
+from storage_planner.models import Criticality, Topology
 
 
 class IssueSeverity(str, Enum):
@@ -26,7 +25,7 @@ class CompletenessIssue:
     location: str  # e.g., "constraints", "dataset.photos-archive", "sync_regime.tm-backup"
     field: str  # e.g., "min_critical_data_copies", "achieved_rpo"
     message: str
-    suggestion: Optional[str] = None
+    suggestion: str | None = None
 
 
 @dataclass

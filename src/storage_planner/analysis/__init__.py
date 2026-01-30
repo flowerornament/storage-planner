@@ -1,13 +1,13 @@
 """Analysis algorithms for storage planner."""
 
 from storage_planner.analysis import (
-    redundancy,
     bandwidth,
-    rpo_rto,
     capacity,
+    completeness,
     cost,
     failure_sim,
-    completeness,
+    redundancy,
+    rpo_rto,
 )
 
 __all__ = [

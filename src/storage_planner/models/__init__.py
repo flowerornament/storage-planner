@@ -1,35 +1,35 @@
 """Data models for storage planner."""
 
-from storage_planner.models.enums import (
-    NodeType,
-    VolumeType,
-    LinkType,
-    Criticality,
-    ChangeRate,
-    SyncMethod,
-    SyncDirection,
-    ProductCategory,
-    PowerProfile,
-)
-from storage_planner.models.topology import (
-    Volume,
-    Node,
-    Link,
-    Dataset,
-    SyncRegime,
-    Constraints,
-    Topology,
-)
 from storage_planner.models.catalog import (
     DriveSpecs,
     EnclosureSpecs,
-    Product,
-    MarketPrice,
     HardwareCatalog,
+    MarketPrice,
     MarketPrices,
+    Product,
     Software,
     SoftwareBestFor,
     SoftwareCatalog,
+)
+from storage_planner.models.enums import (
+    ChangeRate,
+    Criticality,
+    LinkType,
+    NodeType,
+    PowerProfile,
+    ProductCategory,
+    SyncDirection,
+    SyncMethod,
+    VolumeType,
+)
+from storage_planner.models.topology import (
+    Constraints,
+    Dataset,
+    Link,
+    Node,
+    SyncRegime,
+    Topology,
+    Volume,
 )
 
 __all__ = [

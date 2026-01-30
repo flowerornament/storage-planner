@@ -1,18 +1,17 @@
 """Bandwidth analysis for storage planner."""
 
-from dataclasses import dataclass
-from typing import Optional
 import heapq
+from dataclasses import dataclass
 
 import networkx as nx
 
-from storage_planner.models import Topology
 from storage_planner.analysis.utils import (
-    parse_size,
-    parse_bandwidth,
-    format_duration,
     format_bandwidth,
+    format_duration,
+    parse_bandwidth,
+    parse_size,
 )
+from storage_planner.models import Topology
 
 
 @dataclass
@@ -24,10 +23,10 @@ class BandwidthResult:
     dataset_size: str
     source_volume: str
     target_volume: str
-    link_id: Optional[str]  # Link used for transfer
-    effective_bandwidth: Optional[str]  # Available bandwidth
-    estimated_sync_time: Optional[str]  # Time for full sync
-    estimated_sync_time_seconds: Optional[int]  # Raw seconds, if available
+    link_id: str | None  # Link used for transfer
+    effective_bandwidth: str | None  # Available bandwidth
+    estimated_sync_time: str | None  # Time for full sync
+    estimated_sync_time_seconds: int | None  # Raw seconds, if available
     is_bottleneck: bool
 
 
@@ -73,10 +72,10 @@ def analyze_bandwidth(topology: Topology) -> list[BandwidthResult]:
         for target_vol in regime.target_volumes:
             target_node = volume_to_node.get(target_vol)
 
-            link_id: Optional[str] = None
-            effective_bandwidth: Optional[str] = None
-            estimated_time: Optional[str] = None
-            estimated_time_seconds: Optional[int] = None
+            link_id: str | None = None
+            effective_bandwidth: str | None = None
+            estimated_time: str | None = None
+            estimated_time_seconds: int | None = None
             is_bottleneck = False
 
             if source_node and target_node:
@@ -160,7 +159,7 @@ def _build_bandwidth_graph(topology: Topology) -> nx.DiGraph:
 
 def _find_widest_path(
     graph: nx.DiGraph, source: str, target: str
-) -> Optional[dict[str, list[str] | int]]:
+) -> dict[str, list[str] | int] | None:
     """Find path maximizing the minimum bandwidth (widest path)."""
     if source not in graph or target not in graph:
         return None

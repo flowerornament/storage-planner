@@ -1,23 +1,22 @@
 """YAML loading and validation for storage planner."""
 
 from pathlib import Path
-from typing import Optional
 
 import yaml
 from pydantic import ValidationError as PydanticValidationError
 
 from storage_planner.models import (
-    Topology,
     HardwareCatalog,
-    SoftwareCatalog,
     MarketPrices,
+    SoftwareCatalog,
+    Topology,
 )
 
 
 class ValidationError(Exception):
     """Raised when validation fails."""
 
-    def __init__(self, message: str, errors: Optional[list[str]] = None):
+    def __init__(self, message: str, errors: list[str] | None = None):
         super().__init__(message)
         self.message = message
         self.errors = errors or []
@@ -31,7 +30,7 @@ def load_yaml(path: Path) -> dict:
         try:
             return yaml.safe_load(f) or {}
         except yaml.YAMLError as e:
-            raise ValidationError(f"Invalid YAML in {path}: {e}")
+            raise ValidationError(f"Invalid YAML in {path}: {e}") from e
 
 
 def load_topology(path: Path) -> Topology:
@@ -41,7 +40,7 @@ def load_topology(path: Path) -> Topology:
         topology = Topology(**data)
     except PydanticValidationError as e:
         errors = [f"{'.'.join(str(x) for x in err['loc'])}: {err['msg']}" for err in e.errors()]
-        raise ValidationError(f"Invalid topology in {path}", errors)
+        raise ValidationError(f"Invalid topology in {path}", errors) from e
     return topology
 
 
@@ -52,7 +51,7 @@ def load_hardware_catalog(path: Path) -> HardwareCatalog:
         return HardwareCatalog(**data)
     except PydanticValidationError as e:
         errors = [f"{'.'.join(str(x) for x in err['loc'])}: {err['msg']}" for err in e.errors()]
-        raise ValidationError(f"Invalid hardware catalog in {path}", errors)
+        raise ValidationError(f"Invalid hardware catalog in {path}", errors) from e
 
 
 def load_software_catalog(path: Path) -> SoftwareCatalog:
@@ -62,7 +61,7 @@ def load_software_catalog(path: Path) -> SoftwareCatalog:
         return SoftwareCatalog(**data)
     except PydanticValidationError as e:
         errors = [f"{'.'.join(str(x) for x in err['loc'])}: {err['msg']}" for err in e.errors()]
-        raise ValidationError(f"Invalid software catalog in {path}", errors)
+        raise ValidationError(f"Invalid software catalog in {path}", errors) from e
 
 
 def load_market_prices(path: Path) -> MarketPrices:
@@ -72,7 +71,7 @@ def load_market_prices(path: Path) -> MarketPrices:
         return MarketPrices(**data)
     except PydanticValidationError as e:
         errors = [f"{'.'.join(str(x) for x in err['loc'])}: {err['msg']}" for err in e.errors()]
-        raise ValidationError(f"Invalid market prices in {path}", errors)
+        raise ValidationError(f"Invalid market prices in {path}", errors) from e
 
 
 def load_all_catalogs(catalog_dir: Path) -> tuple[HardwareCatalog, SoftwareCatalog, MarketPrices]:
@@ -120,7 +119,7 @@ def validate_topology_references(topology: Topology) -> list[str]:
     node_ids = [n.id for n in topology.nodes]
     volume_ids = [v.id for n in topology.nodes for v in n.volumes]
     dataset_ids = [d.id for d in topology.datasets]
-    link_ids = [l.id for l in topology.links]
+    link_ids = [link.id for link in topology.links]
     sync_ids = [s.id for s in topology.sync_regimes]
 
     for dup in sorted(find_duplicates(node_ids)):

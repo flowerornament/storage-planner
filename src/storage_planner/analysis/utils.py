@@ -1,10 +1,9 @@
 """Utility functions for analysis."""
 
 import re
-from typing import Optional
 
 
-def parse_size(size_str: str) -> Optional[int]:
+def parse_size(size_str: str) -> int | None:
     """Parse a size string like '8TB', '500GB', '50MB' to bytes.
 
     Returns None if parsing fails.
@@ -52,7 +51,7 @@ def format_size(bytes_val: int) -> str:
         return f"{bytes_val / 1024**4:.1f}TB"
 
 
-def parse_bandwidth(bw_str: str) -> Optional[int]:
+def parse_bandwidth(bw_str: str) -> int | None:
     """Parse a bandwidth string like '10Gbps', '500Mbps', '100MB/s' to bits per second.
 
     Returns None if parsing fails.
@@ -105,7 +104,7 @@ def format_bandwidth(bps: int) -> str:
         return f"{bps / 1000**4:.1f}Tbps"
 
 
-def parse_duration(duration_str: str) -> Optional[int]:
+def parse_duration(duration_str: str) -> int | None:
     """Parse a duration string like '1h', '30m', '7d' to seconds.
 
     Returns None if parsing fails.
@@ -144,7 +143,7 @@ def format_duration(seconds: int) -> str:
         return f"{seconds // 86400}d"
 
 
-def parse_growth_rate(rate_str: str) -> Optional[tuple[float, str, str]]:
+def parse_growth_rate(rate_str: str) -> tuple[float, str, str] | None:
     """Parse a growth rate string like '1GB/month', '10%/year'.
 
     Returns (value, period, kind) where kind is "percent" or "absolute".

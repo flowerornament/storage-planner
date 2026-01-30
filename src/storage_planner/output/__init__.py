@@ -1,6 +1,12 @@
 """Output formatting utilities."""
 
-from storage_planner.output.console import console, print_error, print_warning, print_success, print_info
+from storage_planner.output.console import (
+    console,
+    print_error,
+    print_info,
+    print_success,
+    print_warning,
+)
 from storage_planner.output.json import print_json, to_jsonable
 
 __all__ = [

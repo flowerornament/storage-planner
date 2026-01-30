@@ -1,10 +1,9 @@
 """Capacity analysis for storage planner."""
 
 from dataclasses import dataclass
-from typing import Optional
 
+from storage_planner.analysis.utils import format_size, parse_growth_rate, parse_size
 from storage_planner.models import Topology
-from storage_planner.analysis.utils import parse_size, format_size, parse_growth_rate
 
 
 @dataclass
@@ -18,7 +17,7 @@ class CapacityResult:
     projected_used: str
     projected_utilization_pct: float
     will_exceed_capacity: bool
-    months_until_full: Optional[int]
+    months_until_full: int | None
 
 
 def analyze_capacity(topology: Topology, projection_months: int = 12) -> list[CapacityResult]:
@@ -89,7 +88,7 @@ def analyze_capacity(topology: Topology, projection_months: int = 12) -> list[Ca
             utilization = (projected_bytes / capacity_bytes) * 100 if capacity_bytes > 0 else 0
 
             # Calculate months until full
-            months_until_full: Optional[int] = None
+            months_until_full: int | None = None
             if monthly_growth_bytes > 0:
                 remaining = capacity_bytes - current_used_bytes
                 if remaining > 0:

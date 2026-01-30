@@ -1,12 +1,12 @@
 """RPO/RTO analysis for storage planner."""
 
 from dataclasses import dataclass
-from typing import Optional
-
-from storage_planner.models import Topology
-from storage_planner.analysis.utils import parse_duration, format_duration
-from croniter import croniter
 from datetime import datetime
+
+from croniter import croniter
+
+from storage_planner.analysis.utils import format_duration, parse_duration
+from storage_planner.models import Topology
 
 
 @dataclass
@@ -15,15 +15,15 @@ class RpoRtoResult:
 
     dataset_id: str
     dataset_name: str
-    max_rpo: Optional[str]  # Required RPO
-    max_rto: Optional[str]  # Required RTO
-    achieved_rpo: Optional[str]  # Best achieved RPO from sync regimes
+    max_rpo: str | None  # Required RPO
+    max_rto: str | None  # Required RTO
+    achieved_rpo: str | None  # Best achieved RPO from sync regimes
     achieved_rpo_source: str  # "explicit", "estimated", "unknown"
-    rpo_met: Optional[bool]  # None if can't determine
+    rpo_met: bool | None  # None if can't determine
     sync_regimes: list[str]  # Sync regime IDs covering this dataset
 
 
-def _estimate_rpo_from_schedule(schedule: str) -> Optional[int]:
+def _estimate_rpo_from_schedule(schedule: str) -> int | None:
     """Estimate RPO in seconds from a cron schedule."""
     if not schedule:
         return None
@@ -51,8 +51,8 @@ def analyze_rpo_rto(topology: Topology) -> list[RpoRtoResult]:
         regime_ids = [r.id for r in regimes]
 
         # Find the best (smallest) achieved RPO
-        achieved_rpo: Optional[str] = None
-        achieved_rpo_seconds: Optional[int] = None
+        achieved_rpo: str | None = None
+        achieved_rpo_seconds: int | None = None
         achieved_rpo_source = "unknown"
 
         for regime in regimes:
@@ -74,7 +74,7 @@ def analyze_rpo_rto(topology: Topology) -> list[RpoRtoResult]:
             # Users must specify achieved_rpo explicitly.
 
         # Check if RPO requirement is met
-        rpo_met: Optional[bool] = None
+        rpo_met: bool | None = None
         if dataset.max_rpo and achieved_rpo_seconds is not None:
             required_rpo_seconds = parse_duration(dataset.max_rpo)
             if required_rpo_seconds is not None:

@@ -1,20 +1,19 @@
 """Catalog commands for storage planner."""
 
 from pathlib import Path
-from typing import Optional
 
 import typer
-from rich.table import Table
 from rich.panel import Panel
+from rich.table import Table
 
-from storage_planner.loaders import load_all_catalogs, ValidationError
-from storage_planner.output import console, print_error, print_json
+from storage_planner.loaders import ValidationError, load_all_catalogs
 from storage_planner.models import ProductCategory
+from storage_planner.output import console, print_error, print_json
 
 app = typer.Typer(no_args_is_help=True)
 
 
-def _resolve_catalog_dir(catalog_dir: Optional[Path]) -> Path:
+def _resolve_catalog_dir(catalog_dir: Path | None) -> Path:
     """Resolve catalog directory."""
     if catalog_dir:
         return catalog_dir
@@ -26,10 +25,10 @@ def _resolve_catalog_dir(catalog_dir: Optional[Path]) -> Path:
 
 @app.command("list")
 def list_cmd(
-    category: Optional[str] = typer.Argument(None, help="Category to filter by (ssd, hdd, enclosure)"),
-    catalog_dir: Optional[Path] = typer.Option(None, "--catalog", "-c", help="Catalog directory"),
-    tag: Optional[list[str]] = typer.Option(None, "--tag", "-t", help="Filter by tag (can repeat)"),
-    use_case: Optional[str] = typer.Option(None, "--use-case", "-u", help="Filter by use case"),
+    category: str | None = typer.Argument(None, help="Category to filter by (ssd, hdd, enclosure)"),
+    catalog_dir: Path | None = typer.Option(None, "--catalog", "-c", help="Catalog directory"),
+    tag: list[str] | None = typer.Option(None, "--tag", "-t", help="Filter by tag (can repeat)"),
+    use_case: str | None = typer.Option(None, "--use-case", "-u", help="Filter by use case"),
     include_discontinued: bool = typer.Option(False, "--include-discontinued", help="Include discontinued products"),
     json_output: bool = typer.Option(False, "--json", help="Output JSON"),
 ) -> None:
@@ -133,7 +132,7 @@ def list_cmd(
 @app.command("show")
 def show_cmd(
     product_id: str = typer.Argument(..., help="Product ID to show"),
-    catalog_dir: Optional[Path] = typer.Option(None, "--catalog", "-c", help="Catalog directory"),
+    catalog_dir: Path | None = typer.Option(None, "--catalog", "-c", help="Catalog directory"),
     json_output: bool = typer.Option(False, "--json", help="Output JSON"),
 ) -> None:
     """Show detailed product information."""
@@ -203,7 +202,7 @@ def show_cmd(
 @app.command("search")
 def search_cmd(
     query: str = typer.Argument(..., help="Search query"),
-    catalog_dir: Optional[Path] = typer.Option(None, "--catalog", "-c", help="Catalog directory"),
+    catalog_dir: Path | None = typer.Option(None, "--catalog", "-c", help="Catalog directory"),
     json_output: bool = typer.Option(False, "--json", help="Output JSON"),
 ) -> None:
     """Search products by name, brand, or notes."""
@@ -247,7 +246,7 @@ def search_cmd(
 @app.command("compare")
 def compare_cmd(
     product_ids: list[str] = typer.Argument(..., help="Product IDs to compare"),
-    catalog_dir: Optional[Path] = typer.Option(None, "--catalog", "-c", help="Catalog directory"),
+    catalog_dir: Path | None = typer.Option(None, "--catalog", "-c", help="Catalog directory"),
     json_output: bool = typer.Option(False, "--json", help="Output JSON"),
 ) -> None:
     """Compare products side-by-side."""
@@ -318,7 +317,7 @@ def compare_cmd(
 
 @app.command("software")
 def software_cmd(
-    catalog_dir: Optional[Path] = typer.Option(None, "--catalog", "-c", help="Catalog directory"),
+    catalog_dir: Path | None = typer.Option(None, "--catalog", "-c", help="Catalog directory"),
     json_output: bool = typer.Option(False, "--json", help="Output JSON"),
 ) -> None:
     """List software definitions in the catalog."""
@@ -366,7 +365,7 @@ def software_cmd(
 
 @app.command("summary")
 def summary_cmd(
-    catalog_dir: Optional[Path] = typer.Option(None, "--catalog", "-c", help="Catalog directory"),
+    catalog_dir: Path | None = typer.Option(None, "--catalog", "-c", help="Catalog directory"),
     json_output: bool = typer.Option(False, "--json", help="Output JSON"),
 ) -> None:
     """Show catalog summary - what's cached and available."""
@@ -416,7 +415,7 @@ def summary_cmd(
 
         # Staleness check
         if prices.prices:
-            from datetime import datetime, timedelta
+            from datetime import datetime
             today = datetime.now().date()
             stale_count = 0
             for mp in prices.prices:

@@ -1,9 +1,6 @@
 """Tests for analysis algorithms."""
 
-import pytest
 
-from storage_planner.analysis.redundancy import analyze_redundancy
-from storage_planner.analysis.rpo_rto import analyze_rpo_rto
 from storage_planner.analysis.bandwidth import analyze_bandwidth
 from storage_planner.analysis.capacity import analyze_capacity
 from storage_planner.analysis.cost import analyze_cost
@@ -11,6 +8,8 @@ from storage_planner.analysis.failure_sim import (
     simulate_node_failure,
     simulate_volume_failure,
 )
+from storage_planner.analysis.redundancy import analyze_redundancy
+from storage_planner.analysis.rpo_rto import analyze_rpo_rto
 from storage_planner.models import Criticality
 
 

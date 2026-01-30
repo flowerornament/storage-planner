@@ -1,23 +1,22 @@
 """Cost command for storage planner."""
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.table import Table
 
-from storage_planner.loaders import load_topology, load_all_catalogs, ValidationError
-from storage_planner.output import console, print_error, print_json
 from storage_planner.analysis.cost import analyze_cost
-from storage_planner.cli.paths import resolve_config_path, resolve_catalog_path
+from storage_planner.cli.paths import resolve_catalog_path, resolve_config_path
+from storage_planner.loaders import ValidationError, load_all_catalogs, load_topology
+from storage_planner.output import console, print_error, print_json
 
 
 def cost_cmd(
-    config: Optional[Path] = typer.Argument(
+    config: Path | None = typer.Argument(
         None,
         help="Path to topology YAML file (defaults to ./topology.yaml)",
     ),
-    catalog_dir: Optional[Path] = typer.Option(
+    catalog_dir: Path | None = typer.Option(
         None, "--catalog", "-c", help="Path to catalog directory"
     ),
     power_cost: float = typer.Option(

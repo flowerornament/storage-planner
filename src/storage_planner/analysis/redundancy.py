@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from storage_planner.models import Topology, Criticality
+from storage_planner.models import Criticality, Topology
 
 
 @dataclass

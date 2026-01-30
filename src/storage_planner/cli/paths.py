@@ -1,12 +1,11 @@
 """Path resolution helpers for CLI commands."""
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 
 
-def resolve_config_path(config: Optional[Path]) -> Path:
+def resolve_config_path(config: Path | None) -> Path:
     """Resolve config path, defaulting to topology.yaml in current dir."""
     if config:
         return config
@@ -18,7 +17,7 @@ def resolve_config_path(config: Optional[Path]) -> Path:
     )
 
 
-def resolve_catalog_path(catalog_dir: Optional[Path]) -> Path:
+def resolve_catalog_path(catalog_dir: Path | None) -> Path:
     """Resolve catalog directory path."""
     if catalog_dir:
         return catalog_dir

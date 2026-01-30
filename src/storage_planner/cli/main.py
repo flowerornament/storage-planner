@@ -2,8 +2,7 @@
 
 import typer
 
-from storage_planner.cli import validate, analyze, cost, simulate, catalog, suggest
-from storage_planner.cli.paths import resolve_config_path, resolve_catalog_path
+from storage_planner.cli import analyze, catalog, cost, simulate, suggest, validate
 
 app = typer.Typer(
     name="storage-planner",
