@@ -54,9 +54,9 @@ sync_regimes: [] # List of SyncRegime
   raid_disks: 4               # Optional
   read_speed: "560MB/s"       # Optional
   write_speed: "530MB/s"      # Optional
-  purchase_cost: 749.99       # Optional
+  purchase_cost: 749.99       # Optional, overrides catalog lookup
   purchase_date: "2024-06-15" # Optional
-  product_id: samsung-870-qvo-8tb  # Optional, references hardware catalog
+  product_id: samsung-870-qvo-8tb  # Optional, enables catalog price lookup if no purchase_cost
   hosts_datasets:             # Optional, datasets stored here
     - working-docs
     - source-code
