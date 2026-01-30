@@ -1,0 +1,584 @@
+prices:
+  # High-capacity SSDs
+  - product_id: samsung-870-qvo-8tb
+    source: ebay
+    price_low: 550
+    price_mid: 625
+    price_high: 700
+    last_updated: "2025-01-15"
+    sample_size: 12
+    notes: "Completed sales, Jan 2025"
+
+  - product_id: samsung-870-qvo-4tb
+    source: ebay
+    price_low: 180
+    price_mid: 220
+    price_high: 260
+    last_updated: "2025-01-15"
+    sample_size: 18
+
+  - product_id: samsung-870-evo-4tb
+    source: ebay
+    price_low: 220
+    price_mid: 265
+    price_high: 300
+    last_updated: "2025-01-18"
+    sample_size: 8
+
+  - product_id: crucial-mx500-4tb
+    source: reddit-hardwareswap
+    price_low: 140
+    price_mid: 165
+    price_high: 185
+    last_updated: "2025-01-20"
+    sample_size: 5
+    notes: "r/hardwareswap listings"
+
+  # Portable SSDs
+  - product_id: samsung-t7-2tb
+    source: ebay
+    price_low: 100
+    price_mid: 130
+    price_high: 155
+    last_updated: "2025-01-20"
+    sample_size: 25
+    notes: "Very liquid market"
+
+  - product_id: samsung-t7-shield-2tb
+    source: ebay
+    price_low: 120
+    price_mid: 150
+    price_high: 175
+    last_updated: "2025-01-18"
+    sample_size: 10
+
+  - product_id: sandisk-extreme-pro-4tb
+    source: ebay
+    price_low: 240
+    price_mid: 280
+    price_high: 320
+    last_updated: "2025-01-15"
+    sample_size: 6
+
+  # Premium external SSDs
+  - product_id: owc-envoy-pro-fx-4tb
+    source: ebay
+    price_low: 480
+    price_mid: 550
+    price_high: 620
+    last_updated: "2025-01-12"
+    sample_size: 3
+    notes: "Rare on secondary market"
+
+  # Enclosures
+  - product_id: orico-2bay-usbc
+    source: ebay
+    price_low: 25
+    price_mid: 35
+    price_high: 40
+    last_updated: "2025-01-10"
+    sample_size: 15
+
+  - product_id: sabrent-usbc-sata-enclosure
+    source: amazon
+    price_low: 12
+    price_mid: 15
+    price_high: 18
+    last_updated: "2025-01-20"
+    sample_size: 20
+    notes: "Often on sale"
+
+  - product_id: owc-thunderbay-4
+    source: ebay
+    price_low: 280
+    price_mid: 350
+    price_high: 420
+    last_updated: "2025-01-08"
+    sample_size: 4
+    notes: "Enclosure only, no drives"
+
+  - product_id: caldigit-ts4
+    source: ebay
+    price_low: 280
+    price_mid: 320
+    price_high: 360
+    last_updated: "2025-01-15"
+    sample_size: 8
+    notes: "Popular, holds value well"
+
+  # Satechi
+  - product_id: satechi-mac-mini-m4-stand-hub
+    source: ebay
+    price_low: 70
+    price_mid: 85
+    price_high: 95
+    last_updated: "2025-01-29"
+    sample_size: 5
+    notes: "New product, limited used market. Retail $99.99"
+
+  # OWC Envoy Pro series
+  - product_id: owc-envoy-pro-fx-2tb
+    source: ebay
+    price_low: 280
+    price_mid: 340
+    price_high: 390
+    last_updated: "2025-01-29"
+    sample_size: 4
+    notes: "Retail $429"
+
+  - product_id: owc-envoy-pro-fx-1tb
+    source: ebay
+    price_low: 180
+    price_mid: 220
+    price_high: 260
+    last_updated: "2025-01-29"
+    sample_size: 5
+    notes: "Retail $279"
+
+  - product_id: owc-envoy-pro-elektron-2tb
+    source: ebay
+    price_low: 160
+    price_mid: 190
+    price_high: 220
+    last_updated: "2025-01-29"
+    sample_size: 6
+    notes: "Retail $249"
+
+  - product_id: owc-envoy-pro-elektron-4tb
+    source: ebay
+    price_low: 300
+    price_mid: 360
+    price_high: 410
+    last_updated: "2025-01-29"
+    sample_size: 3
+    notes: "Retail $449"
+
+  - product_id: owc-ministack-stx
+    source: ebay
+    price_low: 180
+    price_mid: 220
+    price_high: 260
+    last_updated: "2025-01-29"
+    sample_size: 6
+    notes: "Enclosure only. Retail $279.99"
+
+  - product_id: owc-thunderbay-4-mini
+    source: ebay
+    price_low: 180
+    price_mid: 230
+    price_high: 270
+    last_updated: "2025-01-29"
+    sample_size: 4
+    notes: "Enclosure only. Retail $299"
+
+  # ORICO MiniMate M4PRO series
+  - product_id: orico-minimate-m4pro-1tb
+    source: ebay
+    price_low: 130
+    price_mid: 160
+    price_high: 185
+    last_updated: "2025-01-29"
+    sample_size: 4
+    notes: "New product, limited used. Retail $199.99"
+
+  - product_id: orico-minimate-m4pro-2tb
+    source: ebay
+    price_low: 180
+    price_mid: 220
+    price_high: 260
+    last_updated: "2025-01-29"
+    sample_size: 5
+    notes: "Retail $279.99"
+
+  - product_id: orico-minimate-m4pro-4tb
+    source: ebay
+    price_low: 320
+    price_mid: 400
+    price_high: 460
+    last_updated: "2025-01-29"
+    sample_size: 3
+    notes: "Retail $499.99"
+
+  - product_id: orico-minimate-m4pro-8tb
+    source: ebay
+    price_low: 650
+    price_mid: 780
+    price_high: 900
+    last_updated: "2025-01-29"
+    sample_size: 2
+    notes: "Premium price point. Retail $999.99"
+
+  # ORICO Docks/Hubs
+  - product_id: orico-minidock-vs10
+    source: ebay
+    price_low: 50
+    price_mid: 65
+    price_high: 75
+    last_updated: "2025-01-29"
+    sample_size: 6
+    notes: "Enclosure only. Retail $79.99"
+
+  - product_id: orico-studiolink-mc35m
+    source: ebay
+    price_low: 250
+    price_mid: 320
+    price_high: 380
+    last_updated: "2025-01-29"
+    sample_size: 2
+    notes: "Premium product, limited used. Retail $399.99"
+
+  - product_id: orico-minilink-m47p
+    source: ebay
+    price_low: 95
+    price_mid: 120
+    price_high: 140
+    last_updated: "2025-01-29"
+    sample_size: 4
+    notes: "Enclosure only. Retail $149.99"
+
+  # =============================================================================
+  # ENTERPRISE SATA SSDs - Used datacenter pulls are the sweet spot
+  # =============================================================================
+
+  - product_id: samsung-pm893-3840gb
+    source: ebay
+    price_low: 180
+    price_mid: 240
+    price_high: 320
+    last_updated: "2025-01-29"
+    sample_size: 15
+    notes: "Used datacenter pulls. Check SMART data/TBW. Retail ~$450"
+
+  - product_id: samsung-pm893-7680gb
+    source: ebay
+    price_low: 350
+    price_mid: 450
+    price_high: 580
+    last_updated: "2025-01-29"
+    sample_size: 10
+    notes: "Used datacenter pulls. Best $/TB for enterprise. Retail ~$850"
+
+  - product_id: micron-5400-pro-3840gb
+    source: ebay
+    price_low: 200
+    price_mid: 280
+    price_high: 400
+    last_updated: "2025-01-29"
+    sample_size: 12
+    notes: "Used units common. Open box ~$270. Retail ~$480"
+
+  - product_id: micron-5400-pro-7680gb
+    source: ebay
+    price_low: 400
+    price_mid: 550
+    price_high: 800
+    last_updated: "2025-01-29"
+    sample_size: 8
+    notes: "Used PRO units. New sealed ~$800. Retail ~$900"
+
+  # =============================================================================
+  # BUDGET M.2 NVMe SSDs - Mostly new pricing (used rare)
+  # =============================================================================
+
+  - product_id: teamgroup-mp44-2tb
+    source: amazon
+    price_low: 99
+    price_mid: 119
+    price_high: 139
+    last_updated: "2025-01-29"
+    sample_size: 10
+    notes: "New pricing. Often on sale. Retail $119.99"
+
+  - product_id: teamgroup-mp44-4tb
+    source: amazon
+    price_low: 199
+    price_mid: 239
+    price_high: 279
+    last_updated: "2025-01-29"
+    sample_size: 8
+    notes: "New pricing. Best budget 4TB. Retail $239.99"
+
+  - product_id: teamgroup-mp44q-2tb
+    source: amazon
+    price_low: 89
+    price_mid: 109
+    price_high: 129
+    last_updated: "2025-01-29"
+    sample_size: 6
+    notes: "New QLC budget king. Retail $108.99"
+
+  - product_id: teamgroup-mp44q-4tb
+    source: amazon
+    price_low: 179
+    price_mid: 219
+    price_high: 259
+    last_updated: "2025-01-29"
+    sample_size: 5
+    notes: "Cheapest 4TB NVMe option. Retail $219.99"
+
+  # =============================================================================
+  # PREMIUM M.2 NVMe SSDs - Used and new pricing
+  # =============================================================================
+
+  - product_id: samsung-990-pro-2tb
+    source: ebay
+    price_low: 110
+    price_mid: 140
+    price_high: 165
+    last_updated: "2025-01-29"
+    sample_size: 20
+    notes: "Used common. New on sale $159-169. Retail $169.99"
+
+  - product_id: samsung-990-pro-4tb
+    source: ebay
+    price_low: 240
+    price_mid: 299
+    price_high: 340
+    last_updated: "2025-01-29"
+    sample_size: 12
+    notes: "Used rare. New on sale ~$299. Retail $339.99"
+
+  - product_id: wd-black-sn850x-4tb
+    source: amazon
+    price_low: 219
+    price_mid: 249
+    price_high: 289
+    last_updated: "2025-01-29"
+    sample_size: 8
+    notes: "New pricing. Best value premium 4TB. Retail $249.99"
+
+  - product_id: wd-black-sn850x-8tb
+    source: amazon
+    price_low: 479
+    price_mid: 549
+    price_high: 649
+    last_updated: "2025-01-29"
+    sample_size: 5
+    notes: "New pricing volatile. Down from $849 MSRP. AI demand affects price."
+
+  - product_id: crucial-t500-2tb
+    source: amazon
+    price_low: 119
+    price_mid: 139
+    price_high: 159
+    last_updated: "2025-01-29"
+    sample_size: 6
+    notes: "New pricing. Often on sale. Retail $139.99"
+
+  - product_id: crucial-t500-4tb
+    source: amazon
+    price_low: 239
+    price_mid: 279
+    price_high: 319
+    last_updated: "2025-01-29"
+    sample_size: 5
+    notes: "New pricing. Retail $279.99"
+
+  # Additional Premium NVMe SSDs
+  - product_id: wd-black-sn850x-2tb
+    source: amazon
+    price_low: 119
+    price_mid: 149
+    price_high: 169
+    last_updated: "2025-01-29"
+    sample_size: 8
+    notes: "New pricing. Often on sale. Retail $149.99"
+
+  - product_id: samsung-990-evo-plus-4tb
+    source: amazon
+    price_low: 350
+    price_mid: 439
+    price_high: 480
+    last_updated: "2025-01-29"
+    sample_size: 4
+    notes: "New product. UK pricing often lower. Retail $439.99"
+
+  - product_id: samsung-9100-pro-8tb
+    source: amazon
+    price_low: 879
+    price_mid: 999
+    price_high: 1019
+    last_updated: "2025-01-29"
+    sample_size: 3
+    notes: "Premium flagship. Heatsink version $1019.99. Retail $999.99"
+
+  - product_id: lexar-nm790-4tb
+    source: amazon
+    price_low: 179
+    price_mid: 219
+    price_high: 249
+    last_updated: "2025-01-29"
+    sample_size: 10
+    notes: "Often on sale ~$196. Excellent value. Retail $219.99"
+
+  - product_id: lexar-nm790-8tb
+    source: amazon
+    price_low: 580
+    price_mid: 649
+    price_high: 720
+    last_updated: "2025-01-29"
+    sample_size: 5
+    notes: "Cheapest 8TB NVMe. Retail ~$649.99"
+
+  - product_id: silicon-power-ud90-4tb
+    source: amazon
+    price_low: 189
+    price_mid: 229
+    price_high: 259
+    last_updated: "2025-01-29"
+    sample_size: 6
+    notes: "Budget QLC. Often on sale. Retail ~$229.99"
+
+  # Additional Enterprise SSDs
+  - product_id: micron-5210-ion-7680gb
+    source: ebay
+    price_low: 180
+    price_mid: 280
+    price_high: 400
+    last_updated: "2025-01-29"
+    sample_size: 15
+    notes: "QLC read-optimized. Cheap used. Check SMART/TBW."
+
+  - product_id: intel-d3-s4510-7680gb
+    source: ebay
+    price_low: 200
+    price_mid: 320
+    price_high: 450
+    last_updated: "2025-01-29"
+    sample_size: 10
+    notes: "Intel datacenter classic. EOL/Solidigm. Used market strong."
+
+  - product_id: micron-5300-max-3840gb
+    source: ebay
+    price_low: 400
+    price_mid: 600
+    price_high: 950
+    last_updated: "2025-01-29"
+    sample_size: 6
+    notes: "High endurance (5 DWPD). New $950. Used varies."
+
+  # Thunderbolt 5 / Premium Docks
+  - product_id: satechi-tb5-cubedock
+    source: satechi
+    price_low: 319
+    price_mid: 399
+    price_high: 399
+    last_updated: "2025-01-29"
+    sample_size: 1
+    notes: "New product Q1 2026. 20% off with CES2026 code."
+
+  - product_id: owc-studiostack
+    source: owc
+    price_low: 329
+    price_mid: 329
+    price_high: 1500
+    last_updated: "2025-01-29"
+    sample_size: 1
+    notes: "Enclosure only $329.99. Configured with drives up to $1500+."
+
+  # USB4 / NVMe Enclosures
+  - product_id: owc-express-4m2
+    source: owc
+    price_low: 239
+    price_mid: 239
+    price_high: 379
+    last_updated: "2025-01-29"
+    sample_size: 2
+    notes: "Enclosure $239.99. With 3yr SoftRAID $379.99."
+
+  - product_id: satechi-usb4-slim-nvme
+    source: amazon
+    price_low: 99
+    price_mid: 119
+    price_high: 139
+    last_updated: "2025-01-29"
+    sample_size: 5
+    notes: "Sometimes $20 off with promo. Retail $119.99"
+
+  - product_id: acasis-tbu405-usb4-nvme
+    source: amazon
+    price_low: 39
+    price_mid: 54
+    price_high: 69
+    last_updated: "2025-01-29"
+    sample_size: 12
+    notes: "Budget 40Gbps. TBU405Pro with fan ~$65."
+
+  # SATA / DAS Enclosures
+  - product_id: owc-mercury-elite-pro-dual
+    source: owc
+    price_low: 119
+    price_mid: 119
+    price_high: 200
+    last_updated: "2025-01-29"
+    sample_size: 3
+    notes: "Enclosure only $119.99. With drives varies."
+
+  - product_id: owc-mercury-elite-pro-mini
+    source: owc
+    price_low: 29
+    price_mid: 34
+    price_high: 45
+    last_updated: "2025-01-29"
+    sample_size: 4
+    notes: "Simple single-drive. Retail $34.99"
+
+  - product_id: terramaster-d2-320
+    source: amazon
+    price_low: 129
+    price_mid: 149
+    price_high: 169
+    last_updated: "2025-01-29"
+    sample_size: 6
+    notes: "Budget 2-bay DAS. Retail $149"
+
+  # NAS Reference
+  - product_id: synology-ds224-plus
+    source: ebay
+    price_low: 240
+    price_mid: 280
+    price_high: 320
+    last_updated: "2025-01-29"
+    sample_size: 8
+    notes: "Used units common. New $299.99"
+
+  # HDD Reference
+  - product_id: seagate-ironwolf-8tb
+    source: ebay
+    price_low: 80
+    price_mid: 110
+    price_high: 140
+    last_updated: "2025-01-29"
+    sample_size: 20
+    notes: "Used NAS pulls. New ~$170. Your existing drives worth ~$100-110 each."
+
+  # =============================================================================
+  # LEXAR PORTABLE SSDs
+  # =============================================================================
+
+  - product_id: lexar-sl400-2tb
+    source: amazon
+    price_low: 109
+    price_mid: 139
+    price_high: 159
+    last_updated: "2025-01-29"
+    sample_size: 8
+    notes: "Often on sale ~$110. Your existing drive. Retail $139.99"
+
+  - product_id: lexar-sl500-2tb
+    source: amazon
+    price_low: 139
+    price_mid: 169
+    price_high: 189
+    last_updated: "2025-01-29"
+    sample_size: 6
+    notes: "New pricing. Retail $169.99"
+
+  - product_id: lexar-sl500-4tb
+    source: amazon
+    price_low: 259
+    price_mid: 299
+    price_high: 329
+    last_updated: "2025-01-29"
+    sample_size: 4
+    notes: "New pricing. Retail $299.99"

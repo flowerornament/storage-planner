@@ -1,0 +1,292 @@
+name: "Home/Server Backup Topology"
+version: "1.0"
+description: "MacBook + Mac mini hub + EU dedicated server"
+
+constraints:
+  max_monthly_cost: 150.00
+  power_cost_per_kwh: 0.12  # Required for power cost calculations
+  min_critical_data_copies: 3
+  min_important_data_copies: 2
+  min_locations_for_critical: 2
+  max_noise_db_home: 35
+
+nodes:
+  - id: macbook-m4
+    name: "MacBook Pro M4"
+    type: laptop
+    location: home-office
+    power_profile: mobile
+    volumes:
+      - id: macbook-internal
+        type: internal_ssd
+        raw_capacity: "1TB"
+        usable_capacity: "900GB"
+        used: "400GB"
+        hosts_datasets:
+          - working-docs
+          - source-code
+
+      - id: macbook-external
+        type: external_ssd
+        raw_capacity: "2TB"
+        usable_capacity: "1.8TB"
+        used: "800GB"
+        hosts_datasets:
+          - media-library
+          - project-archives
+
+  - id: mac-mini-m4
+    name: "Mac mini M4 Hub"
+    type: desktop
+    location: home-office
+    power_profile: always_on
+    power_watts_idle: 5
+    power_watts_active: 25
+    volumes:
+      - id: mini-internal
+        type: internal_ssd
+        raw_capacity: "256GB"
+        usable_capacity: "200GB"
+        hosts_datasets: []
+
+      - id: mini-external-array
+        type: external_ssd
+        raw_capacity: "8TB"
+        usable_capacity: "7.5TB"
+        hosts_datasets:
+          - time-machine-backups
+          - media-library
+          - photos-archive
+          - working-docs
+
+  - id: eu-server
+    name: "Dedicated Server EU"
+    type: server
+    location: eu-datacenter
+    power_profile: always_on
+    monthly_cost: 89.00
+    volumes:
+      - id: eu-nvme-boot
+        type: nvme
+        raw_capacity: "500GB"
+        usable_capacity: "450GB"
+        hosts_datasets:
+          - working-docs
+          - source-code
+
+      - id: eu-hdd-array
+        type: raid_array
+        raw_capacity: "40TB"
+        usable_capacity: "30TB"
+        raid_level: zfs_raidz1
+        raid_disks: 4
+        hosts_datasets:
+          - time-machine-backups
+          - media-library
+          - photos-archive
+          - project-archives
+
+links:
+  - id: home-lan
+    node_a: macbook-m4
+    node_b: mac-mini-m4
+    type: lan
+    bandwidth_up: "10Gbps"
+    bandwidth_down: "10Gbps"
+    latency_ms: 1
+
+  - id: home-to-eu
+    node_a: mac-mini-m4
+    node_b: eu-server
+    type: wan
+    bandwidth_up: "500Mbps"
+    bandwidth_down: "1Gbps"
+    latency_ms: 30
+
+  - id: macbook-to-eu
+    node_a: macbook-m4
+    node_b: eu-server
+    type: wan
+    bandwidth_up: "500Mbps"
+    bandwidth_down: "1Gbps"
+    latency_ms: 30
+
+datasets:
+  - id: working-docs
+    name: "Active Documents"
+    current_size: "50GB"
+    growth_rate: "2GB/month"
+    criticality: critical
+    change_rate: high
+    data_type: documents
+    required_copies: 3
+    required_locations: 2
+    max_rpo: "1h"
+    max_rto: "4h"
+    stored_on:
+      - macbook-internal
+      - mini-external-array
+      - eu-nvme-boot
+    accessible_from:
+      - macbook-m4
+      - mac-mini-m4
+    primary_volume: macbook-internal
+    fallback_volume: macbook-external
+
+  - id: source-code
+    name: "Source Code"
+    current_size: "20GB"
+    growth_rate: "500MB/month"
+    criticality: critical
+    change_rate: high
+    data_type: code
+    required_copies: 3
+    required_locations: 2
+    max_rpo: "1h"
+    stored_on:
+      - macbook-internal
+      - eu-nvme-boot
+    accessible_from:
+      - macbook-m4
+
+  - id: media-library
+    name: "Media Library"
+    current_size: "500GB"
+    growth_rate: "10GB/month"
+    criticality: important
+    change_rate: low
+    data_type: media
+    required_copies: 2
+    required_locations: 2
+    max_rpo: "7d"
+    stored_on:
+      - macbook-external
+      - mini-external-array
+      - eu-hdd-array
+    accessible_from:
+      - macbook-m4
+      - mac-mini-m4
+
+  - id: photos-archive
+    name: "Photos Archive"
+    current_size: "800GB"
+    growth_rate: "5GB/month"
+    criticality: critical
+    change_rate: low
+    data_type: photos
+    required_copies: 3
+    required_locations: 2
+    max_rpo: "24h"
+    stored_on:
+      - mini-external-array
+      - eu-hdd-array
+    accessible_from:
+      - macbook-m4
+      - mac-mini-m4
+
+  - id: project-archives
+    name: "Completed Project Archives"
+    current_size: "200GB"
+    growth_rate: "5GB/month"
+    criticality: important
+    change_rate: static
+    data_type: archives
+    required_copies: 2
+    required_locations: 2
+    max_rpo: "30d"
+    stored_on:
+      - macbook-external
+      - eu-hdd-array
+
+  - id: time-machine-backups
+    name: "Time Machine Backups"
+    current_size: "1TB"
+    growth_rate: "20GB/month"
+    criticality: important
+    change_rate: medium
+    data_type: backup
+    required_copies: 2
+    required_locations: 2
+    max_rpo: "24h"
+    stored_on:
+      - mini-external-array
+      - eu-hdd-array
+
+sync_regimes:
+  - id: docs-resilio
+    dataset: working-docs
+    source_volume: macbook-internal
+    target_volumes:
+      - mini-external-array
+      - eu-nvme-boot
+    method: resilio_sync
+    software_id: resilio_sync
+    direction: bidirectional
+    continuous: true
+    achieved_rpo: "30s"
+
+  - id: code-resilio
+    dataset: source-code
+    source_volume: macbook-internal
+    target_volumes:
+      - eu-nvme-boot
+    method: resilio_sync
+    software_id: resilio_sync
+    direction: bidirectional
+    continuous: true
+    achieved_rpo: "30s"
+
+  - id: media-rsync
+    dataset: media-library
+    source_volume: macbook-external
+    target_volumes:
+      - mini-external-array
+    method: rsync
+    software_id: rsync
+    direction: source_to_target
+    schedule: "0 2 * * *"
+    achieved_rpo: "24h"
+
+  - id: media-offsite
+    dataset: media-library
+    source_volume: mini-external-array
+    target_volumes:
+      - eu-hdd-array
+    method: rsync
+    software_id: rsync
+    direction: source_to_target
+    schedule: "0 3 * * 0"
+    achieved_rpo: "7d"
+
+  - id: photos-borg
+    dataset: photos-archive
+    source_volume: mini-external-array
+    target_volumes:
+      - eu-hdd-array
+    method: borg
+    software_id: borg
+    direction: source_to_target
+    schedule: "0 4 * * *"
+    achieved_rpo: "24h"
+
+  - id: tm-mini
+    dataset: time-machine-backups
+    source_volume: macbook-internal
+    target_volumes:
+      - mini-external-array
+    method: time_machine
+    software_id: time_machine
+    direction: source_to_target
+    continuous: true
+    achieved_rpo: "1h"
+
+  - id: tm-offsite
+    dataset: time-machine-backups
+    source_volume: mini-external-array
+    target_volumes:
+      - eu-hdd-array
+    method: rsync
+    software_id: rsync
+    direction: source_to_target
+    schedule: "0 5 * * *"
+    achieved_rpo: "24h"

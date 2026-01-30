@@ -1,0 +1,265 @@
+software:
+  - id: resilio_sync
+    name: "Resilio Sync"
+    type: sync
+    strengths:
+      - continuous
+      - bidirectional
+      - peer-to-peer
+      - handles-conflicts
+      - selective-sync
+      - encrypted-transfer
+    weaknesses:
+      - no-versioning
+      - proprietary
+      - subscription-for-features
+    best_for:
+      change_rate:
+        - high
+        - realtime
+      direction: bidirectional
+      max_rpo: "1h"
+    platforms:
+      - macos
+      - linux
+      - windows
+      - ios
+      - android
+    url: "https://www.resilio.com/sync/"
+    notes: "Best for real-time bidirectional sync across devices"
+
+  - id: syncthing
+    name: "Syncthing"
+    type: sync
+    strengths:
+      - continuous
+      - bidirectional
+      - open-source
+      - peer-to-peer
+      - encrypted-transfer
+      - no-cloud-dependency
+    weaknesses:
+      - no-versioning
+      - can-be-slow-large-files
+      - manual-conflict-resolution
+    best_for:
+      change_rate:
+        - medium
+        - high
+      direction: bidirectional
+    platforms:
+      - macos
+      - linux
+      - windows
+      - android
+    url: "https://syncthing.net/"
+    notes: "Open-source alternative to Resilio"
+
+  - id: time_machine
+    name: "Time Machine"
+    type: backup
+    strengths:
+      - versioning
+      - apple-integrated
+      - hourly-automatic
+      - easy-restore
+      - local-snapshots
+    weaknesses:
+      - mac-only
+      - not-offsite
+      - large-storage-required
+    best_for:
+      criticality:
+        - critical
+        - important
+      change_rate:
+        - medium
+        - high
+      target: local-network
+    platforms:
+      - macos
+    notes: "Best for Mac system and document backup to local storage"
+
+  - id: borg
+    name: "Borg Backup"
+    type: backup
+    strengths:
+      - deduplication
+      - encryption
+      - versioning
+      - efficient-incremental
+      - compression
+    weaknesses:
+      - cli-only
+      - needs-setup
+      - not-realtime
+    best_for:
+      criticality:
+        - critical
+      change_rate:
+        - low
+        - medium
+      target: remote-server
+    platforms:
+      - macos
+      - linux
+    url: "https://www.borgbackup.org/"
+    notes: "Excellent for offsite backup with deduplication"
+
+  - id: rsync
+    name: "rsync"
+    type: sync
+    strengths:
+      - efficient-delta
+      - reliable
+      - ubiquitous
+      - scriptable
+      - bandwidth-efficient
+    weaknesses:
+      - one-direction
+      - no-versioning
+      - no-conflict-handling
+    best_for:
+      direction: source_to_target
+      change_rate:
+        - static
+        - low
+    platforms:
+      - macos
+      - linux
+    notes: "Standard for one-way efficient sync"
+
+  - id: rclone
+    name: "rclone"
+    type: sync
+    strengths:
+      - cloud-support
+      - encryption
+      - many-backends
+      - mount-capability
+    weaknesses:
+      - no-continuous
+      - cli-focused
+    best_for:
+      target: cloud
+    platforms:
+      - macos
+      - linux
+      - windows
+    url: "https://rclone.org/"
+    notes: "Best for cloud storage sync (S3, B2, etc)"
+
+  - id: arq
+    name: "Arq Backup"
+    type: backup
+    strengths:
+      - versioning
+      - encryption
+      - cloud-support
+      - macos-native
+      - deduplication
+    weaknesses:
+      - paid-software
+      - not-realtime
+    best_for:
+      criticality:
+        - critical
+        - important
+      target: cloud
+    platforms:
+      - macos
+      - windows
+    url: "https://www.arqbackup.com/"
+    notes: "Good Mac-native backup to cloud or local"
+
+  - id: duplicacy
+    name: "Duplicacy"
+    type: backup
+    strengths:
+      - deduplication
+      - lock-free
+      - multiple-backends
+      - encryption
+    weaknesses:
+      - cli-version-free-only
+      - learning-curve
+    best_for:
+      criticality:
+        - critical
+      target: remote-server
+    platforms:
+      - macos
+      - linux
+      - windows
+    url: "https://duplicacy.com/"
+    notes: "Advanced deduplication backup"
+
+  - id: postgres_replication
+    name: "PostgreSQL Streaming Replication"
+    type: replication
+    strengths:
+      - near-zero-rpo
+      - automatic-failover
+      - read-replicas
+    weaknesses:
+      - postgres-only
+      - requires-standby
+      - complex-setup
+    best_for:
+      data_type:
+        - database
+      max_rpo: "5m"
+    platforms:
+      - macos
+      - linux
+    notes: "For PostgreSQL database replication"
+
+  - id: litestream
+    name: "Litestream"
+    type: replication
+    strengths:
+      - sqlite-native
+      - continuous
+      - s3-compatible
+      - simple
+    weaknesses:
+      - sqlite-only
+      - restore-manual
+    best_for:
+      data_type:
+        - database
+      change_rate:
+        - medium
+        - high
+    platforms:
+      - macos
+      - linux
+    url: "https://litestream.io/"
+    notes: "Continuous SQLite replication to S3"
+
+  - id: softraid
+    name: "SoftRAID"
+    type: raid
+    strengths:
+      - macos-native
+      - raid-5-support
+      - disk-health-monitoring
+      - certify-new-disks
+      - volume-protection
+    weaknesses:
+      - paid-software
+      - macos-windows-only
+      - requires-compatible-enclosure
+    best_for:
+      data_type:
+        - media
+        - documents
+      criticality:
+        - critical
+        - important
+    platforms:
+      - macos
+      - windows
+    url: "https://softraid.com/"
+    retail_price: 49.99
+    notes: "Premium included with some OWC enclosures. 3yr license $139.99."
