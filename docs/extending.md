@@ -14,7 +14,7 @@ products:
       capacity: "4TB"
       interface: "SATA"
       # ... category-specific fields
-    retail_price: 299.99
+    # NO prices - those go in session files
 ```
 
 No code changes needed. See [schema.md](schema.md) for full spec options.
@@ -40,21 +40,6 @@ software:
 ```
 
 The `best_for` fields drive `sp suggest software` matching.
-
-## Adding Market Prices
-
-Edit `catalog/market-prices.yaml`:
-
-```yaml
-prices:
-  - product_id: existing-product-id
-    source: ebay
-    price_low: 200
-    price_mid: 250
-    price_high: 300
-    last_updated: "2025-01-29"
-    sample_size: 10
-```
 
 ## Adding New Analysis
 
@@ -183,7 +168,7 @@ app.add_typer(new_group.app, name="new", help="New feature group")
 source .venv/bin/activate
 pytest                              # Run all tests
 pytest tests/test_new.py -v         # Run specific test
-sp validate examples/topology.yaml  # Quick validation
+sp validate current.yaml            # Quick validation
 ```
 
 ## Key Principles
@@ -192,3 +177,4 @@ sp validate examples/topology.yaml  # Quick validation
 2. **YAML is the interface**: Users edit YAML, not code.
 3. **No internal state**: Every run reads fresh from files.
 4. **Fail fast**: Validate early, provide clear errors.
+5. **Prices in sessions**: Catalog has specs; session files capture point-in-time prices.

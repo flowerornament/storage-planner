@@ -8,7 +8,7 @@ Instead of web searching every time you need a recommendation:
 1. **Batch research** - Separate sessions to find and evaluate products
 2. **Instant decisions** - `sp suggest hardware` uses cached data, no web searches
 3. **Curated quality** - Products vetted with pros/cons, not just specs
-4. **Price tracking** - Update market prices periodically without re-researching specs
+4. **Specs separate from prices** - Specs rarely change; prices are captured per-session
 
 ## Product Fields
 
@@ -44,16 +44,14 @@ Each product should have:
     interface: "SATA"
     # ... category-specific fields
 
-  # Pricing
-  retail_price: 299.99
-  retail_url: "https://..."
-
   # Metadata
   noise_db: 0                  # For quiet requirements
   discontinued: false          # Mark when no longer sold new
   last_verified: "2025-01-15"  # When info was checked
   notes: "Summary notes"
 ```
+
+**Note:** Prices do NOT go in the catalog. They are captured in session files when making decisions.
 
 ## Standard Tags
 
@@ -125,10 +123,10 @@ When researching a category:
 4. Check used prices on eBay/r/hardwareswap
 
 ### Products Found
-[Add to catalog/hardware.yaml]
+[Add specs to catalog/hardware.yaml - NO PRICES]
 
 ### Price Research
-[Add to catalog/market-prices.yaml]
+[Capture prices in sessions/<date>.yaml when making decisions]
 
 ### Summary
 - Best value: X
@@ -136,24 +134,23 @@ When researching a category:
 - Best for quiet: Z
 ```
 
-## Updating Market Prices
+## Capturing Prices
 
-Run periodic price checks:
+Prices are captured in **session files**, not the catalog:
 
 ```yaml
-# catalog/market-prices.yaml
+# sessions/2026-01-30.yaml
 prices:
-  - product_id: product-id
-    source: ebay              # ebay|reddit-hardwareswap|facebook|craigslist
-    price_low: 180            # Lowest recent sale
-    price_mid: 220            # Typical sale price
-    price_high: 260           # High end of range
-    last_updated: "2025-01-15"
-    sample_size: 10           # How many listings checked
-    notes: "Market condition notes"
+  captured: "2026-01-30"
+
+  samsung-870-qvo-8tb:
+    retail: 800
+    used_low: 719
+    used_high: 850
+    notes: "eBay completed sales"
 ```
 
-Check staleness with: `sp catalog summary`
+This keeps prices point-in-time and tied to specific decisions.
 
 ## CLI Commands
 
@@ -171,5 +168,5 @@ sp catalog list --use-case time-machine-target -c catalog
 sp catalog compare samsung-870-qvo-4tb crucial-mx500-4tb -c catalog
 
 # Get recommendations from cached data
-sp suggest hardware topology.yaml -c catalog
+sp suggest hardware current.yaml -c catalog
 ```

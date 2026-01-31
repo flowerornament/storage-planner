@@ -116,10 +116,12 @@ class TestExampleCatalogs:
         backup_tools = software.get_by_type("backup")
         assert len(backup_tools) > 0
 
+    @pytest.mark.skip(reason="Prices now live in session files, not catalog/market-prices.yaml")
     def test_market_prices_load(self, example_catalogs):
         _, _, prices = example_catalogs
         assert len(prices.prices) > 0
 
+    @pytest.mark.skip(reason="Prices now live in session files, not catalog/market-prices.yaml")
     def test_market_prices_reference_valid_products(self, example_catalogs):
         hardware, _, prices = example_catalogs
         for price in prices.prices:

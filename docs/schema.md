@@ -4,15 +4,14 @@ All configuration is YAML. This documents the schema for each file type.
 
 ## Topology Schema
 
-**File:** `topologies/<name>.yaml`
+**File:** `current.yaml` (deployed state) or embedded in `sessions/<date>.yaml` (options)
 
 ```yaml
 name: "Topology Name"           # Required
-status: proposed                # Optional: active|proposed|deprecated
-supersedes: synology-nas        # Optional, topology this replaces
+deployed: "2024-01-01"          # Optional, when this was deployed
+from_session: "2026-01-30"      # Optional, session that led to this config
 version: "1.0"                  # Optional, default "1.0"
 description: "..."              # Optional, multiline description
-updated: "2026-01-30"           # Optional, ISO date when last accurate
 
 constraints:                    # Optional, global constraints
   max_monthly_cost: 150.00
@@ -21,33 +20,11 @@ constraints:                    # Optional, global constraints
   min_locations_for_critical: 2 # Default: 2
   max_noise_db_home: 35         # For quiet setups
 
-hardware_cost:                  # Optional, for proposed topologies
-  enclosure:
-    product: "OWC Express 4M2"
-    url: "https://..."
-    price: 240
-  drives:
-    - product: "Lexar NM790 4TB"
-      quantity: 2
-      source: "new"             # new|used|eBay used
-      price_each: 420
-  total: 1080
-
 nodes: []        # List of Node
 links: []        # List of Link
 datasets: []     # List of Dataset
 sync_regimes: [] # List of SyncRegime
-problems: []     # List of Problem (optional)
-decisions: []    # List of Decision (optional)
 ```
-
-### Topology Status
-
-| Status | Meaning |
-|--------|---------|
-| `active` | Currently deployed configuration (tracked in `state.yaml`) |
-| `proposed` | Under evaluation, not yet deployed |
-| `deprecated` | Superseded by another topology |
 
 ### Node
 
@@ -83,9 +60,7 @@ decisions: []    # List of Decision (optional)
   raid_disks: 4               # Optional
   read_speed: "560MB/s"       # Optional
   write_speed: "530MB/s"      # Optional
-  purchase_cost: 749.99       # Optional, overrides catalog lookup
-  purchase_date: "2024-06-15" # Optional
-  product_id: samsung-870-qvo-8tb  # Optional, enables catalog price lookup if no purchase_cost
+  product_id: samsung-870-qvo-8tb  # Optional, references catalog for specs
   hosts_datasets:             # Optional, datasets stored here
     - working-docs
     - source-code
@@ -148,45 +123,76 @@ decisions: []    # List of Decision (optional)
   achieved_rpo: "30s"         # Optional, actual RPO achieved
 ```
 
-### Problem
+## Session Schema
 
-Documents issues with the storage system that need resolution.
+**File:** `sessions/<date>.yaml`
 
-```yaml
-- id: noisy-nas                 # Required, unique identifier
-  title: "NAS too loud"         # Required, short description
-  status: active                # Optional: active|solved (default: active)
-  description: |                # Optional, detailed explanation
-    The Synology DS224+ generates 35dB of noise, making it
-    unsuitable for the home office environment.
-  affects:                      # Optional, node/volume IDs affected
-    - synology-ds224
-  discovered: "2025-01-15"      # Optional, ISO date
-```
-
-### Decision
-
-Records a decision made about the storage system for institutional knowledge.
+Sessions capture point-in-time decision contexts with prices and options.
 
 ```yaml
-- date: "2025-01-20"            # Required, ISO date
-  title: "Replace NAS with Mac mini"  # Required
-  choice: |                     # Required, what was decided
-    Use Mac mini M4 as always-on hub with ThunderBay 4 mini
-    external enclosure for RAID1 storage.
-  rationale: |                  # Optional, why this choice
-    Mac mini is silent, integrates well with existing Apple
-    ecosystem, and can serve as homelab server.
-  alternatives_considered:      # Optional, what else was evaluated
-    - "Keep Synology in closet with long cables"
-    - "Switch to QNAP silent NAS"
-  solves:                       # Optional, problem IDs this resolves
-    - noisy-nas
+created: "2026-01-30"           # Required, ISO date
+purpose: "Replace NAS"          # Required, what decision is being made
+status: active                  # Required: active|decided|abandoned
+
+context: |                      # Optional, background information
+  Detailed explanation of why this session exists...
+
+# Prices captured for this session (point-in-time, do not update)
+prices:
+  captured: "2026-01-30"        # When prices were looked up
+  notes: "Market conditions"    # Optional context
+
+  product-id:                   # One entry per product researched
+    retail: 299                 # Current retail price
+    used_low: 180               # Low end of used market
+    used_high: 250              # High end of used market
+    notes: "Micro Center price" # Optional
+
+# Baseline: what current.yaml looked like when session started
+baseline:
+  name: "Current Setup Name"
+  deployed: "2024-01-01"
+  # ... summary of current state
+
+# Options evaluated
+options:
+  option-a:                     # Option identifier
+    name: "Option A Name"       # Display name
+    summary: "Brief description"
+
+    hardware:                   # Hardware list with prices
+      - product: product-id     # References catalog
+        qty: 1
+        unit_price: 299         # Price at time of session
+        source: retail          # retail|used|owned
+        subtotal: 299
+
+    total_cost: 299             # Sum of hardware
+
+    pros:
+      - Advantage 1
+      - Advantage 2
+    cons:
+      - Trade-off 1
+
+    noise_db: 0                 # Expected noise level
+    local_capacity: "8TB"       # Summary of capacity
+
+  option-b:
+    # ... another option
+
+# Decision (filled in when decided)
+decision:
+  chosen: null                  # "option-a" | "option-b" | etc
+  rationale: null               # Why this option was chosen
+  date: null                    # When decision was made
 ```
 
 ## Hardware Catalog Schema
 
 **File:** `catalog/hardware.yaml`
+
+The catalog contains product specs only. **Prices live in session files.**
 
 ```yaml
 products:
@@ -194,6 +200,7 @@ products:
     name: "Samsung 870 QVO 8TB"  # Required
     brand: Samsung            # Required
     model: "MZ-77Q8T0B/AM"    # Optional
+
     category: ssd             # Required: ssd|hdd|enclosure|nas|cable
 
     # Discovery & filtering
@@ -224,10 +231,6 @@ products:
       tbw: "2880TB"
       warranty_years: 3
       nand_type: "QLC"
-
-    # Pricing
-    retail_price: 749.99      # Optional
-    retail_url: "https://..."  # Optional
 
     # Metadata
     noise_db: 0               # Optional, for quiet requirements
@@ -301,40 +304,6 @@ software:
       - windows
     url: "https://..."
     notes: "..."
-```
-
-## Market Prices Schema
-
-**File:** `catalog/market-prices.yaml`
-
-```yaml
-prices:
-  - product_id: samsung-870-qvo-8tb  # Required, references hardware
-    source: ebay              # Required: ebay|reddit-hardwareswap|facebook|craigslist
-    price_low: 550            # Required
-    price_mid: 625            # Required
-    price_high: 700           # Required
-    last_updated: "2025-01-15"  # Required, ISO date
-    sample_size: 12           # Optional, how many listings checked
-    notes: "Completed sales"  # Optional
-```
-
-## State Schema
-
-**File:** `state.yaml`
-
-Tracks which topology is currently deployed and provides history.
-
-```yaml
-active_topology: synology-nas   # Required, references topologies/<name>.yaml
-
-history:                        # Optional, deployment history
-  - topology: synology-nas
-    from: "2024-01-01"
-    notes: "Original NAS-based setup"
-  - topology: mac-mini-hub-nvme
-    from: "2026-02-01"
-    notes: "Migrated from NAS to Mac mini hub"
 ```
 
 ## Size/Duration Formats
