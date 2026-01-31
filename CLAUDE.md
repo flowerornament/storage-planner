@@ -152,10 +152,11 @@ storage-planner/
 ## Development
 
 ```bash
-cargo build                   # Build
-cargo test                    # Run tests
+just check                    # Run all quality gates (fmt + lint + test)
+just fmt                      # Format code
+just lint                     # Run clippy
+just test                     # Run tests
 cargo build --release         # Release build
-./target/release/sp --help    # Run CLI
 ```
 
 ## Key Design Principles
