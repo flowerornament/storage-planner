@@ -153,7 +153,7 @@ CREATE INDEX IF NOT EXISTS idx_items_archived ON items(archived);
 CREATE TABLE IF NOT EXISTS prices (
     id TEXT PRIMARY KEY,
     item_id TEXT NOT NULL REFERENCES items(id),
-    source TEXT NOT NULL,           -- 'ebay', 'bestbuy', 'keepa', 'manual'
+    source TEXT NOT NULL,           -- 'ebay', 'bestbuy', 'amazon', 'manual', or custom
     price REAL NOT NULL,
     currency TEXT NOT NULL DEFAULT 'USD',
     condition TEXT NOT NULL,        -- 'new', 'used', 'refurbished', 'open_box'

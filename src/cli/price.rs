@@ -78,7 +78,7 @@ pub struct FetchArgs {
     /// Item ID to fetch prices for (omit for all stale items)
     pub item_id: Option<String>,
 
-    /// Sources to fetch from (ebay, bestbuy, keepa)
+    /// Sources to fetch from (ebay, bestbuy)
     #[arg(long, short = 's', value_delimiter = ',')]
     pub sources: Option<Vec<String>>,
 
@@ -244,7 +244,6 @@ fn fetch(db_path: Utf8PathBuf, args: FetchArgs, format: OutputFormat) -> Result<
         );
         println!("  SP_EBAY_APP_ID, SP_EBAY_CERT_ID   - for eBay prices");
         println!("  SP_BESTBUY_API_KEY                - for Best Buy prices");
-        println!("  SP_KEEPA_API_KEY                  - for Amazon (Keepa) prices");
         println!();
         println!("Use `sp price add` to manually add prices.");
         return Ok(());
@@ -438,7 +437,6 @@ fn has_api_key(source: &str) -> bool {
     match source {
         "ebay" => std::env::var("SP_EBAY_APP_ID").is_ok(),
         "bestbuy" => std::env::var("SP_BESTBUY_API_KEY").is_ok(),
-        "keepa" => std::env::var("SP_KEEPA_API_KEY").is_ok(),
         _ => false,
     }
 }

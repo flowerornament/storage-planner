@@ -72,7 +72,7 @@ sp price add samsung-870-evo-4tb --price=180 --condition=used --source=ebay --ur
 ```
 
 Conditions: `new`, `used`, `refurbished`, `open_box`
-Sources: `manual`, `ebay`, `bestbuy`, `keepa`, `amazon`
+Sources: `manual`, `ebay`, `bestbuy`, `amazon`, or any custom source name
 
 ### Query Prices
 
@@ -195,5 +195,4 @@ SP_DIR                  # Database directory (default: .sp)
 SP_EBAY_APP_ID          # eBay API app ID
 SP_EBAY_CERT_ID         # eBay API cert ID
 SP_BESTBUY_API_KEY      # Best Buy API key
-SP_KEEPA_API_KEY        # Keepa API key
 ```

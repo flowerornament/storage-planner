@@ -41,7 +41,7 @@ Price observations (append-only).
 |--------|------|-------------|
 | id | TEXT PRIMARY KEY | UUID |
 | item_id | TEXT NOT NULL | References items.id |
-| source | TEXT NOT NULL | Price source (manual, ebay, bestbuy, keepa, amazon) |
+| source | TEXT NOT NULL | Price source (manual, ebay, bestbuy, amazon, or custom) |
 | price | REAL NOT NULL | Price in currency |
 | currency | TEXT | Currency code (default: USD) |
 | condition | TEXT NOT NULL | Item condition (new, used, refurbished, open_box) |

@@ -4,7 +4,6 @@
 
 pub mod bestbuy;
 pub mod ebay;
-pub mod keepa;
 
 use anyhow::Result;
 use crate::core::models::{ItemCondition, Price, PriceSource as PriceSourceEnum};

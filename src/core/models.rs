@@ -172,7 +172,6 @@ impl Price {
 pub enum PriceSource {
     Ebay,
     BestBuy,
-    Keepa,
     Amazon,
     Manual,
     /// Custom source for retailers not in the known list
@@ -185,7 +184,6 @@ impl PriceSource {
         match self {
             Self::Ebay => "ebay".to_string(),
             Self::BestBuy => "bestbuy".to_string(),
-            Self::Keepa => "keepa".to_string(),
             Self::Amazon => "amazon".to_string(),
             Self::Manual => "manual".to_string(),
             Self::Custom(s) => s.clone(),
@@ -196,7 +194,6 @@ impl PriceSource {
         match s.to_lowercase().as_str() {
             "ebay" => Self::Ebay,
             "bestbuy" | "best_buy" => Self::BestBuy,
-            "keepa" => Self::Keepa,
             "amazon" => Self::Amazon,
             "manual" => Self::Manual,
             _ => Self::Custom(s.to_string()),

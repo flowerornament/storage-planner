@@ -27,8 +27,7 @@ src/
 └── pricing/                # Price API integrations
     ├── mod.rs              # PriceFetcher trait
     ├── ebay.rs
-    ├── bestbuy.rs
-    └── keepa.rs
+    └── bestbuy.rs
 ```
 
 ## Adding a New CLI Command
@@ -203,10 +202,10 @@ impl PriceFetcher for NewApiFetcher {
 pub enum PriceSource {
     Ebay,
     BestBuy,
-    Keepa,
     Amazon,
     NewApi,  // Add here
     Manual,
+    Custom(String),  // For arbitrary sources
 }
 ```
 
