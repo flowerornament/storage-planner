@@ -103,9 +103,7 @@ fn extract_amazon_asin(url: &str) -> Option<String> {
     if let Some(pos) = url.find("/dp/") {
         let start = pos + 4;
         let rest = &url[start..];
-        let asin = rest
-            .split(|c: char| c == '/' || c == '?' || c == '#')
-            .next()?;
+        let asin = rest.split(['/', '?', '#']).next()?;
         if is_valid_asin(asin) {
             return Some(asin.to_uppercase());
         }
@@ -115,9 +113,7 @@ fn extract_amazon_asin(url: &str) -> Option<String> {
     if let Some(pos) = url.find("/gp/product/") {
         let start = pos + 12;
         let rest = &url[start..];
-        let asin = rest
-            .split(|c: char| c == '/' || c == '?' || c == '#')
-            .next()?;
+        let asin = rest.split(['/', '?', '#']).next()?;
         if is_valid_asin(asin) {
             return Some(asin.to_uppercase());
         }
@@ -221,10 +217,9 @@ mod tests {
 
     #[test]
     fn test_bestbuy_with_query() {
-        let parsed = parse_url(
-            "https://www.bestbuy.com/site/samsung-870-evo-4tb/6405087.p?skuId=6405087",
-        )
-        .unwrap();
+        let parsed =
+            parse_url("https://www.bestbuy.com/site/samsung-870-evo-4tb/6405087.p?skuId=6405087")
+                .unwrap();
         assert_eq!(parsed.retailer, Retailer::BestBuy);
         assert_eq!(parsed.identifier, "6405087");
     }

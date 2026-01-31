@@ -239,10 +239,7 @@ impl ProductFetcher for EbayFetcher {
 
         // eBay Browse API supports GTIN filter
         let token = self.get_token()?;
-        let url = format!(
-            "{}?gtin={}&limit=1",
-            BROWSE_API_URL, upc
-        );
+        let url = format!("{}?gtin={}&limit=1", BROWSE_API_URL, upc);
 
         let response = ureq::get(&url)
             .set("Authorization", &format!("Bearer {}", token))
@@ -266,10 +263,7 @@ impl ProductFetcher for EbayFetcher {
         // For now, we'll do a search with epid filter if available
         // This is a simplification - full item lookup would use /buy/browse/v1/item/{item_id}
         let token = self.get_token()?;
-        let url = format!(
-            "https://api.ebay.com/buy/browse/v1/item/v1|{}|0",
-            item_id
-        );
+        let url = format!("https://api.ebay.com/buy/browse/v1/item/v1|{}|0", item_id);
 
         let response = ureq::get(&url)
             .set("Authorization", &format!("Bearer {}", token))

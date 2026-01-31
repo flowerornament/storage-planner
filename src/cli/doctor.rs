@@ -56,16 +56,22 @@ pub fn run(db_path: Utf8PathBuf, args: DoctorArgs) -> Result<()> {
     }
 
     // Check for stale prices (>30 days)
-    let stale_prices: i64 = db.conn().query_row(
-        "SELECT COUNT(DISTINCT item_id) FROM prices
+    let stale_prices: i64 = db
+        .conn()
+        .query_row(
+            "SELECT COUNT(DISTINCT item_id) FROM prices
          WHERE item_id IN (SELECT id FROM items WHERE archived = 0)
          GROUP BY item_id
          HAVING MAX(observed_at) < datetime('now', '-30 days')",
-        [],
-        |row| row.get(0),
-    ).unwrap_or(0);
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
     if stale_prices > 0 {
-        warnings.push(format!("{} items have very stale prices (>30 days)", stale_prices));
+        warnings.push(format!(
+            "{} items have very stale prices (>30 days)",
+            stale_prices
+        ));
     }
 
     // Check for multiple current configurations
@@ -75,12 +81,17 @@ pub fn run(db_path: Utf8PathBuf, args: DoctorArgs) -> Result<()> {
         |row| row.get(0),
     )?;
     if current_configs > 1 {
-        issues.push(format!("{} configurations marked as current (should be 1)", current_configs));
+        issues.push(format!(
+            "{} configurations marked as current (should be 1)",
+            current_configs
+        ));
     }
 
     // Run SQLite integrity check if requested
     if args.integrity {
-        let integrity: String = db.conn().query_row("PRAGMA integrity_check", [], |row| row.get(0))?;
+        let integrity: String = db
+            .conn()
+            .query_row("PRAGMA integrity_check", [], |row| row.get(0))?;
         if integrity != "ok" {
             issues.push(format!("SQLite integrity check failed: {}", integrity));
         }

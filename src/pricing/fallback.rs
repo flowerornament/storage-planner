@@ -181,17 +181,14 @@ pub fn print_fallback_instructions(reason: FallbackReason, search_query: &str) {
         reason.as_str()
     );
     println!();
-    println!(
-        "Search manually for: {}",
-        style(search_query).cyan().bold()
-    );
+    println!("Search manually for: {}", style(search_query).cyan().bold());
     println!();
     println!("Then run:");
     println!(
         "  {}",
-        style(format!(
-            r#"sp item import --json='{{"name":"...","brand":"...","category":"ssd","specs":{{...}},"price":289,"source":"amazon"}}'"#
-        ))
+        style(
+            r#"sp item import --json='{"name":"...","brand":"...","category":"ssd","specs":{...},"price":289,"source":"amazon"}'"#
+        )
         .dim()
     );
     println!();
@@ -238,9 +235,10 @@ mod tests {
 
     #[test]
     fn test_agent_response_with_partial_data() {
-        let response = AgentFallbackResponse::new(FallbackReason::ApiError("timeout".into()), "test")
-            .with_suggested_id("samsung-870-evo-4tb".into())
-            .with_partial_data(serde_json::json!({"brand": "Samsung"}));
+        let response =
+            AgentFallbackResponse::new(FallbackReason::ApiError("timeout".into()), "test")
+                .with_suggested_id("samsung-870-evo-4tb".into())
+                .with_partial_data(serde_json::json!({"brand": "Samsung"}));
 
         assert!(response.suggested_id.is_some());
         assert!(response.partial_data.is_some());

@@ -42,8 +42,8 @@ pub struct Dataset {
     pub size_bytes: u64,
     pub growth_rate: Option<f64>, // Bytes per month
     pub criticality: Criticality,
-    pub rpo_hours: Option<u32>,   // Recovery Point Objective
-    pub rto_hours: Option<u32>,   // Recovery Time Objective
+    pub rpo_hours: Option<u32>, // Recovery Point Objective
+    pub rto_hours: Option<u32>, // Recovery Time Objective
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]

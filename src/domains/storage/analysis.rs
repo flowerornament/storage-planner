@@ -17,8 +17,8 @@ pub struct RedundancyReport {
 #[serde(rename_all = "lowercase")]
 pub enum RedundancyLevel {
     None,
-    Local,    // RAID or local copies
-    Offsite,  // Copies on different node
+    Local,      // RAID or local copies
+    Offsite,    // Copies on different node
     Geographic, // Copies in different locations
 }
 
@@ -123,10 +123,7 @@ pub fn analyze_capacity(volumes: &[Volume], datasets: &[Dataset]) -> CapacityRep
     };
 
     // Estimate months until full based on growth rate
-    let total_growth_per_month: f64 = datasets
-        .iter()
-        .filter_map(|d| d.growth_rate)
-        .sum();
+    let total_growth_per_month: f64 = datasets.iter().filter_map(|d| d.growth_rate).sum();
 
     let months_until_full = if total_growth_per_month > 0.0 && free_bytes > 0 {
         Some((free_bytes as f64 / total_growth_per_month) as u32)
@@ -193,7 +190,7 @@ pub fn analyze_rpo_rto(datasets: &[Dataset], syncs: &[SyncRegime]) -> RpoRtoRepo
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domains::storage::models::{Criticality, NodeType, SyncType};
+    use crate::domains::storage::models::{Criticality, NodeType};
 
     #[test]
     fn test_redundancy_single_node() {
@@ -257,7 +254,7 @@ mod tests {
         let datasets = vec![Dataset {
             id: "data".into(),
             name: "Data".into(),
-            size_bytes: 2_000_000_000_000, // 2TB
+            size_bytes: 2_000_000_000_000,       // 2TB
             growth_rate: Some(50_000_000_000.0), // 50GB/month
             criticality: Criticality::Normal,
             rpo_hours: None,

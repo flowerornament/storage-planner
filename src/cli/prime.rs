@@ -101,7 +101,8 @@ pub fn run(db_path: Utf8PathBuf, args: PrimeArgs, format: OutputFormat) -> Resul
              HAVING MAX(p.observed_at) < datetime('now', '-7 days')
                 OR MAX(p.observed_at) IS NULL",
         )?;
-        let result = stmt.query_map([], |row| row.get(0))?
+        let result = stmt
+            .query_map([], |row| row.get(0))?
             .collect::<Result<Vec<_>, _>>()?;
         result
     };
@@ -230,7 +231,8 @@ fn print_text_output(output: &PrimeOutput) {
     // Catalog summary
     if let Some(ref catalog) = output.catalog {
         println!("{}", style("Catalog:").bold());
-        let mut by_category: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
+        let mut by_category: std::collections::HashMap<&str, usize> =
+            std::collections::HashMap::new();
         for item in catalog {
             *by_category.entry(&item.category).or_insert(0) += 1;
         }

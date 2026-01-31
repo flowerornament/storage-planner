@@ -122,11 +122,26 @@ impl Identifiers {
         let obj = value.as_object();
 
         Self {
-            asin: obj.and_then(|o| o.get("asin")).and_then(|v| v.as_str()).map(String::from),
-            upc: obj.and_then(|o| o.get("upc")).and_then(|v| v.as_str()).map(String::from),
-            bestbuy_sku: obj.and_then(|o| o.get("bestbuy_sku")).and_then(|v| v.as_str()).map(String::from),
-            ebay_item_id: obj.and_then(|o| o.get("ebay_item_id")).and_then(|v| v.as_str()).map(String::from),
-            mpn: obj.and_then(|o| o.get("mpn")).and_then(|v| v.as_str()).map(String::from),
+            asin: obj
+                .and_then(|o| o.get("asin"))
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            upc: obj
+                .and_then(|o| o.get("upc"))
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            bestbuy_sku: obj
+                .and_then(|o| o.get("bestbuy_sku"))
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            ebay_item_id: obj
+                .and_then(|o| o.get("ebay_item_id"))
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            mpn: obj
+                .and_then(|o| o.get("mpn"))
+                .and_then(|v| v.as_str())
+                .map(String::from),
         }
     }
 }
@@ -176,13 +191,7 @@ pub trait ProductFetcher {
 fn slugify(s: &str) -> String {
     s.to_lowercase()
         .chars()
-        .map(|c| {
-            if c.is_ascii_alphanumeric() {
-                c
-            } else {
-                '-'
-            }
-        })
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
         .collect::<String>()
         .split('-')
         .filter(|s| !s.is_empty())

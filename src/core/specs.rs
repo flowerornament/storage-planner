@@ -38,7 +38,10 @@ impl Capacity {
             .map(|i| s.split_at(i))
             .unwrap_or((&s, "B"));
 
-        let num: f64 = num_str.trim().parse().map_err(|_| anyhow!("Invalid number: {}", num_str))?;
+        let num: f64 = num_str
+            .trim()
+            .parse()
+            .map_err(|_| anyhow!("Invalid number: {}", num_str))?;
 
         let multiplier = match unit.trim() {
             "B" | "" => 1,
@@ -131,7 +134,9 @@ impl NoiseLevel {
     pub fn parse(s: &str) -> Result<Self> {
         let s = s.trim().to_uppercase();
         let num_str = s.trim_end_matches("DB").trim_end_matches("DBA").trim();
-        let db: f64 = num_str.parse().map_err(|_| anyhow!("Invalid noise level: {}", s))?;
+        let db: f64 = num_str
+            .parse()
+            .map_err(|_| anyhow!("Invalid noise level: {}", s))?;
         Ok(Self { db })
     }
 
@@ -201,7 +206,10 @@ mod tests {
     fn test_capacity_parse() {
         assert_eq!(Capacity::parse("4TB").unwrap().bytes, 4 * Capacity::TB);
         assert_eq!(Capacity::parse("500GB").unwrap().bytes, 500 * Capacity::GB);
-        assert_eq!(Capacity::parse("1.5TB").unwrap().bytes, (1.5 * Capacity::TB as f64) as u64);
+        assert_eq!(
+            Capacity::parse("1.5TB").unwrap().bytes,
+            (1.5 * Capacity::TB as f64) as u64
+        );
         assert_eq!(Capacity::parse("4 TB").unwrap().bytes, 4 * Capacity::TB);
         assert_eq!(Capacity::parse("4tb").unwrap().bytes, 4 * Capacity::TB);
     }
@@ -209,14 +217,26 @@ mod tests {
     #[test]
     fn test_capacity_display() {
         assert_eq!(Capacity::from_bytes(4 * Capacity::TB).to_string(), "4.0TB");
-        assert_eq!(Capacity::from_bytes(500 * Capacity::GB).to_string(), "500.0GB");
+        assert_eq!(
+            Capacity::from_bytes(500 * Capacity::GB).to_string(),
+            "500.0GB"
+        );
     }
 
     #[test]
     fn test_speed_parse() {
-        assert_eq!(Speed::parse("560MB/s").unwrap().bytes_per_sec, 560 * Capacity::MB);
-        assert_eq!(Speed::parse("7GB/s").unwrap().bytes_per_sec, 7 * Capacity::GB);
-        assert_eq!(Speed::parse("560MB").unwrap().bytes_per_sec, 560 * Capacity::MB);
+        assert_eq!(
+            Speed::parse("560MB/s").unwrap().bytes_per_sec,
+            560 * Capacity::MB
+        );
+        assert_eq!(
+            Speed::parse("7GB/s").unwrap().bytes_per_sec,
+            7 * Capacity::GB
+        );
+        assert_eq!(
+            Speed::parse("560MB").unwrap().bytes_per_sec,
+            560 * Capacity::MB
+        );
     }
 
     #[test]

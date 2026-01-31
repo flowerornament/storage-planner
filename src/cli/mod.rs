@@ -115,9 +115,7 @@ pub enum OutputFormat {
 impl Cli {
     /// Get the database directory path
     pub fn db_dir(&self) -> Utf8PathBuf {
-        self.dir
-            .clone()
-            .unwrap_or_else(|| Utf8PathBuf::from(".sp"))
+        self.dir.clone().unwrap_or_else(|| Utf8PathBuf::from(".sp"))
     }
 
     /// Get the database file path

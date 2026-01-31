@@ -33,30 +33,29 @@ pub fn run(db_path: Utf8PathBuf, args: EventsArgs, format: OutputFormat) -> Resu
 
     let db = Database::open(&db_path)?;
 
-    let events: Vec<Event> = if let (Some(entity_type), Some(entity_id)) =
-        (&args.entity_type, &args.entity)
-    {
-        let et = EntityType::from_str(entity_type);
-        EventLog::for_entity(db.conn(), et, entity_id)?
-            .into_iter()
-            .take(args.limit)
-            .collect()
-    } else if let Some(entity_id) = &args.entity {
-        // Search across all entity types
-        let mut all_events = Vec::new();
-        for et in [
-            EntityType::Item,
-            EntityType::Price,
-            EntityType::Configuration,
-            EntityType::Decision,
-        ] {
-            all_events.extend(EventLog::for_entity(db.conn(), et, entity_id)?);
-        }
-        all_events.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
-        all_events.into_iter().take(args.limit).collect()
-    } else {
-        EventLog::recent(db.conn(), args.limit)?
-    };
+    let events: Vec<Event> =
+        if let (Some(entity_type), Some(entity_id)) = (&args.entity_type, &args.entity) {
+            let et = EntityType::parse(entity_type);
+            EventLog::for_entity(db.conn(), et, entity_id)?
+                .into_iter()
+                .take(args.limit)
+                .collect()
+        } else if let Some(entity_id) = &args.entity {
+            // Search across all entity types
+            let mut all_events = Vec::new();
+            for et in [
+                EntityType::Item,
+                EntityType::Price,
+                EntityType::Configuration,
+                EntityType::Decision,
+            ] {
+                all_events.extend(EventLog::for_entity(db.conn(), et, entity_id)?);
+            }
+            all_events.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+            all_events.into_iter().take(args.limit).collect()
+        } else {
+            EventLog::recent(db.conn(), args.limit)?
+        };
 
     match format {
         OutputFormat::Json => {

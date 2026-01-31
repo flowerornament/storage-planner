@@ -22,8 +22,8 @@ impl Database {
                 .with_context(|| format!("Failed to create directory: {parent}"))?;
         }
 
-        let conn = Connection::open(path)
-            .with_context(|| format!("Failed to open database: {path}"))?;
+        let conn =
+            Connection::open(path).with_context(|| format!("Failed to open database: {path}"))?;
 
         // Enable foreign keys and WAL mode for better concurrency
         conn.execute_batch(
@@ -100,9 +100,9 @@ impl Database {
         let prices: i64 = self
             .conn
             .query_row("SELECT COUNT(*) FROM prices", [], |row| row.get(0))?;
-        let configurations: i64 = self
-            .conn
-            .query_row("SELECT COUNT(*) FROM configurations", [], |row| row.get(0))?;
+        let configurations: i64 =
+            self.conn
+                .query_row("SELECT COUNT(*) FROM configurations", [], |row| row.get(0))?;
         let events: i64 = self
             .conn
             .query_row("SELECT COUNT(*) FROM events", [], |row| row.get(0))?;

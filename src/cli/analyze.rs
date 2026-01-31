@@ -108,7 +108,10 @@ pub fn run(db_path: Utf8PathBuf, args: AnalyzeArgs, format: OutputFormat) -> Res
             "noise" => analyze_noise(&item_specs),
             "redundancy" => analyze_redundancy(&config, &item_specs),
             _ => {
-                bail!("Unknown check: {}. Available: cost, capacity, noise, redundancy", check_name);
+                bail!(
+                    "Unknown check: {}. Available: cost, capacity, noise, redundancy",
+                    check_name
+                );
             }
         };
         checks.push(check);
@@ -139,9 +142,18 @@ pub fn run(db_path: Utf8PathBuf, args: AnalyzeArgs, format: OutputFormat) -> Res
             None
         },
         cost_per_tb,
-        passes: checks.iter().filter(|c| matches!(c.status, CheckStatus::Pass)).count(),
-        warnings: checks.iter().filter(|c| matches!(c.status, CheckStatus::Warn)).count(),
-        failures: checks.iter().filter(|c| matches!(c.status, CheckStatus::Fail)).count(),
+        passes: checks
+            .iter()
+            .filter(|c| matches!(c.status, CheckStatus::Pass))
+            .count(),
+        warnings: checks
+            .iter()
+            .filter(|c| matches!(c.status, CheckStatus::Warn))
+            .count(),
+        failures: checks
+            .iter()
+            .filter(|c| matches!(c.status, CheckStatus::Fail))
+            .count(),
     };
 
     let result = AnalysisResult {
@@ -209,16 +221,17 @@ fn get_item_specs(
 
 fn analyze_cost(config: &Configuration) -> Check {
     let total = config.total_cost();
-    let items_with_price = config.items.iter().filter(|i| i.unit_price.is_some()).count();
+    let items_with_price = config
+        .items
+        .iter()
+        .filter(|i| i.unit_price.is_some())
+        .count();
     let items_without_price = config.items.len() - items_with_price;
 
     let (status, message) = if items_without_price > 0 {
         (
             CheckStatus::Warn,
-            format!(
-                "{} item(s) missing price data",
-                items_without_price
-            ),
+            format!("{} item(s) missing price data", items_without_price),
         )
     } else if total > 0.0 {
         (CheckStatus::Pass, format!("Total: ${:.2}", total))
@@ -288,12 +301,18 @@ fn analyze_noise(item_specs: &[(String, serde_json::Value)]) -> Check {
     } else if max_noise <= threshold {
         (
             CheckStatus::Pass,
-            format!("Max noise {:.0}dB within {:.0}dB threshold", max_noise, threshold),
+            format!(
+                "Max noise {:.0}dB within {:.0}dB threshold",
+                max_noise, threshold
+            ),
         )
     } else {
         (
             CheckStatus::Warn,
-            format!("Max noise {:.0}dB exceeds {:.0}dB threshold", max_noise, threshold),
+            format!(
+                "Max noise {:.0}dB exceeds {:.0}dB threshold",
+                max_noise, threshold
+            ),
         )
     };
 
@@ -341,7 +360,10 @@ fn analyze_redundancy(config: &Configuration, item_specs: &[(String, serde_json:
     } else {
         (
             CheckStatus::Pass,
-            format!("{} devices: RAID5+ or multiple mirrors possible", storage_count),
+            format!(
+                "{} devices: RAID5+ or multiple mirrors possible",
+                storage_count
+            ),
         )
     };
 

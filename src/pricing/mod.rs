@@ -9,11 +9,11 @@ pub mod fallback;
 pub mod product;
 pub mod url_parser;
 
-use anyhow::Result;
 use crate::core::models::{ItemCondition, Price, PriceSource as PriceSourceEnum};
+use anyhow::Result;
 
 // Re-export commonly used types
-pub use fallback::{FallbackReason, generate_agent_response, print_fallback_instructions};
+pub use fallback::{generate_agent_response, print_fallback_instructions, FallbackReason};
 pub use product::{Identifiers, PriceInfo, ProductFetcher, ProductInfo};
 pub use url_parser::{parse_url, ParsedUrl, Retailer};
 

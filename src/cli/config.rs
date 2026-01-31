@@ -511,7 +511,9 @@ fn archive(db_path: Utf8PathBuf, args: ArchiveArgs) -> Result<()> {
     let config = find_config(&db, &args.id)?;
 
     if config.is_current {
-        bail!("Cannot archive current configuration. Set a different configuration as current first.");
+        bail!(
+            "Cannot archive current configuration. Set a different configuration as current first."
+        );
     }
 
     db.transaction(|tx| {
@@ -695,10 +697,7 @@ fn print_config_detail(config: &Configuration) {
                 })
                 .unwrap_or_else(|| "-".to_string());
 
-            println!(
-                "  {}x {} @ {}",
-                item.quantity, item.item_id, price_str
-            );
+            println!("  {}x {} @ {}", item.quantity, item.item_id, price_str);
             if let Some(ref notes) = item.notes {
                 println!("     {}", style(notes).dim());
             }

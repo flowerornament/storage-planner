@@ -24,7 +24,11 @@ pub struct Item {
 
 impl Item {
     /// Create a new item with required fields
-    pub fn new(id: impl Into<String>, name: impl Into<String>, category: impl Into<String>) -> Self {
+    pub fn new(
+        id: impl Into<String>,
+        name: impl Into<String>,
+        category: impl Into<String>,
+    ) -> Self {
         let now = Utc::now();
         Self {
             id: id.into(),
@@ -153,10 +157,10 @@ impl Price {
         Ok(Self {
             id: row.get("id")?,
             item_id: row.get("item_id")?,
-            source: PriceSource::from_str(&source_str),
+            source: PriceSource::parse(&source_str),
             price: row.get("price")?,
             currency: row.get("currency")?,
-            condition: ItemCondition::from_str(&condition_str),
+            condition: ItemCondition::parse(&condition_str),
             url: row.get("url")?,
             observed_at: DateTime::parse_from_rfc3339(&observed_str)
                 .map(|dt| dt.with_timezone(&Utc))
@@ -190,7 +194,7 @@ impl PriceSource {
         }
     }
 
-    pub fn from_str(s: &str) -> Self {
+    pub fn parse(s: &str) -> Self {
         match s.to_lowercase().as_str() {
             "ebay" => Self::Ebay,
             "bestbuy" | "best_buy" => Self::BestBuy,
@@ -221,7 +225,7 @@ impl ItemCondition {
         }
     }
 
-    pub fn from_str(s: &str) -> Self {
+    pub fn parse(s: &str) -> Self {
         match s.to_lowercase().as_str() {
             "new" => Self::New,
             "used" => Self::Used,
@@ -389,8 +393,8 @@ impl Event {
 
         Ok(Self {
             id: row.get("id")?,
-            event_type: EventType::from_str(&event_type_str),
-            entity_type: EntityType::from_str(&entity_type_str),
+            event_type: EventType::parse(&event_type_str),
+            entity_type: EntityType::parse(&entity_type_str),
             entity_id: row.get("entity_id")?,
             payload: serde_json::from_str(&payload_str).unwrap_or_default(),
             timestamp: DateTime::parse_from_rfc3339(&timestamp_str)
@@ -425,7 +429,7 @@ impl EventType {
         }
     }
 
-    pub fn from_str(s: &str) -> Self {
+    pub fn parse(s: &str) -> Self {
         match s {
             "created" => Self::Created,
             "updated" => Self::Updated,
@@ -458,7 +462,7 @@ impl EntityType {
         }
     }
 
-    pub fn from_str(s: &str) -> Self {
+    pub fn parse(s: &str) -> Self {
         match s {
             "item" => Self::Item,
             "price" => Self::Price,
@@ -536,7 +540,7 @@ impl Decision {
         Ok(Self {
             id: row.get("id")?,
             purpose: row.get("purpose")?,
-            status: DecisionStatus::from_str(&status_str),
+            status: DecisionStatus::parse(&status_str),
             options: serde_json::from_str(&options_str).unwrap_or_default(),
             chosen_option: row.get("chosen_option")?,
             chosen_config_id: row.get("chosen_config_id")?,
@@ -573,7 +577,7 @@ impl DecisionStatus {
         }
     }
 
-    pub fn from_str(s: &str) -> Self {
+    pub fn parse(s: &str) -> Self {
         match s {
             "active" => Self::Active,
             "decided" => Self::Decided,
@@ -599,19 +603,19 @@ mod tests {
     #[test]
     fn test_price_source_roundtrip() {
         assert_eq!(PriceSource::Ebay.as_str(), "ebay");
-        assert_eq!(PriceSource::from_str("ebay"), PriceSource::Ebay);
-        assert_eq!(PriceSource::from_str("EBAY"), PriceSource::Ebay);
+        assert_eq!(PriceSource::parse("ebay"), PriceSource::Ebay);
+        assert_eq!(PriceSource::parse("EBAY"), PriceSource::Ebay);
     }
 
     #[test]
     fn test_price_source_custom() {
         // Unknown sources should become Custom, not Manual
-        let custom = PriceSource::from_str("owc");
+        let custom = PriceSource::parse("owc");
         assert_eq!(custom, PriceSource::Custom("owc".to_string()));
         assert_eq!(custom.as_str(), "owc");
 
         // Manual should still work explicitly
-        assert_eq!(PriceSource::from_str("manual"), PriceSource::Manual);
+        assert_eq!(PriceSource::parse("manual"), PriceSource::Manual);
     }
 
     #[test]

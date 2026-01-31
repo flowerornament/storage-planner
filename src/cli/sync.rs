@@ -77,7 +77,13 @@ fn export_catalog(db: &Database, output: &Utf8PathBuf) -> Result<()> {
     for (category, items) in by_category {
         let path = catalog_dir.join(format!("{}.yaml", category));
         let content = serde_yaml::to_string(&items)?;
-        std::fs::write(&path, format!("# {} catalog (auto-generated, read-only)\n# Source: sp sync\n\n{}", category, content))?;
+        std::fs::write(
+            &path,
+            format!(
+                "# {} catalog (auto-generated, read-only)\n# Source: sp sync\n\n{}",
+                category, content
+            ),
+        )?;
     }
 
     // Also get latest prices for each item
@@ -98,7 +104,13 @@ fn export_catalog(db: &Database, output: &Utf8PathBuf) -> Result<()> {
     if !prices.is_empty() {
         let prices_path = catalog_dir.join("_prices.yaml");
         let content = serde_yaml::to_string(&prices)?;
-        std::fs::write(&prices_path, format!("# Latest prices (auto-generated, read-only)\n# Source: sp sync\n\n{}", content))?;
+        std::fs::write(
+            &prices_path,
+            format!(
+                "# Latest prices (auto-generated, read-only)\n# Source: sp sync\n\n{}",
+                content
+            ),
+        )?;
     }
 
     Ok(())
@@ -150,7 +162,13 @@ fn export_decisions(db: &Database, output: &Utf8PathBuf) -> Result<()> {
         let date = decision.created_at.format("%Y-%m-%d");
         let path = history_dir.join(format!("{}-{}.yaml", date, &decision.id[..8]));
         let content = serde_yaml::to_string(&decision)?;
-        std::fs::write(&path, format!("# Decision session (auto-generated, read-only)\n# Source: sp sync\n\n{}", content))?;
+        std::fs::write(
+            &path,
+            format!(
+                "# Decision session (auto-generated, read-only)\n# Source: sp sync\n\n{}",
+                content
+            ),
+        )?;
     }
 
     Ok(())

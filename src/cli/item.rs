@@ -14,8 +14,8 @@ use crate::core::db::Database;
 use crate::core::events::{current_actor, EventLog};
 use crate::core::models::{EntityType, EventType, Item, ItemCondition, Price, PriceSource};
 use crate::pricing::{
-    self, FallbackReason, Identifiers, ParsedUrl, ProductFetcher, Retailer,
-    generate_agent_response, parse_url, print_fallback_instructions,
+    self, generate_agent_response, parse_url, print_fallback_instructions, FallbackReason,
+    Identifiers, ParsedUrl, ProductFetcher, Retailer,
 };
 
 use super::OutputFormat;
@@ -310,11 +310,11 @@ fn add(db_path: Utf8PathBuf, args: AddArgs, format: OutputFormat) -> Result<()> 
 
     db.transaction(|tx| {
         // Check if ID already exists
-        let exists: bool = tx.query_row(
-            "SELECT 1 FROM items WHERE id = ?1",
-            [&item.id],
-            |_| Ok(true),
-        ).unwrap_or(false);
+        let exists: bool = tx
+            .query_row("SELECT 1 FROM items WHERE id = ?1", [&item.id], |_| {
+                Ok(true)
+            })
+            .unwrap_or(false);
 
         if exists {
             bail!("Item with ID '{}' already exists", item.id);
@@ -358,7 +358,12 @@ fn add(db_path: Utf8PathBuf, args: AddArgs, format: OutputFormat) -> Result<()> 
         OutputFormat::Json => println!("{}", serde_json::to_string_pretty(&item)?),
         OutputFormat::Yaml => println!("{}", serde_yaml::to_string(&item)?),
         OutputFormat::Text => {
-            println!("{} Added item: {} ({})", style("✓").green(), item.id, item.name);
+            println!(
+                "{} Added item: {} ({})",
+                style("✓").green(),
+                item.id,
+                item.name
+            );
         }
     }
 
@@ -434,7 +439,12 @@ fn add_from_url(args: &AddArgs, url: &str, format: OutputFormat) -> Result<(Item
     bail!("Could not auto-fetch product info. Use --name and --category, or use sp item import");
 }
 
-fn add_from_identifier(args: &AddArgs, id_type: &str, id_value: &str, format: OutputFormat) -> Result<(Item, Option<Price>)> {
+fn add_from_identifier(
+    args: &AddArgs,
+    id_type: &str,
+    id_value: &str,
+    format: OutputFormat,
+) -> Result<(Item, Option<Price>)> {
     // Try to fetch by identifier
     if !args.no_fetch {
         let product = match id_type {
@@ -546,7 +556,11 @@ fn build_item_from_product(
 ) -> Result<(Item, Option<Price>)> {
     // Use CLI args as overrides, product data as defaults
     let name = args.name.clone().unwrap_or(product.name.clone());
-    let category = args.category.clone().or(product.category.clone()).unwrap_or("other".to_string());
+    let category = args
+        .category
+        .clone()
+        .or(product.category.clone())
+        .unwrap_or("other".to_string());
     let id = if args.id.is_empty() {
         product.suggested_item_id()
     } else {
@@ -571,7 +585,10 @@ fn build_item_from_product(
     if let Some(ref url) = product.source_url {
         metadata.insert("source_url".to_string(), JsonValue::String(url.clone()));
     } else if let Some(ref parsed) = parsed_url {
-        metadata.insert("source_url".to_string(), JsonValue::String(parsed.original_url.clone()));
+        metadata.insert(
+            "source_url".to_string(),
+            JsonValue::String(parsed.original_url.clone()),
+        );
     }
     item.metadata = JsonValue::Object(metadata);
 
@@ -664,8 +681,8 @@ fn import(db_path: Utf8PathBuf, args: ImportArgs, format: OutputFormat) -> Resul
         bail!("Either --json or --stdin is required");
     };
 
-    let data: ImportData = serde_json::from_str(&json_str)
-        .map_err(|e| anyhow::anyhow!("Invalid JSON: {}", e))?;
+    let data: ImportData =
+        serde_json::from_str(&json_str).map_err(|e| anyhow::anyhow!("Invalid JSON: {}", e))?;
 
     // Generate or use provided ID
     let id = args.id.unwrap_or_else(|| slugify(&data.name));
@@ -683,24 +700,26 @@ fn import(db_path: Utf8PathBuf, args: ImportArgs, format: OutputFormat) -> Resul
     item.tags = data.tags.unwrap_or_default();
 
     let price_to_add = data.price.map(|amount| {
-        let condition = data.condition
+        let condition = data
+            .condition
             .as_deref()
-            .map(ItemCondition::from_str)
+            .map(ItemCondition::parse)
             .unwrap_or(ItemCondition::New);
-        let source = data.source
+        let source = data
+            .source
             .as_deref()
-            .map(PriceSource::from_str)
+            .map(PriceSource::parse)
             .unwrap_or(PriceSource::Manual);
         Price::new(&id, source, amount, condition)
     });
 
     db.transaction(|tx| {
         // Check if ID already exists
-        let exists: bool = tx.query_row(
-            "SELECT 1 FROM items WHERE id = ?1",
-            [&item.id],
-            |_| Ok(true),
-        ).unwrap_or(false);
+        let exists: bool = tx
+            .query_row("SELECT 1 FROM items WHERE id = ?1", [&item.id], |_| {
+                Ok(true)
+            })
+            .unwrap_or(false);
 
         if exists {
             bail!("Item with ID '{}' already exists", item.id);
@@ -757,7 +776,12 @@ fn import(db_path: Utf8PathBuf, args: ImportArgs, format: OutputFormat) -> Resul
             println!("{}", serde_yaml::to_string(&output)?);
         }
         OutputFormat::Text => {
-            println!("{} Imported item: {} ({})", style("✓").green(), item.id, item.name);
+            println!(
+                "{} Imported item: {} ({})",
+                style("✓").green(),
+                item.id,
+                item.name
+            );
             if let Some(ref price) = price_to_add {
                 println!("  {} Added price: ${:.2}", style("✓").green(), price.price);
             }
@@ -894,7 +918,8 @@ fn show(db_path: Utf8PathBuf, args: ShowArgs, format: OutputFormat) -> Result<()
             "SELECT id, item_id, source, price, currency, condition, url, observed_at, metadata
              FROM prices WHERE item_id = ?1 ORDER BY observed_at DESC LIMIT 10",
         )?;
-        let result = stmt.query_map([&args.id], Price::from_row)?
+        let result = stmt
+            .query_map([&args.id], Price::from_row)?
             .collect::<Result<Vec<_>, _>>()?;
         result
     } else {
@@ -1162,13 +1187,7 @@ fn truncate(s: &str, max_len: usize) -> String {
 fn slugify(s: &str) -> String {
     s.to_lowercase()
         .chars()
-        .map(|c| {
-            if c.is_ascii_alphanumeric() {
-                c
-            } else {
-                '-'
-            }
-        })
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
         .collect::<String>()
         .split('-')
         .filter(|s| !s.is_empty())

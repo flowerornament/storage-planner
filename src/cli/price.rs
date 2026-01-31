@@ -12,8 +12,8 @@ use crate::core::db::Database;
 use crate::core::events::{current_actor, EventLog};
 use crate::core::models::{EntityType, EventType, Item, ItemCondition, Price, PriceSource};
 use crate::pricing::{
-    self, FallbackReason, Identifiers, ProductFetcher,
-    generate_agent_response, print_fallback_instructions,
+    self, generate_agent_response, print_fallback_instructions, FallbackReason, Identifiers,
+    ProductFetcher,
 };
 
 use super::OutputFormat;
@@ -193,8 +193,8 @@ fn add(db_path: Utf8PathBuf, args: AddArgs, format: OutputFormat) -> Result<()> 
         bail!("Item '{}' not found or archived", args.item_id);
     }
 
-    let source = PriceSource::from_str(&args.source);
-    let condition = ItemCondition::from_str(&args.condition);
+    let source = PriceSource::parse(&args.source);
+    let condition = ItemCondition::parse(&args.condition);
 
     let mut price = Price::new(&args.item_id, source, args.price, condition);
     price.url = args.url;
@@ -247,7 +247,8 @@ fn fetch(db_path: Utf8PathBuf, args: FetchArgs, format: OutputFormat) -> Result<
         let mut stmt = db
             .conn()
             .prepare("SELECT id FROM items WHERE archived = 0")?;
-        let result = stmt.query_map([], |row| row.get(0))?
+        let result = stmt
+            .query_map([], |row| row.get(0))?
             .collect::<Result<Vec<_>, _>>()?;
         result
     } else {
@@ -262,7 +263,8 @@ fn fetch(db_path: Utf8PathBuf, args: FetchArgs, format: OutputFormat) -> Result<
              WHERE i.archived = 0
                AND (p.latest IS NULL OR p.latest < ?1)",
         )?;
-        let result = stmt.query_map([cutoff.to_rfc3339()], |row| row.get(0))?
+        let result = stmt
+            .query_map([cutoff.to_rfc3339()], |row| row.get(0))?
             .collect::<Result<Vec<_>, _>>()?;
         result
     };
@@ -277,7 +279,9 @@ fn fetch(db_path: Utf8PathBuf, args: FetchArgs, format: OutputFormat) -> Result<
     }
 
     // Check for API keys
-    let sources = args.sources.unwrap_or_else(|| vec!["ebay".into(), "bestbuy".into()]);
+    let sources = args
+        .sources
+        .unwrap_or_else(|| vec!["ebay".into(), "bestbuy".into()]);
     let available_sources: Vec<&str> = sources
         .iter()
         .filter(|s| has_api_key(s))
@@ -338,7 +342,9 @@ fn refresh(db_path: Utf8PathBuf, args: RefreshArgs, format: OutputFormat) -> Res
 
     if items_to_refresh.is_empty() {
         match format {
-            OutputFormat::Json => println!("{{\"message\": \"No items need price refresh\", \"items\": []}}"),
+            OutputFormat::Json => {
+                println!("{{\"message\": \"No items need price refresh\", \"items\": []}}")
+            }
             OutputFormat::Yaml => println!("message: No items need price refresh\nitems: []"),
             OutputFormat::Text => println!("{}", style("No items need price refresh").dim()),
         }
@@ -516,7 +522,11 @@ fn refresh(db_path: Utf8PathBuf, args: RefreshArgs, format: OutputFormat) -> Res
         }
         OutputFormat::Text => {
             if !refreshed.is_empty() {
-                println!("{} Refreshed {} item(s):", style("✓").green(), refreshed.len());
+                println!(
+                    "{} Refreshed {} item(s):",
+                    style("✓").green(),
+                    refreshed.len()
+                );
                 for r in &refreshed {
                     println!("  {} ${:.2} ({})", r.item_id, r.price, r.source);
                 }
@@ -539,7 +549,11 @@ fn refresh(db_path: Utf8PathBuf, args: RefreshArgs, format: OutputFormat) -> Res
                         );
                         println!("{}", response);
                     } else {
-                        println!("  {} - search for: {}", f.item_id, style(&f.search_query).cyan());
+                        println!(
+                            "  {} - search for: {}",
+                            f.item_id,
+                            style(&f.search_query).cyan()
+                        );
                     }
                 }
 
@@ -580,12 +594,19 @@ struct FallbackItem {
 fn parse_duration(s: &str) -> Result<i64> {
     let s = s.trim().to_lowercase();
     if let Some(days) = s.strip_suffix('d') {
-        Ok(days.parse::<i64>().map_err(|_| anyhow::anyhow!("Invalid duration: {}", s))?)
+        Ok(days
+            .parse::<i64>()
+            .map_err(|_| anyhow::anyhow!("Invalid duration: {}", s))?)
     } else if let Some(weeks) = s.strip_suffix('w') {
-        Ok(weeks.parse::<i64>().map_err(|_| anyhow::anyhow!("Invalid duration: {}", s))? * 7)
+        Ok(weeks
+            .parse::<i64>()
+            .map_err(|_| anyhow::anyhow!("Invalid duration: {}", s))?
+            * 7)
     } else {
         // Try parsing as just days
-        Ok(s.parse::<i64>().map_err(|_| anyhow::anyhow!("Invalid duration: {}. Use format like '7d' or '2w'", s))?)
+        Ok(s.parse::<i64>().map_err(|_| {
+            anyhow::anyhow!("Invalid duration: {}. Use format like '7d' or '2w'", s)
+        })?)
     }
 }
 
@@ -723,11 +744,9 @@ fn compare(db_path: Utf8PathBuf, args: CompareArgs, format: OutputFormat) -> Res
     for item_id in &args.ids {
         let item_name: String = db
             .conn()
-            .query_row(
-                "SELECT name FROM items WHERE id = ?1",
-                [item_id],
-                |row| row.get(0),
-            )
+            .query_row("SELECT name FROM items WHERE id = ?1", [item_id], |row| {
+                row.get(0)
+            })
             .unwrap_or_else(|_| item_id.clone());
 
         // Get latest new price

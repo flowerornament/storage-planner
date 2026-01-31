@@ -48,3 +48,8 @@ tempfile = "3"
 [profile.release]
 lto = true
 strip = true
+
+[lints.clippy]
+all = "warn"
+# Relaxed for gradual cleanup - existing code has dead code
+should_implement_trait = "warn"
