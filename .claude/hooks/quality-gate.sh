@@ -17,7 +17,7 @@ if just check > /tmp/sp-quality.log 2>&1; then
   exit 0  # All good, Claude can stop
 else
   # Extract last 30 lines of failure output
-  ERRORS=$(tail -30 /tmp/sp-quality.log | jq -Rs .)
-  echo "{\"decision\":\"block\",\"reason\":\"Quality gate failed. Fix issues:\\n\\n\"$ERRORS\"\"}"
+  ERRORS=$(tail -30 /tmp/sp-quality.log)
+  jq -n --arg errors "$ERRORS" '{"decision":"block","reason":"Quality gate failed. Fix issues:\n\n\($errors)"}'
   exit 0
 fi
