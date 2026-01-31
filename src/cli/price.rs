@@ -14,6 +14,26 @@ use crate::core::models::{EntityType, EventType, ItemCondition, Price, PriceSour
 use super::OutputFormat;
 
 #[derive(Subcommand)]
+#[command(after_help = r#"EXAMPLES:
+    # Add a price observation
+    sp price add samsung-870-evo-4tb --price=289 --condition=new --source=amazon
+
+    # Add a used price with URL
+    sp price add samsung-870-evo-4tb --price=189 --condition=used --source=ebay \
+      --url="https://ebay.com/itm/123456"
+
+    # View current prices for an item
+    sp price show samsung-870-evo-4tb
+
+    # View price history
+    sp price history samsung-870-evo-4tb
+
+    # Compare prices across items
+    sp price compare samsung-870-evo-4tb lexar-nm790-4tb
+
+    # Fetch prices from APIs (requires API keys)
+    sp price fetch samsung-870-evo-4tb --sources=ebay,bestbuy
+"#)]
 pub enum PriceCommands {
     /// Add a manual price observation
     Add(AddArgs),

@@ -13,6 +13,32 @@ use crate::core::models::{ConfigItem, Configuration, EntityType, EventType};
 use super::OutputFormat;
 
 #[derive(Subcommand)]
+#[command(after_help = r#"EXAMPLES:
+    # Create a new configuration
+    sp config create "My Setup" --domain=storage
+
+    # Clone from current deployment
+    sp config create "Variant" --from-current
+
+    # Add items to a configuration
+    sp config add-item "My Setup" samsung-870-evo-4tb --qty=2
+    sp config add-item "My Setup" owc-dual-mini --qty=1
+
+    # View configuration details
+    sp config show "My Setup"
+    sp config current              # View deployed configuration
+
+    # List all configurations
+    sp config list
+    sp config list --archived      # Include archived
+
+    # Deploy a configuration
+    sp config set-current "My Setup"
+
+    # Remove and archive
+    sp config remove-item "My Setup" samsung-870-evo-4tb
+    sp config archive "Old Setup"
+"#)]
 pub enum ConfigCommands {
     /// Show current deployed configuration
     Current(CurrentArgs),

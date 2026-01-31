@@ -14,6 +14,30 @@ use crate::core::models::{Configuration, Decision, DecisionStatus, EntityType, E
 use super::OutputFormat;
 
 #[derive(Subcommand)]
+#[command(after_help = r#"EXAMPLES:
+    # Start a decision session
+    sp decide create --purpose="Storage upgrade for home office"
+
+    # Add options (each maps to a configuration)
+    sp decide add-option sata --config="SATA Setup"
+    sp decide add-option nvme --config="NVMe Setup"
+
+    # Compare options side-by-side
+    sp decide compare
+
+    # Make and document the decision
+    sp decide choose sata --rationale="Best value per TB, sufficient speed"
+
+    # Deploy the chosen configuration
+    sp decide deploy
+
+    # View decision history
+    sp decide history
+    sp decide show <decision-id>
+
+    # Abandon if requirements change
+    sp decide abandon --reason="Budget reduced"
+"#)]
 pub enum DecideCommands {
     /// Create a new decision session
     Create(CreateArgs),

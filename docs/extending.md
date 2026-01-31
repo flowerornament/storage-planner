@@ -1,180 +1,255 @@
-# Extending Storage Planner
+# Extending the Storage Planner
 
-## Adding Hardware Products
+This guide explains how to extend the Rust implementation.
 
-Edit `catalog/hardware.yaml`:
+## Project Structure
 
-```yaml
-products:
-  - id: new-product-id        # Lowercase, hyphenated
-    name: "Product Name"
-    brand: BrandName
-    category: ssd             # ssd|hdd|enclosure|nas|cable
-    specs:
-      capacity: "4TB"
-      interface: "SATA"
-      # ... category-specific fields
-    # NO prices - those go in session files
+```
+src/
+├── main.rs                 # CLI entry point
+├── lib.rs                  # Library exports
+├── core/                   # Domain-agnostic abstractions
+│   ├── db.rs               # SQLite database layer
+│   ├── models.rs           # Item, Price, Configuration, Event
+│   ├── events.rs           # Append-only event logging
+│   └── specs.rs            # Spec parsing (capacity, speed, noise)
+├── cli/                    # CLI commands
+│   ├── mod.rs              # Command dispatch
+│   ├── item.rs             # sp item *
+│   ├── price.rs            # sp price *
+│   ├── config.rs           # sp config *
+│   ├── decide.rs           # sp decide *
+│   └── analyze.rs          # sp analyze
+├── domains/                # Domain-specific modules
+│   └── storage/
+│       ├── models.rs       # Node, Volume, Dataset, SyncRegime
+│       └── analysis.rs     # Redundancy, capacity, RPO/RTO analysis
+└── pricing/                # Price API integrations
+    ├── mod.rs              # PriceFetcher trait
+    ├── ebay.rs
+    ├── bestbuy.rs
+    └── keepa.rs
 ```
 
-No code changes needed. See [schema.md](schema.md) for full spec options.
+## Adding a New CLI Command
 
-## Adding Software Definitions
+1. Create a new file in `src/cli/` (e.g., `src/cli/mycommand.rs`)
 
-Edit `catalog/software.yaml`:
+2. Define args and implementation:
 
-```yaml
-software:
-  - id: new_software
-    name: "New Software"
-    type: sync                # sync|backup|replication
-    strengths:
-      - feature1
-      - feature2
-    weaknesses:
-      - limitation1
-    best_for:
-      change_rate: [high]
-      direction: bidirectional
-    platforms: [macos, linux]
+```rust
+use anyhow::Result;
+use camino::Utf8PathBuf;
+use clap::Args;
+
+#[derive(Args)]
+pub struct MyCommandArgs {
+    /// Description of the argument
+    #[arg(long)]
+    pub some_option: Option<String>,
+}
+
+pub fn run(db_path: Utf8PathBuf, args: MyCommandArgs) -> Result<()> {
+    // Implementation
+    Ok(())
+}
 ```
 
-The `best_for` fields drive `sp suggest software` matching.
+3. Register in `src/cli/mod.rs`:
 
-## Adding New Analysis
+```rust
+mod mycommand;
 
-### 1. Create Analysis Module
+#[derive(Subcommand)]
+pub enum Commands {
+    // ...existing commands...
+    MyCommand(mycommand::MyCommandArgs),
+}
 
-`src/storage_planner/analysis/new_analysis.py`:
-
-```python
-from dataclasses import dataclass
-from storage_planner.models import Topology
-
-@dataclass
-class NewResult:
-    item_id: str
-    finding: str
-    severity: str
-
-def analyze_new(topology: Topology) -> list[NewResult]:
-    """Pure function: topology → results."""
-    results = []
-    for dataset in topology.datasets:
-        # Your analysis logic
-        results.append(NewResult(...))
-    return results
+impl Cli {
+    pub fn run(self) -> Result<()> {
+        match self.command {
+            // ...existing...
+            Commands::MyCommand(args) => mycommand::run(db_path, args),
+        }
+    }
+}
 ```
 
-### 2. Add CLI Command
+## Adding an Analysis Check
 
-Option A: Add to existing analyze group (`cli/analyze.py`):
+In `src/cli/analyze.rs`, add to the match in `run()`:
 
-```python
-@app.command("new-analysis")
-def analyze_new_cmd(config: Path = typer.Argument(...)):
-    topology = load_topology(config)
-    results = analyze_new(topology)
-    # Format and print results
+```rust
+for check_name in checks_to_run {
+    let check = match check_name {
+        "cost" => analyze_cost(&config),
+        "capacity" => analyze_capacity(&item_specs),
+        "my_check" => analyze_my_check(&config, &item_specs),  // Add here
+        _ => bail!("Unknown check: {}", check_name),
+    };
+    checks.push(check);
+}
 ```
 
-Option B: Create new command file (`cli/new_cmd.py`):
+Implement the check function:
 
-```python
-def new_cmd(config: Path = typer.Argument(...)):
-    ...
+```rust
+fn analyze_my_check(config: &Configuration, item_specs: &[(String, JsonValue)]) -> Check {
+    // Your analysis logic
+    let (status, message) = if some_condition {
+        (CheckStatus::Pass, "All good".to_string())
+    } else {
+        (CheckStatus::Warn, "Issue found".to_string())
+    };
+
+    Check {
+        name: "my_check".to_string(),
+        status,
+        details: serde_json::json!({
+            "message": message,
+            // Additional details
+        }),
+    }
+}
 ```
 
-Register in `cli/main.py`:
+## Adding a New Domain
 
-```python
-from storage_planner.cli import new_cmd
-app.command("new")(new_cmd.new_cmd)
+1. Create a new domain module: `src/domains/computing/`
+
+2. Define domain models in `models.rs`:
+
+```rust
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Component {
+    pub id: String,
+    pub component_type: ComponentType,
+    // ...
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ComponentType {
+    Cpu,
+    Gpu,
+    Ram,
+    Storage,
+}
 ```
 
-### 3. Update Exports
+3. Add domain-specific analysis in `analysis.rs`
 
-Add to `analysis/__init__.py`:
+4. Export from `src/domains/mod.rs`:
 
-```python
-from storage_planner.analysis import new_analysis
+```rust
+pub mod computing;
+pub mod storage;
 ```
 
-## Adding New Model Fields
+## Adding a Price API Integration
 
-### 1. Update Pydantic Model
+1. Implement the `PriceFetcher` trait in a new file:
 
-`models/topology.py` or `models/catalog.py`:
+```rust
+// src/pricing/newapi.rs
+use super::{PriceFetcher, PriceResult};
+use crate::core::models::PriceSource;
+use anyhow::Result;
 
-```python
-class Dataset(BaseModel):
-    # Existing fields...
-    new_field: Optional[str] = None  # Optional with default
+pub struct NewApiFetcher {
+    api_key: Option<String>,
+}
+
+impl NewApiFetcher {
+    pub fn new() -> Self {
+        Self {
+            api_key: std::env::var("SP_NEWAPI_KEY").ok(),
+        }
+    }
+}
+
+impl PriceFetcher for NewApiFetcher {
+    fn fetch(&self, query: &str) -> Result<Vec<PriceResult>> {
+        if !self.is_available() {
+            anyhow::bail!("NewAPI key not configured");
+        }
+
+        // Make HTTP request using ureq
+        let resp: serde_json::Value = ureq::get("https://api.example.com/search")
+            .query("q", query)
+            .query("key", self.api_key.as_ref().unwrap())
+            .call()?
+            .into_json()?;
+
+        // Parse response into PriceResult
+        Ok(vec![])
+    }
+
+    fn is_available(&self) -> bool {
+        self.api_key.is_some()
+    }
+
+    fn source(&self) -> PriceSource {
+        PriceSource::Manual  // Add new variant to PriceSource enum
+    }
+}
 ```
 
-### 2. Update Schema Docs
+2. Add to `PriceSource` enum in `src/core/models.rs`:
 
-Add to `docs/schema.md`.
-
-### 3. Use in Analysis
-
-Access in analysis functions:
-
-```python
-if dataset.new_field:
-    # Use it
+```rust
+pub enum PriceSource {
+    Ebay,
+    BestBuy,
+    Keepa,
+    Amazon,
+    NewApi,  // Add here
+    Manual,
+}
 ```
 
-## Adding New Enum Values
+3. Wire up in `src/cli/price.rs` fetch command
 
-`models/enums.py`:
+## Database Migrations
 
-```python
-class SyncMethod(str, Enum):
-    # Existing...
-    NEW_METHOD = "new_method"
+Schema is defined in `src/core/db.rs` in the `SCHEMA` constant. For migrations:
+
+1. Add new tables/columns to the schema
+2. Consider backwards compatibility
+3. For production use, implement proper migration versioning
+
+## Testing
+
+Add tests in the same file using `#[cfg(test)]`:
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_my_function() {
+        // Use Database::open_memory() for test databases
+        let mut db = Database::open_memory().unwrap();
+        db.migrate().unwrap();
+
+        // Test logic
+    }
+}
 ```
 
-YAML files can immediately use `method: new_method`.
-
-## Adding CLI Subcommand Group
-
-`cli/new_group.py`:
-
-```python
-import typer
-
-app = typer.Typer(no_args_is_help=True)
-
-@app.command("sub1")
-def sub1_cmd():
-    ...
-
-@app.command("sub2")
-def sub2_cmd():
-    ...
+Run tests:
+```bash
+cargo test
+cargo test -- --nocapture  # Show println output
 ```
 
-Register in `cli/main.py`:
-
-```python
-from storage_planner.cli import new_group
-app.add_typer(new_group.app, name="new", help="New feature group")
-```
-
-## Testing Changes
+## Build & Release
 
 ```bash
-source .venv/bin/activate
-pytest                              # Run all tests
-pytest tests/test_new.py -v         # Run specific test
-sp validate current.yaml            # Quick validation
+cargo build                 # Debug build
+cargo build --release       # Release build (optimized)
+cargo install --path .      # Install to ~/.cargo/bin/
 ```
-
-## Key Principles
-
-1. **Pure functions**: Analysis takes data, returns results. No side effects.
-2. **YAML is the interface**: Users edit YAML, not code.
-3. **No internal state**: Every run reads fresh from files.
-4. **Fail fast**: Validate early, provide clear errors.
-5. **Prices in sessions**: Catalog has specs; session files capture point-in-time prices.

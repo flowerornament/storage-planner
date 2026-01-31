@@ -1,43 +1,199 @@
 # CLI Reference
 
-## Defaults
+The `sp` command is the primary interface to the storage planner. All mutations go through CLI commands - the SQLite database is the source of truth.
 
-- If no topology path is provided, commands default to `./topology.yaml`.
+## Global Options
+
+```
+-d, --dir <DIR>        Database directory (default: .sp/)
+    --format <FORMAT>  Output format: text, json, yaml (default: text)
+-h, --help             Print help
+-V, --version          Print version
+```
+
+## Initialization
+
+```bash
+sp init                 # Create database at .sp/decisions.db
+sp init --force         # Reinitialize (drops existing data)
+```
+
+## Context & Health
+
+```bash
+sp prime                # Full context dump for agents
+sp prime --format=json  # JSON output for parsing
+sp doctor               # Health check
+sp doctor --integrity   # Include SQLite integrity check
+sp events -n 20         # View last 20 events
+sp events -e <id>       # Events for specific entity
+```
+
+## Item Catalog
+
+### Add Items
+
+```bash
+sp item add samsung-870-evo-4tb \
+  --name="Samsung 870 EVO 4TB" \
+  --category=ssd \
+  --brand=Samsung \
+  --specs='{"capacity":"4TB","read_speed":"560MB/s","write_speed":"530MB/s","interface":"SATA"}' \
+  --tags=sata,ssd,2.5inch
+```
+
+### Query Items
+
+```bash
+sp item list                          # All items
+sp item list --category=ssd           # Filter by category
+sp item list --tags=nvme,quiet        # Filter by tags (any match)
+sp item show <id>                     # Item details
+sp item show <id> --prices            # Include price history
+sp item search "samsung evo"          # Full-text search
+sp item compare <id1> <id2> <id3>     # Side-by-side comparison
+```
+
+### Modify Items
+
+```bash
+sp item update <id> --specs='{"capacity":"8TB"}'  # Merge specs
+sp item update <id> --tags=new,tags               # Replace tags
+sp item archive <id>                              # Soft delete
+```
+
+## Price Management
+
+### Record Prices
+
+```bash
+sp price add samsung-870-evo-4tb --price=289 --condition=new --source=manual
+sp price add samsung-870-evo-4tb --price=180 --condition=used --source=ebay --url="https://..."
+```
+
+Conditions: `new`, `used`, `refurbished`, `open_box`
+Sources: `manual`, `ebay`, `bestbuy`, `keepa`, `amazon`
+
+### Query Prices
+
+```bash
+sp price show <item-id>               # Current prices by condition
+sp price history <item-id> -n 20      # Price trend
+sp price compare <id1> <id2>          # Compare prices across items
+sp price fetch --stale                # Refresh items with old prices (requires API keys)
+```
+
+## Configuration Management
+
+### Create Configurations
+
+```bash
+sp config create "SATA Option"                    # New empty config
+sp config create "NVMe Option" --domain=storage   # Specify domain
+sp config clone "SATA Option" --name="SATA v2"    # Clone existing
+```
+
+### Build Configurations
+
+```bash
+sp config add-item "SATA Option" samsung-870-evo-4tb --qty=2
+sp config add-item "SATA Option" owc-dual-mini --qty=1 --price=75
+sp config remove-item "SATA Option" owc-dual-mini
+```
+
+### Query Configurations
+
+```bash
+sp config current                     # Show deployed configuration
+sp config list                        # All configurations
+sp config list --domain=storage       # Filter by domain
+sp config show "SATA Option"          # Details with cost breakdown
+```
+
+### Deploy
+
+```bash
+sp config set-current "SATA Option"   # Set as current (without decision)
+sp config archive "Old Config"        # Soft delete
+```
+
+## Decision Workflow
+
+### Create Decision Session
+
+```bash
+sp decide create --purpose="Replace NAS with silent SSD storage"
+```
+
+Only one decision can be active at a time.
+
+### Add Options
+
+```bash
+sp decide add-option sata --config="SATA Option"
+sp decide add-option nvme --config="NVMe Option"
+```
+
+### Compare & Choose
+
+```bash
+sp decide compare                     # Side-by-side comparison
+sp decide choose sata --rationale="Better value per TB with RAID1 redundancy"
+```
+
+### Deploy
+
+```bash
+sp decide deploy                      # Set chosen config as current
+```
+
+### Other
+
+```bash
+sp decide history -n 10               # Past decisions
+sp decide show <id>                   # Decision details
+sp decide abandon --reason="..."      # Cancel active decision
+```
+
+## Analysis
+
+```bash
+sp analyze                            # Analyze current configuration
+sp analyze "SATA Option"              # Analyze specific config
+sp analyze --check=redundancy,cost    # Run specific checks only
+sp analyze --format=json              # JSON output
+```
+
+Available checks: `cost`, `capacity`, `noise`, `redundancy`
+
+## Export
+
+```bash
+sp sync                               # Export to export/ directory
+sp sync --output=backup/              # Custom output directory
+sp sync --catalog-only                # Only export catalog
+```
+
+Exports are read-only YAML snapshots. The database remains the source of truth.
 
 ## JSON Output
 
-Most commands accept `--json` for machine-readable output. This suppresses rich tables
-and prints a structured JSON payload to stdout.
-
-Example:
+All query commands support `--format=json` for structured output:
 
 ```bash
-sp analyze redundancy --json
-sp simulate laptop --json
-sp catalog list --json
+sp prime --format=json
+sp item list --format=json
+sp price show <id> --format=json
+sp config show <name> --format=json
+sp analyze --format=json
 ```
 
-## Analyze
+## Environment Variables
 
 ```bash
-sp analyze all <topology.yaml>
-sp analyze quick <topology.yaml>       # Summaries only (redundancy, RPO/RTO, capacity)
-sp analyze diff <a.yaml> <b.yaml>       # Compare analysis summaries
+SP_DIR                  # Database directory (default: .sp)
+SP_EBAY_APP_ID          # eBay API app ID
+SP_EBAY_CERT_ID         # eBay API cert ID
+SP_BESTBUY_API_KEY      # Best Buy API key
+SP_KEEPA_API_KEY        # Keepa API key
 ```
-
-## Simulate
-
-```bash
-sp simulate <node|volume> <topology.yaml>
-sp simulate diff <node|volume> <a.yaml> <b.yaml>
-```
-
-## Suggest
-
-```bash
-sp suggest hardware <topology.yaml> -c catalog
-sp suggest software <topology.yaml> -c catalog
-```
-
-Hardware suggestions include catalog-aware recommendations for redundancy gaps
-(capacity, use case, and noise constraints when available).

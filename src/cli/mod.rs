@@ -25,6 +25,34 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(name = "sp", version, about, long_about = None)]
 #[command(propagate_version = true)]
+#[command(after_help = r#"EXAMPLES:
+    # Get started
+    sp init                              # Initialize database
+    sp prime                             # View current context
+
+    # Add items to catalog
+    sp item add samsung-870-evo-4tb \
+      --name="Samsung 870 EVO 4TB" \
+      --category=ssd \
+      --specs='{"capacity":"4TB"}'
+
+    # Record prices
+    sp price add samsung-870-evo-4tb --price=289 --condition=new
+
+    # Build configurations
+    sp config create "My Setup"
+    sp config add-item "My Setup" samsung-870-evo-4tb --qty=2
+
+    # Make decisions
+    sp decide create --purpose="Storage upgrade"
+    sp decide add-option opt1 --config="My Setup"
+    sp decide compare
+    sp decide choose opt1 --rationale="Best value"
+    sp decide deploy
+
+For more details: sp <command> --help
+Documentation: See docs/cli.md
+"#)]
 pub struct Cli {
     /// Database directory (default: .sp in current directory)
     #[arg(long, short = 'd', global = true, env = "SP_DIR")]

@@ -1,125 +1,123 @@
-# Analysis Algorithms
+# Analysis Reference
 
-All analysis functions are pure: `(Topology, Catalogs) → Results`
+The `sp analyze` command runs checks on configurations to identify issues.
 
-Located in `src/storage_planner/analysis/`.
+## Running Analysis
 
-## Redundancy Analysis
+```bash
+sp analyze                            # Analyze current configuration
+sp analyze "SATA Option"              # Analyze specific config
+sp analyze --check=redundancy,cost    # Run specific checks
+sp analyze --format=json              # JSON output
+```
 
-**File:** `redundancy.py`
-**Command:** `sp analyze redundancy`
+## Available Checks
 
-Checks if datasets meet copy and location requirements.
+### cost
 
-**Algorithm:**
-1. For each dataset:
-   - Find all volumes hosting it (from `stored_on` + `volume.hosts_datasets`)
-   - Count unique copies
-   - Map volumes to node locations, count unique locations
-   - Compare against `required_copies` and `required_locations`
-   - For critical data, also check global constraints
+Validates pricing data completeness.
 
-**Output:** `RedundancyResult` per dataset with pass/fail status.
+**Pass:** All items have prices
+**Warn:** Some items missing prices
+**Details:**
+- `total` - Total configuration cost
+- `items_with_price` - Count of priced items
+- `items_without_price` - Count of unpriced items
 
-## RPO/RTO Analysis
+### capacity
 
-**File:** `rpo_rto.py`
-**Command:** `sp analyze rpo-rto`
+Calculates total storage capacity from item specs.
 
-Checks if sync regimes meet recovery point objectives.
+**Pass:** Capacity data available
+**Warn:** No capacity data found
+**Details:**
+- `total` - Total capacity (human-readable)
+- `total_bytes` - Total capacity in bytes
+- `items` - List of items with capacity
 
-**Algorithm:**
-1. For each dataset:
-   - Find all sync regimes targeting this dataset
-   - Get best `achieved_rpo` (smallest duration)
-   - If `achieved_rpo` is missing but a `schedule` is present, estimate RPO from the schedule interval
-   - Continuous regimes are **not** assumed; `achieved_rpo` must be explicitly set
-   - Compare against `max_rpo`
+Requires `capacity` in item specs (e.g., `"capacity": "4TB"`).
 
-**Output:** `RpoRtoResult` with achieved vs required RPO.
+### noise
 
-## Bandwidth Analysis
+Checks noise levels against threshold (default: 30 dB for quiet operation).
 
-**File:** `bandwidth.py`
-**Command:** `sp analyze bandwidth`
+**Pass:** Max noise within threshold
+**Warn:** Max noise exceeds threshold, or no noise data
+**Details:**
+- `max_noise_db` - Maximum noise level in configuration
+- `threshold_db` - Target threshold
+- `within_threshold` - Boolean
+- `items` - List of items with noise data
 
-Estimates transfer times and identifies bottlenecks.
+Requires `noise_db` in item specs.
 
-**Algorithm:**
-1. For each sync regime:
-   - Find source and target nodes via volume mapping
-   - Find widest path between nodes (multi-hop supported)
-   - Calculate: `transfer_time = dataset_size / bandwidth`
-   - Flag as bottleneck if transfer > 1 hour
+### redundancy
 
-**Limitations:**
-- Uses raw bandwidth (no overhead calculation)
-- Full sync time (not incremental)
+Checks for data protection.
 
-**Output:** `BandwidthResult` with estimated sync time per regime.
+**Pass:** 2+ storage devices (mirror possible) or 3+ (RAID5+ possible)
+**Fail:** Single storage device (no redundancy)
+**Warn:** No storage devices found
+**Details:**
+- `storage_device_count` - Number of storage items
+- `storage_items` - List of storage item IDs
+- `domain_data` - Domain-specific topology data
 
-## Capacity Analysis
+Storage devices are identified by having `capacity` in specs.
 
-**File:** `capacity.py`
-**Command:** `sp analyze capacity [--months N]`
+## JSON Output
 
-Projects future capacity usage based on growth rates.
+```bash
+sp analyze --format=json
+```
 
-**Algorithm:**
-1. For each volume:
-   - Sum current size of hosted datasets
-   - Parse growth rates (absolute or percentage)
-   - Project: `future = current + (monthly_growth × months)`
-   - Calculate utilization percentage
-   - Estimate months until full
+Returns:
+```json
+{
+  "config_id": "39c74b62-...",
+  "config_name": "SATA Option",
+  "checks": [
+    {
+      "name": "cost",
+      "status": "pass",
+      "details": {
+        "total": 653.0,
+        "items_with_price": 2,
+        "items_without_price": 0,
+        "message": "Total: $653.00"
+      }
+    },
+    ...
+  ],
+  "summary": {
+    "total_items": 2,
+    "total_cost": 653.0,
+    "total_capacity": "8.0TB",
+    "passes": 3,
+    "warnings": 1,
+    "failures": 0
+  }
+}
+```
 
-**Output:** `CapacityResult` with projections and warnings.
+## Storage Domain Analysis
 
-## Cost Analysis
+The storage domain module (`src/domains/storage/analysis.rs`) provides additional analysis:
 
-**File:** `cost.py`
-**Command:** `sp cost`
+### Redundancy Report
 
-Calculates operational and hardware costs.
+Analyzes topology for single points of failure and unprotected datasets.
 
-**Algorithm:**
-1. For each node:
-   - Add `monthly_cost` (hosting)
-   - Calculate power cost: `(watts × hours × $/kWh) / 1000`
-   - Sum volume `purchase_cost` or lookup from catalog
-2. Total monthly = sum of hosting + power
-3. 5-year projection = hardware + (monthly × 60)
+### Capacity Report
 
-**Inputs:**
-- `--power-cost`: $/kWh (default 0.12)
-- `--catalog`: Directory for hardware price lookups
+Projects capacity utilization and estimates time until full based on growth rates.
 
-## Failure Simulation
+### RPO/RTO Report
 
-**File:** `failure_sim.py`
-**Command:** `sp simulate <node|volume>`
+Checks sync configurations against dataset requirements.
 
-Analyzes impact of losing a node or volume.
+These are not yet exposed via CLI but are available in the Rust library.
 
-**Algorithm:**
-1. Identify affected volumes (all volumes on failed node, or single volume)
-2. For each dataset with copies on affected volumes:
-   - Count remaining copies
-   - Identify recovery sources (remaining volumes)
-   - Check if recoverable (any copies left)
-   - Flag critical data at risk
+## Adding Custom Checks
 
-**Output:** `FailureSimResult` with:
-- Affected datasets
-- Recovery paths
-- Data loss risk assessment
-
-## Adding New Analysis
-
-1. Create `src/storage_planner/analysis/new_analysis.py`
-2. Define result dataclass
-3. Implement pure function: `analyze_X(topology, ...) → list[Result]`
-4. Add CLI in `src/storage_planner/cli/analyze.py` or new command file
-5. Document here
-
-Keep analysis functions pure—no side effects, no state.
+See [extending.md](extending.md) for adding new analysis checks.

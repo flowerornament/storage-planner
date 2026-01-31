@@ -14,6 +14,13 @@ use crate::core::models::{EntityType, EventType, Item};
 use super::OutputFormat;
 
 #[derive(Subcommand)]
+#[command(after_help = r#"EXAMPLES:
+    sp item add samsung-870-evo-4tb --name="Samsung 870 EVO 4TB" --category=ssd
+    sp item list --category=ssd --tags=quiet
+    sp item show samsung-870-evo-4tb --prices
+    sp item compare samsung-870-evo-4tb lexar-nm790-4tb
+    sp item search "samsung evo"
+"#)]
 pub enum ItemCommands {
     /// Add a new item to the catalog
     Add(AddArgs),
@@ -38,6 +45,14 @@ pub enum ItemCommands {
 }
 
 #[derive(Args)]
+#[command(after_help = r#"EXAMPLE:
+    sp item add samsung-870-evo-4tb \
+      --name="Samsung 870 EVO 4TB" \
+      --category=ssd \
+      --brand=Samsung \
+      --specs='{"capacity":"4TB","read_speed":"560MB/s","interface":"SATA"}' \
+      --tags=sata,ssd,quiet
+"#)]
 pub struct AddArgs {
     /// Unique item ID (e.g., samsung-870-evo-4tb)
     pub id: String,
