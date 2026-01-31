@@ -1,0 +1,9 @@
+# Deployment State
+# Tracks which topology is currently deployed
+
+active_topology: synology-nas
+
+history:
+  - topology: synology-nas
+    from: "2024-01-01"
+    notes: "Original NAS-based setup"

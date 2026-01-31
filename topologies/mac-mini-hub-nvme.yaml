@@ -1,0 +1,437 @@
+name: "Mac Mini Hub (NVMe)"
+status: proposed
+supersedes: synology-nas
+description: |
+  Mac mini M4 as storage hub with OWC Express 4M2.
+  2× Lexar NM790 4TB NVMe SSDs (8TB total), with 2 slots free for expansion.
+
+  Hardware cost: ~$1,080
+  - OWC Express 4M2 (enclosure only): $240
+  - 2× Lexar NM790 4TB (new): $840
+
+  Pros:
+  - 6× faster than SATA (~3,200 MB/s via USB4)
+  - Room to expand to 32TB (4 slots, 2 used)
+  - New drives with 5-year warranty
+  - USB4 40Gbps - future-proof interface
+
+  Cons:
+  - +$300-400 vs SATA option
+  - Requires power adapter (not bus-powered)
+  - Smart fan (near-silent but not fanless)
+updated: "2026-01-30"
+
+constraints:
+  max_monthly_cost: 140.00
+  power_cost_per_kwh: 0.12
+  min_critical_data_copies: 3
+  min_important_data_copies: 2
+  min_locations_for_critical: 2
+  max_noise_db_home: 30
+
+hardware_cost:
+  enclosure:
+    product: "OWC Express 4M2"
+    url: "https://eshop.macsales.com/shop/owc-express-4m2"
+    price: 240
+  drives:
+    - product: "Lexar NM790 4TB"
+      quantity: 2
+      source: "new"
+      price_each: 420
+  total: 1080
+
+nodes:
+  - id: macbook-m4
+    name: "MacBook Pro M4"
+    type: laptop
+    status: active
+    location: home-office
+    power_profile: mobile
+    noise_db: 0
+    volumes:
+      - id: macbook-internal
+        name: "Internal SSD"
+        type: internal_ssd
+        raw_capacity: "1TB"
+        usable_capacity: "900GB"
+        used: "400GB"
+        hosts_datasets:
+          - working-files
+          - source-code
+
+      - id: macbook-lexar-sl400
+        name: "Lexar SL400 Portable"
+        type: external_ssd
+        raw_capacity: "2TB"
+        usable_capacity: "1.8TB"
+        used: "1.19TB"
+        product_id: lexar-sl400-2tb
+        hosts_datasets:
+          - hot-storage-sync
+
+  - id: mac-mini-m4
+    name: "Mac mini M4 Hub"
+    type: desktop
+    status: active
+    location: home-office
+    power_profile: always_on
+    power_watts_idle: 5
+    power_watts_active: 25
+    noise_db: 0
+    volumes:
+      - id: mini-internal
+        name: "Internal SSD (Services)"
+        type: internal_ssd
+        raw_capacity: "1TB"
+        usable_capacity: "900GB"
+        used: "100GB"
+        hosts_datasets:
+          - service-data
+          - postgresql-data
+          - sqlite-databases
+
+      # OWC Express 4M2 with 2× Lexar NM790 4TB (slots 1-2)
+      # Slots 3-4 available for future expansion
+      - id: mini-nvme-storage
+        name: "OWC Express 4M2 (2× NM790 4TB)"
+        type: nvme
+        raw_capacity: "8TB"
+        usable_capacity: "7.3TB"
+        used: "3.8TB"
+        purchase_cost: 1080
+        read_speed: "3200MB/s"  # USB4 real-world
+        write_speed: "2800MB/s"
+        notes: "USB4 40Gbps. 2 of 4 slots used - expandable to 32TB"
+        hosts_datasets:
+          - photos-archive
+          - media-library
+          - hot-storage-sync
+          - project-archives
+          - source-code
+          - time-machine-backups
+
+  - id: eu-server
+    name: "Seedhost TG 40TN (NL)"
+    type: server
+    status: active
+    location: eu-datacenter
+    power_profile: always_on
+    monthly_cost: 125.00
+    volumes:
+      - id: eu-nvme-boot
+        name: "NVMe Boot/Services"
+        type: nvme
+        raw_capacity: "2TB"
+        usable_capacity: "1.8TB"
+        hosts_datasets:
+          - service-data
+          - postgresql-data
+          - sqlite-databases
+          - working-files
+          - source-code
+
+      - id: eu-hdd-array
+        name: "HDD Archive Array (4×10TB)"
+        type: raid_array
+        raw_capacity: "40TB"
+        usable_capacity: "30TB"
+        raid_level: zfs_raidz1
+        hosts_datasets:
+          - photos-archive
+          - media-library
+          - project-archives
+          - hot-storage-sync
+          - time-machine-backups
+
+  - id: google-drive
+    name: "Google Workspace"
+    type: cloud
+    status: active
+    location: cloud-google
+    monthly_cost: 12.00
+    volumes:
+      - id: gdrive-backup
+        name: "Google Drive Backup"
+        type: cloud
+        raw_capacity: "2TB"
+        usable_capacity: "2TB"
+        hosts_datasets:
+          - photos-archive
+          - postgresql-data
+          - sqlite-databases
+
+  # IronWolf HDDs - to be sold
+  - id: hdd-cold-storage
+    name: "Cold Storage (IronWolf HDDs)"
+    type: desktop
+    status: deprecated
+    location: home-office
+    power_profile: on_demand
+    noise_db: 32
+    notes: "Sell for ~$160-280 to offset NVMe cost"
+    volumes:
+      - id: hdd-archive-1
+        name: "IronWolf 8TB #1"
+        type: external_hdd
+        raw_capacity: "8TB"
+        usable_capacity: "7.3TB"
+        product_id: seagate-ironwolf-8tb
+
+      - id: hdd-archive-2
+        name: "IronWolf 8TB #2"
+        type: external_hdd
+        raw_capacity: "8TB"
+        usable_capacity: "7.3TB"
+        product_id: seagate-ironwolf-8tb
+
+links:
+  - id: home-lan
+    node_a: macbook-m4
+    node_b: mac-mini-m4
+    type: lan
+    bandwidth_up: "10Gbps"
+    bandwidth_down: "10Gbps"
+
+  - id: mini-to-eu
+    node_a: mac-mini-m4
+    node_b: eu-server
+    type: wan
+    bandwidth_up: "500Mbps"
+    bandwidth_down: "1Gbps"
+
+  - id: mini-to-gdrive
+    node_a: mac-mini-m4
+    node_b: google-drive
+    type: wan
+    bandwidth_up: "500Mbps"
+    bandwidth_down: "1Gbps"
+
+datasets:
+  - id: working-files
+    name: "Active Working Files"
+    current_size: "50GB"
+    growth_rate: "0GB/month"
+    criticality: critical
+    change_rate: high
+    required_copies: 3
+    required_locations: 2
+    max_rpo: "1h"
+    stored_on:
+      - macbook-internal
+      - mini-nvme-storage
+      - eu-nvme-boot
+
+  - id: source-code
+    name: "Source Code Repositories"
+    current_size: "26GB"
+    growth_rate: "0GB/month"
+    criticality: critical
+    change_rate: high
+    required_copies: 3
+    required_locations: 2
+    max_rpo: "1h"
+    stored_on:
+      - macbook-internal
+      - mini-nvme-storage
+      - eu-nvme-boot
+
+  - id: service-data
+    name: "Homelab Service Data"
+    current_size: "50GB"
+    growth_rate: "0GB/month"
+    criticality: important
+    change_rate: high
+    required_copies: 2
+    required_locations: 2
+    max_rpo: "30m"
+    stored_on:
+      - mini-internal
+      - eu-nvme-boot
+
+  - id: postgresql-data
+    name: "PostgreSQL Databases"
+    current_size: "10GB"
+    growth_rate: "0GB/month"
+    criticality: critical
+    change_rate: realtime
+    required_copies: 3
+    required_locations: 3
+    max_rpo: "5m"
+    stored_on:
+      - mini-internal
+      - eu-nvme-boot
+      - gdrive-backup
+
+  - id: sqlite-databases
+    name: "SQLite Databases"
+    current_size: "5GB"
+    growth_rate: "0GB/month"
+    criticality: critical
+    change_rate: high
+    required_copies: 3
+    required_locations: 3
+    max_rpo: "5m"
+    stored_on:
+      - mini-internal
+      - eu-nvme-boot
+      - gdrive-backup
+
+  - id: hot-storage-sync
+    name: "Hot Storage (vault folder)"
+    current_size: "1.19TB"
+    growth_rate: "0GB/month"
+    criticality: important
+    change_rate: high
+    required_copies: 3
+    required_locations: 2
+    max_rpo: "1h"
+    stored_on:
+      - macbook-lexar-sl400
+      - mini-nvme-storage
+      - eu-hdd-array
+
+  - id: media-library
+    name: "Plex Media Library"
+    current_size: "371GB"
+    growth_rate: "0GB/month"
+    criticality: important
+    change_rate: low
+    required_copies: 2
+    required_locations: 2
+    max_rpo: "7d"
+    stored_on:
+      - mini-nvme-storage
+      - eu-hdd-array
+
+  - id: photos-archive
+    name: "Photos Archive"
+    current_size: "900GB"
+    growth_rate: "0GB/month"
+    criticality: critical
+    change_rate: low
+    required_copies: 3
+    required_locations: 3
+    max_rpo: "24h"
+    stored_on:
+      - mini-nvme-storage
+      - eu-hdd-array
+      - gdrive-backup
+
+  - id: project-archives
+    name: "Completed Project Archives"
+    current_size: "716GB"
+    growth_rate: "0GB/month"
+    criticality: important
+    change_rate: static
+    required_copies: 2
+    required_locations: 2
+    max_rpo: "30d"
+    stored_on:
+      - mini-nvme-storage
+      - eu-hdd-array
+
+  - id: time-machine-backups
+    name: "Time Machine Backups"
+    current_size: "827GB"
+    growth_rate: "0GB/month"
+    criticality: important
+    change_rate: medium
+    required_copies: 2
+    required_locations: 2
+    max_rpo: "24h"
+    stored_on:
+      - mini-nvme-storage
+      - eu-hdd-array
+
+sync_regimes:
+  - id: hot-storage-resilio
+    dataset: hot-storage-sync
+    source_volume: macbook-lexar-sl400
+    target_volumes:
+      - mini-nvme-storage
+    method: resilio_sync
+    direction: bidirectional
+    continuous: true
+    achieved_rpo: "30s"
+
+  - id: working-files-sync
+    dataset: working-files
+    source_volume: macbook-internal
+    target_volumes:
+      - mini-nvme-storage
+      - eu-nvme-boot
+    method: resilio_sync
+    direction: bidirectional
+    continuous: true
+    achieved_rpo: "30s"
+
+  - id: photos-borg
+    dataset: photos-archive
+    source_volume: mini-nvme-storage
+    target_volumes:
+      - eu-hdd-array
+    method: borg
+    direction: source_to_target
+    schedule: "0 3 * * *"
+    achieved_rpo: "24h"
+
+  - id: photos-gdrive
+    dataset: photos-archive
+    source_volume: mini-nvme-storage
+    target_volumes:
+      - gdrive-backup
+    method: rclone
+    direction: source_to_target
+    schedule: "0 5 * * *"
+    achieved_rpo: "24h"
+
+  - id: media-rsync
+    dataset: media-library
+    source_volume: mini-nvme-storage
+    target_volumes:
+      - eu-hdd-array
+    method: rsync
+    direction: source_to_target
+    schedule: "0 3 * * 0"
+    achieved_rpo: "7d"
+
+  - id: archives-borg
+    dataset: project-archives
+    source_volume: mini-nvme-storage
+    target_volumes:
+      - eu-hdd-array
+    method: borg
+    direction: source_to_target
+    schedule: "0 2 * * 0"
+    achieved_rpo: "7d"
+
+  - id: tm-local
+    dataset: time-machine-backups
+    source_volume: macbook-internal
+    target_volumes:
+      - mini-nvme-storage
+    method: time_machine
+    direction: source_to_target
+    continuous: true
+    achieved_rpo: "1h"
+
+  - id: tm-offsite
+    dataset: time-machine-backups
+    source_volume: mini-nvme-storage
+    target_volumes:
+      - eu-hdd-array
+    method: rsync
+    direction: source_to_target
+    schedule: "0 4 * * *"
+    achieved_rpo: "24h"
+
+  - id: hot-storage-offsite
+    dataset: hot-storage-sync
+    source_volume: mini-nvme-storage
+    target_volumes:
+      - eu-hdd-array
+    method: rsync
+    direction: source_to_target
+    schedule: "0 2 * * *"
+    achieved_rpo: "24h"

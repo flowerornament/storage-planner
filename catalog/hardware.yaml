@@ -37,11 +37,13 @@ products:
       tbw: "2880TB"
       warranty_years: 3
       nand_type: "QLC"
-    retail_price: 679.99
+    retail_price: 799.99
+    used_price_low: 719.00
+    used_price_high: 850.00
     retail_url: "https://www.amazon.com/dp/B089C5P5SX"
     noise_db: 0
     last_verified: "2026-01-30"
-    notes: "Best for read-heavy archive workloads. QLC fine for backup use."
+    notes: "Jan 2026: Retail ~$800, eBay used $719-850 (check health %). NAND shortage pushed prices up from $680."
 
   - id: samsung-870-qvo-4tb
     name: "Samsung 870 QVO 4TB"
@@ -111,10 +113,12 @@ products:
       tbw: "2400TB"
       warranty_years: 5
       nand_type: "TLC"
-    retail_price: 389.99
+    retail_price: 689.00
+    used_price_low: 289.00
+    used_price_high: 358.00
     noise_db: 0
     last_verified: "2026-01-30"
-    notes: "Jan 2026 ~$390 (was ~$170 in mid-2023). Best reliability for SATA."
+    notes: "Jan 2026: Retail ~$689, eBay used $289-358. TLC = better endurance than QVO."
 
   - id: crucial-mx500-4tb
     name: "Crucial MX500 4TB"

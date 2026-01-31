@@ -4,13 +4,15 @@ All configuration is YAML. This documents the schema for each file type.
 
 ## Topology Schema
 
-**File:** User-created (e.g., `topology.yaml`, `examples/topology.yaml`)
+**File:** `topologies/<name>.yaml`
 
 ```yaml
 name: "Topology Name"           # Required
+status: proposed                # Optional: active|proposed|deprecated
+supersedes: synology-nas        # Optional, topology this replaces
 version: "1.0"                  # Optional, default "1.0"
-description: "..."              # Optional
-updated: "2025-01-30"           # Optional, ISO date when last accurate
+description: "..."              # Optional, multiline description
+updated: "2026-01-30"           # Optional, ISO date when last accurate
 
 constraints:                    # Optional, global constraints
   max_monthly_cost: 150.00
@@ -19,6 +21,18 @@ constraints:                    # Optional, global constraints
   min_locations_for_critical: 2 # Default: 2
   max_noise_db_home: 35         # For quiet setups
 
+hardware_cost:                  # Optional, for proposed topologies
+  enclosure:
+    product: "OWC Express 4M2"
+    url: "https://..."
+    price: 240
+  drives:
+    - product: "Lexar NM790 4TB"
+      quantity: 2
+      source: "new"             # new|used|eBay used
+      price_each: 420
+  total: 1080
+
 nodes: []        # List of Node
 links: []        # List of Link
 datasets: []     # List of Dataset
@@ -26,6 +40,14 @@ sync_regimes: [] # List of SyncRegime
 problems: []     # List of Problem (optional)
 decisions: []    # List of Decision (optional)
 ```
+
+### Topology Status
+
+| Status | Meaning |
+|--------|---------|
+| `active` | Currently deployed configuration (tracked in `state.yaml`) |
+| `proposed` | Under evaluation, not yet deployed |
+| `deprecated` | Superseded by another topology |
 
 ### Node
 
@@ -295,6 +317,24 @@ prices:
     last_updated: "2025-01-15"  # Required, ISO date
     sample_size: 12           # Optional, how many listings checked
     notes: "Completed sales"  # Optional
+```
+
+## State Schema
+
+**File:** `state.yaml`
+
+Tracks which topology is currently deployed and provides history.
+
+```yaml
+active_topology: synology-nas   # Required, references topologies/<name>.yaml
+
+history:                        # Optional, deployment history
+  - topology: synology-nas
+    from: "2024-01-01"
+    notes: "Original NAS-based setup"
+  - topology: mac-mini-hub-nvme
+    from: "2026-02-01"
+    notes: "Migrated from NAS to Mac mini hub"
 ```
 
 ## Size/Duration Formats
