@@ -1,12 +1,21 @@
 //! Pricing API integrations
 //!
-//! Fetches prices from various sources. Each module implements the PriceSource trait.
+//! Fetches prices and product information from various sources.
+//! Each module implements the PriceFetcher and/or ProductFetcher traits.
 
 pub mod bestbuy;
 pub mod ebay;
+pub mod fallback;
+pub mod product;
+pub mod url_parser;
 
 use anyhow::Result;
 use crate::core::models::{ItemCondition, Price, PriceSource as PriceSourceEnum};
+
+// Re-export commonly used types
+pub use fallback::{FallbackReason, generate_agent_response, print_fallback_instructions};
+pub use product::{Identifiers, PriceInfo, ProductFetcher, ProductInfo};
+pub use url_parser::{parse_url, ParsedUrl, Retailer};
 
 /// Trait for price fetching implementations
 pub trait PriceFetcher {
@@ -37,4 +46,46 @@ impl PriceResult {
         price.url = self.url.clone();
         price
     }
+}
+
+/// Try to fetch product info using available APIs
+///
+/// Returns the first successful result from available fetchers.
+/// Order: Best Buy (simple auth) -> eBay (OAuth)
+pub fn fetch_product(query: &str) -> Result<Option<ProductInfo>> {
+    // Try Best Buy first (simpler API, good for electronics)
+    let bestbuy = bestbuy::BestBuyFetcher::new();
+    if bestbuy.is_available() {
+        if let Ok(products) = ProductFetcher::fetch_by_query(&bestbuy, query) {
+            if let Some(product) = products.into_iter().next() {
+                return Ok(Some(product));
+            }
+        }
+    }
+
+    // Try eBay
+    let ebay = ebay::EbayFetcher::new();
+    if ebay.is_available() {
+        if let Ok(products) = ProductFetcher::fetch_by_query(&ebay, query) {
+            if let Some(product) = products.into_iter().next() {
+                return Ok(Some(product));
+            }
+        }
+    }
+
+    Ok(None)
+}
+
+/// Check which pricing APIs are available
+pub fn available_sources() -> Vec<&'static str> {
+    let mut sources = Vec::new();
+
+    if bestbuy::BestBuyFetcher::new().is_available() {
+        sources.push("bestbuy");
+    }
+    if ebay::EbayFetcher::new().is_available() {
+        sources.push("ebay");
+    }
+
+    sources
 }

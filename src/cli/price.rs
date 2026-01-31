@@ -6,10 +6,15 @@ use chrono::{Duration, Utc};
 use clap::{Args, Subcommand};
 use console::style;
 use rusqlite::params;
+use serde_json::Value as JsonValue;
 
 use crate::core::db::Database;
 use crate::core::events::{current_actor, EventLog};
-use crate::core::models::{EntityType, EventType, ItemCondition, Price, PriceSource};
+use crate::core::models::{EntityType, EventType, Item, ItemCondition, Price, PriceSource};
+use crate::pricing::{
+    self, FallbackReason, Identifiers, ProductFetcher,
+    generate_agent_response, print_fallback_instructions,
+};
 
 use super::OutputFormat;
 
@@ -33,6 +38,12 @@ use super::OutputFormat;
 
     # Fetch prices from APIs (requires API keys)
     sp price fetch samsung-870-evo-4tb --sources=ebay,bestbuy
+
+    # Refresh stale prices (older than 7 days)
+    sp price refresh --stale=7d
+
+    # Refresh all prices
+    sp price refresh --all
 "#)]
 pub enum PriceCommands {
     /// Add a manual price observation
@@ -40,6 +51,9 @@ pub enum PriceCommands {
 
     /// Fetch prices from APIs (requires API keys)
     Fetch(FetchArgs),
+
+    /// Refresh stale prices across all items
+    Refresh(RefreshArgs),
 
     /// Show current prices for an item
     Show(ShowArgs),
@@ -92,6 +106,38 @@ pub struct FetchArgs {
 }
 
 #[derive(Args)]
+#[command(after_help = r#"EXAMPLES:
+    # Refresh items with prices older than 7 days (default)
+    sp price refresh
+
+    # Refresh items with prices older than 14 days
+    sp price refresh --stale=14d
+
+    # Refresh all items regardless of staleness
+    sp price refresh --all
+
+    # Output fallback instructions for agents
+    sp price refresh --agent-mode
+"#)]
+pub struct RefreshArgs {
+    /// Refresh items with prices older than this (e.g., 7d, 14d)
+    #[arg(long, default_value = "7d")]
+    pub stale: String,
+
+    /// Refresh all items regardless of staleness
+    #[arg(long)]
+    pub all: bool,
+
+    /// Output JSON for agent consumption
+    #[arg(long)]
+    pub agent_mode: bool,
+
+    /// Maximum items to refresh
+    #[arg(long, short = 'n', default_value = "50")]
+    pub limit: usize,
+}
+
+#[derive(Args)]
 pub struct ShowArgs {
     /// Item ID
     pub item_id: String,
@@ -122,6 +168,7 @@ pub fn run(db_path: Utf8PathBuf, cmd: PriceCommands, format: OutputFormat) -> Re
     match cmd {
         PriceCommands::Add(args) => add(db_path, args, format),
         PriceCommands::Fetch(args) => fetch(db_path, args, format),
+        PriceCommands::Refresh(args) => refresh(db_path, args, format),
         PriceCommands::Show(args) => show(db_path, args, format),
         PriceCommands::History(args) => history(db_path, args, format),
         PriceCommands::Compare(args) => compare(db_path, args, format),
@@ -273,6 +320,310 @@ fn fetch(db_path: Utf8PathBuf, args: FetchArgs, format: OutputFormat) -> Result<
     }
 
     Ok(())
+}
+
+fn refresh(db_path: Utf8PathBuf, args: RefreshArgs, format: OutputFormat) -> Result<()> {
+    let mut db = Database::open(&db_path)?;
+    let actor = current_actor();
+
+    // Parse stale duration (e.g., "7d" -> 7 days)
+    let stale_days = parse_duration(&args.stale)?;
+
+    // Find items that need price refresh
+    let items_to_refresh = if args.all {
+        get_all_items(&db)?
+    } else {
+        get_stale_items(&db, stale_days)?
+    };
+
+    if items_to_refresh.is_empty() {
+        match format {
+            OutputFormat::Json => println!("{{\"message\": \"No items need price refresh\", \"items\": []}}"),
+            OutputFormat::Yaml => println!("message: No items need price refresh\nitems: []"),
+            OutputFormat::Text => println!("{}", style("No items need price refresh").dim()),
+        }
+        return Ok(());
+    }
+
+    let available_sources = pricing::available_sources();
+
+    // Track results
+    let mut refreshed = Vec::new();
+    let mut fallbacks = Vec::new();
+
+    for item in items_to_refresh.iter().take(args.limit) {
+        // Try to get identifiers from metadata
+        let identifiers = get_item_identifiers(item);
+
+        // Try to fetch using available APIs
+        let mut fetched = false;
+
+        if !available_sources.is_empty() {
+            // Try Best Buy by SKU or UPC
+            if let Some(ref sku) = identifiers.bestbuy_sku {
+                let fetcher = pricing::bestbuy::BestBuyFetcher::new();
+                if fetcher.is_available() {
+                    if let Ok(Some(product)) = fetcher.fetch_by_id(sku) {
+                        if let Some(price_info) = product.price {
+                            let price = Price::new(
+                                &item.id,
+                                PriceSource::BestBuy,
+                                price_info.amount,
+                                price_info.condition,
+                            );
+                            db.transaction(|tx| {
+                                price.insert(tx)?;
+                                EventLog::record(
+                                    tx,
+                                    EventType::PriceObserved,
+                                    EntityType::Price,
+                                    &price.id,
+                                    serde_json::json!({
+                                        "item_id": item.id,
+                                        "price": price.price,
+                                        "source": "bestbuy",
+                                        "refresh": true,
+                                    }),
+                                    &actor,
+                                )?;
+                                Ok(())
+                            })?;
+                            refreshed.push(RefreshResult {
+                                item_id: item.id.clone(),
+                                item_name: item.name.clone(),
+                                price: price.price,
+                                source: "bestbuy".to_string(),
+                            });
+                            fetched = true;
+                        }
+                    }
+                }
+            }
+
+            // Try Best Buy by UPC
+            if !fetched {
+                if let Some(ref upc) = identifiers.upc {
+                    let fetcher = pricing::bestbuy::BestBuyFetcher::new();
+                    if fetcher.is_available() {
+                        if let Ok(Some(product)) = fetcher.fetch_by_upc(upc) {
+                            if let Some(price_info) = product.price {
+                                let price = Price::new(
+                                    &item.id,
+                                    PriceSource::BestBuy,
+                                    price_info.amount,
+                                    price_info.condition,
+                                );
+                                db.transaction(|tx| {
+                                    price.insert(tx)?;
+                                    EventLog::record(
+                                        tx,
+                                        EventType::PriceObserved,
+                                        EntityType::Price,
+                                        &price.id,
+                                        serde_json::json!({
+                                            "item_id": item.id,
+                                            "price": price.price,
+                                            "source": "bestbuy",
+                                            "refresh": true,
+                                        }),
+                                        &actor,
+                                    )?;
+                                    Ok(())
+                                })?;
+                                refreshed.push(RefreshResult {
+                                    item_id: item.id.clone(),
+                                    item_name: item.name.clone(),
+                                    price: price.price,
+                                    source: "bestbuy".to_string(),
+                                });
+                                fetched = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Try eBay search by item name
+            if !fetched {
+                let fetcher = pricing::ebay::EbayFetcher::new();
+                if fetcher.is_available() {
+                    if let Ok(products) = fetcher.fetch_by_query(&item.name) {
+                        if let Some(product) = products.first() {
+                            if let Some(price_info) = &product.price {
+                                let price = Price::new(
+                                    &item.id,
+                                    PriceSource::Ebay,
+                                    price_info.amount,
+                                    price_info.condition,
+                                );
+                                db.transaction(|tx| {
+                                    price.insert(tx)?;
+                                    EventLog::record(
+                                        tx,
+                                        EventType::PriceObserved,
+                                        EntityType::Price,
+                                        &price.id,
+                                        serde_json::json!({
+                                            "item_id": item.id,
+                                            "price": price.price,
+                                            "source": "ebay",
+                                            "refresh": true,
+                                        }),
+                                        &actor,
+                                    )?;
+                                    Ok(())
+                                })?;
+                                refreshed.push(RefreshResult {
+                                    item_id: item.id.clone(),
+                                    item_name: item.name.clone(),
+                                    price: price.price,
+                                    source: "ebay".to_string(),
+                                });
+                                fetched = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // If we couldn't fetch, add to fallback list
+        if !fetched {
+            fallbacks.push(FallbackItem {
+                item_id: item.id.clone(),
+                item_name: item.name.clone(),
+                search_query: item.name.clone(),
+            });
+        }
+    }
+
+    // Output results
+    match format {
+        OutputFormat::Json => {
+            let output = serde_json::json!({
+                "refreshed": refreshed,
+                "fallbacks": fallbacks,
+                "total_items": items_to_refresh.len(),
+            });
+            println!("{}", serde_json::to_string_pretty(&output)?);
+        }
+        OutputFormat::Yaml => {
+            let output = serde_json::json!({
+                "refreshed": refreshed,
+                "fallbacks": fallbacks,
+            });
+            println!("{}", serde_yaml::to_string(&output)?);
+        }
+        OutputFormat::Text => {
+            if !refreshed.is_empty() {
+                println!("{} Refreshed {} item(s):", style("✓").green(), refreshed.len());
+                for r in &refreshed {
+                    println!("  {} ${:.2} ({})", r.item_id, r.price, r.source);
+                }
+            }
+
+            if !fallbacks.is_empty() {
+                println!();
+                println!(
+                    "{} {} item(s) need manual price update:",
+                    style("!").yellow(),
+                    fallbacks.len()
+                );
+                for f in &fallbacks {
+                    if args.agent_mode {
+                        let response = generate_agent_response(
+                            FallbackReason::NoApiKeys,
+                            &f.search_query,
+                            Some(&f.item_id),
+                            None,
+                        );
+                        println!("{}", response);
+                    } else {
+                        println!("  {} - search for: {}", f.item_id, style(&f.search_query).cyan());
+                    }
+                }
+
+                if !args.agent_mode {
+                    println!();
+                    println!("Add prices manually:");
+                    println!(
+                        "  {}",
+                        style("sp price add <item-id> --price=X --source=amazon").dim()
+                    );
+                }
+            }
+
+            if refreshed.is_empty() && fallbacks.is_empty() {
+                println!("{}", style("No items processed").dim());
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[derive(serde::Serialize)]
+struct RefreshResult {
+    item_id: String,
+    item_name: String,
+    price: f64,
+    source: String,
+}
+
+#[derive(serde::Serialize)]
+struct FallbackItem {
+    item_id: String,
+    item_name: String,
+    search_query: String,
+}
+
+fn parse_duration(s: &str) -> Result<i64> {
+    let s = s.trim().to_lowercase();
+    if let Some(days) = s.strip_suffix('d') {
+        Ok(days.parse::<i64>().map_err(|_| anyhow::anyhow!("Invalid duration: {}", s))?)
+    } else if let Some(weeks) = s.strip_suffix('w') {
+        Ok(weeks.parse::<i64>().map_err(|_| anyhow::anyhow!("Invalid duration: {}", s))? * 7)
+    } else {
+        // Try parsing as just days
+        Ok(s.parse::<i64>().map_err(|_| anyhow::anyhow!("Invalid duration: {}. Use format like '7d' or '2w'", s))?)
+    }
+}
+
+fn get_all_items(db: &Database) -> Result<Vec<Item>> {
+    let mut stmt = db.conn().prepare(
+        "SELECT id, name, category, brand, specs, tags, metadata, archived, created_at, updated_at
+         FROM items WHERE archived = 0",
+    )?;
+    let items = stmt
+        .query_map([], Item::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(items)
+}
+
+fn get_stale_items(db: &Database, stale_days: i64) -> Result<Vec<Item>> {
+    let cutoff = Utc::now() - Duration::days(stale_days);
+    let mut stmt = db.conn().prepare(
+        "SELECT i.id, i.name, i.category, i.brand, i.specs, i.tags, i.metadata, i.archived, i.created_at, i.updated_at
+         FROM items i
+         LEFT JOIN (
+             SELECT item_id, MAX(observed_at) as latest
+             FROM prices GROUP BY item_id
+         ) p ON i.id = p.item_id
+         WHERE i.archived = 0
+           AND (p.latest IS NULL OR p.latest < ?1)",
+    )?;
+    let items = stmt
+        .query_map([cutoff.to_rfc3339()], Item::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(items)
+}
+
+fn get_item_identifiers(item: &Item) -> Identifiers {
+    if let Some(ids) = item.metadata.get("identifiers") {
+        Identifiers::from_json(ids)
+    } else {
+        Identifiers::default()
+    }
 }
 
 fn show(db_path: Utf8PathBuf, args: ShowArgs, format: OutputFormat) -> Result<()> {
