@@ -37,8 +37,20 @@ The CLI is self-documenting. Use `--help` liberally.
 
 ## Development
 
+```
+src/
+├── main.rs               # CLI entry point
+├── core/                 # Models, database, events
+├── cli/                  # Command implementations
+├── domains/storage/      # Storage-specific analysis
+└── pricing/              # API integrations (Best Buy, eBay)
+```
+
 ```bash
 just check            # fmt + lint + test
+just fmt              # Format code
+just lint             # Run clippy
+just test             # Run tests
 cargo build --release
 ```
 
