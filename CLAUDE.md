@@ -1,288 +1,179 @@
 # Storage Planner
 
-CLI tool for **evaluating storage decisions** by modeling and analyzing storage/backup topologies. Pure function of YAML inputs.
+Rust CLI tool for **evaluating purchase decisions** with a focus on storage systems. All mutations go through `sp` commands; the SQLite database is the source of truth.
 
-## First Thing: Understand the Current Decision
+## First Thing: Get Context
 
-Run these commands immediately to understand what we're working on:
+Run this command immediately to understand the current state:
 
 ```bash
-# 1. What's deployed now?
-cat current.yaml | head -20
-
-# 2. What decision session is active?
-ls sessions/
-cat sessions/2026-01-30.yaml | head -60
-
-# 3. Analyze current problems
-.venv/bin/sp analyze all current.yaml 2>/dev/null || echo "CLI not installed - read YAML directly"
+sp prime
 ```
 
-**Current situation (as of 2026-01-30):**
-- Deployed: Synology DS224+ NAS with 2×8TB IronWolf HDDs
-- Problem: NAS is too loud (32dB, limit is 30dB for home office)
-- Goal: Replace with silent SSD-based storage
-- Budget: ~$1000 hardware
-- Session: `sessions/2026-01-30.yaml` has 5 options being evaluated
+This shows:
+- Database stats (items, prices, configurations, decisions)
+- Current deployed configuration
+- Active decision session (if any)
+- Items with stale prices
+- Recent events
 
-**Key questions to ask the user:**
-1. "Which option are you leaning toward?" (review session options first)
-2. "Are there any new constraints or requirements?"
-3. "Have prices changed significantly?" (session prices from 2026-01-30)
-4. "Ready to make a decision, or still exploring?"
+For JSON output (better for parsing): `sp prime --format=json`
 
 ## What This Tool Is For
 
-This tool helps you make informed storage decisions by:
-1. **Encoding requirements** - Document constraints, redundancy needs, noise limits, budgets
-2. **Modeling topologies** - Capture current and proposed storage configurations
-3. **Evaluating options** - Model "what-if" scenarios before buying hardware
-4. **Running analysis** - Identify gaps in redundancy, capacity runway, RPO misses
-5. **Tracking decisions** - Record what was decided and why
+This tool helps you make informed purchase decisions by:
+1. **Managing a catalog** - Items with specs, tags, and price history
+2. **Tracking prices** - Append-only price observations with staleness tracking
+3. **Building configurations** - Compositions of items with costs
+4. **Running analysis** - Redundancy, capacity, noise, cost checks
+5. **Making decisions** - Structured workflow with comparison and rationale
 
-The primary workflow is: **understand current state → create session → model options → analyze → decide → update current**
-
-## Core Concepts
-
-### File Structure
-
-```
-storage-planner/
-├── current.yaml          # What's deployed NOW (the truth)
-├── sessions/             # Decision history (append-only)
-│   └── 2026-01-30.yaml   # One file per decision session
-├── catalog/              # Product reference (NO PRICES)
-│   ├── hardware.yaml     # Product specs, pros/cons
-│   └── software.yaml     # Sync/backup tools
-├── archive/              # Old structure (for reference)
-└── src/storage_planner/  # CLI implementation
-```
-
-### Key Rules
-
-1. **One truth:** `current.yaml` = what's actually deployed
-2. **Sessions:** Each decision point gets a dated session file
-3. **Prices captured:** Embedded in session at decision time (not referenced)
-4. **Append-only:** Never edit old sessions, create new ones
-5. **Self-contained:** Each session has everything needed to understand it
-6. **No prices in catalog:** Catalog has specs only; prices live in sessions
-
-## Getting Started (New Session Workflow)
-
-```bash
-# 1. Understand current state
-cat current.yaml                              # What's deployed now
-.venv/bin/sp analyze all current.yaml         # Analyze current setup
-
-# 2. Review existing sessions
-ls sessions/                                  # Past decision sessions
-cat sessions/2026-01-30.yaml                  # Active session with options
-
-# 3. Run analysis on options
-# Options are defined within the session file under 'options:'
-# Analyze by extracting topology to temp file or using CLI
-
-# 4. Make decision
-# Update session file: decision.chosen, decision.rationale, decision.date
-
-# 5. Update current.yaml
-# Replace current.yaml with chosen option's topology
-# Set from_session: "2026-01-30"
-```
-
-## File Formats
-
-### `current.yaml` - What's Deployed
-
-```yaml
-name: "Synology NAS Setup"
-deployed: "2024-01-01"
-from_session: null  # or "2026-01-30" after a decision
-
-nodes:
-  - id: synology-ds224
-    # ... full topology
-```
-
-### `sessions/2026-01-30.yaml` - A Decision Point
-
-```yaml
-created: "2026-01-30"
-purpose: "Replace NAS with silent SSD storage"
-status: active  # active | decided | abandoned
-
-# Prices captured for this session
-prices:
-  captured: "2026-01-30"
-  samsung-870-evo-4tb: { retail: 689, used_low: 289 }
-  # ...
-
-# Baseline: snapshot of current.yaml when session started
-baseline:
-  name: "Synology NAS Setup"
-  # ...
-
-# Options evaluated
-options:
-  sata:
-    name: "SATA: 2x 870 EVO 4TB"
-    hardware:
-      - { product: owc-dual-mini, qty: 1, unit_price: 75 }
-    total_cost: 715
-    # ...
-
-  nvme:
-    name: "NVMe: 2x Lexar NM790 4TB"
-    # ...
-
-# Decision (filled in when decided)
-decision:
-  chosen: null  # "sata" or "nvme"
-  rationale: null
-  date: null
-```
-
-### `catalog/hardware.yaml` - Product Reference (NO PRICES)
-
-```yaml
-products:
-  - id: samsung-870-evo-4tb
-    name: "Samsung 870 EVO 4TB"
-    category: ssd
-    interface: SATA
-    capacity: "4TB"
-    specs:
-      read_speed: "560MB/s"
-      # ...
-    # NO prices - those go in sessions
-```
+**Key principle:** Agents can't break structure. All mutations go through `sp` commands, not direct file editing.
 
 ## Quick Reference
 
 ```bash
-source .venv/bin/activate  # Always activate first
+# Context and health
+sp prime                          # Agent context dump
+sp doctor                         # Health check
+sp events -n 10                   # Recent audit log
 
-sp validate current.yaml               # Check config validity
-sp analyze all current.yaml            # Full analysis
-sp analyze redundancy current.yaml     # Redundancy only
-sp analyze bandwidth current.yaml      # Bandwidth bottlenecks
-sp analyze rpo-rto current.yaml        # RPO/RTO compliance
-sp analyze capacity current.yaml       # Capacity projections
-sp simulate <node|volume> current.yaml # Failure impact
-sp catalog list -c catalog             # Browse hardware
-sp catalog compare <id1> <id2> ...     # Compare products
+# Catalog management
+sp item add <id> --name=... --category=... --specs='{...}'
+sp item list [--category=ssd] [--tags=nvme]
+sp item show <id> --prices        # Include price history
+sp item compare <id1> <id2>       # Side-by-side comparison
+sp item search <query>            # Full-text search
+
+# Price management
+sp price add <item-id> --price=299 --condition=new --source=manual
+sp price show <item-id>           # Current prices by condition
+sp price history <item-id>        # Price trend
+sp price compare <id1> <id2>      # Compare prices
+
+# Configuration management
+sp config current                 # Show deployed configuration
+sp config create <name>           # New empty configuration
+sp config add-item <config> <item-id> --qty=2
+sp config show <config>           # Details with cost
+sp config set-current <config>    # Deploy configuration
+
+# Decision workflow
+sp decide create --purpose="..."  # Start decision session
+sp decide add-option <name> --config=<config>
+sp decide compare                 # Compare all options
+sp decide choose <option> --rationale="..."
+sp decide deploy                  # Set chosen config as current
+sp decide history                 # Past decisions
+
+# Analysis
+sp analyze                        # Analyze current configuration
+sp analyze <config>               # Analyze specific configuration
+
+# Export (read-only snapshots)
+sp sync                           # Export DB to YAML in export/
 ```
 
-## For Agents
+## Agent Workflow
 
-**Before modifying this tool**, read:
-- [docs/schema.md](docs/schema.md) - YAML schema reference
-- [docs/analysis.md](docs/analysis.md) - How analysis algorithms work
-- [docs/extending.md](docs/extending.md) - Adding features
-- [docs/research-workflow.md](docs/research-workflow.md) - Populating the catalog
+### Starting a Session
 
-**Common tasks:**
-- Add hardware product → edit `catalog/hardware.yaml` (no prices!)
-- Research prices → capture in session file when needed
-- Model new option → add to active session's `options:`
-- Make decision → update session's `decision:` block, then `current.yaml`
+```bash
+sp prime                          # Get full context
+```
 
-## Agent Workflow for Storage Decisions
+### Adding Products to Catalog
 
-When helping with storage decisions:
+```bash
+sp item add samsung-870-evo-4tb \
+  --name="Samsung 870 EVO 4TB" \
+  --category=ssd \
+  --brand=Samsung \
+  --specs='{"capacity":"4TB","read_speed":"560MB/s","interface":"SATA"}' \
+  --tags=sata,ssd,2.5inch
+```
 
-1. **Understand current state:**
-   ```bash
-   cat current.yaml                           # What's deployed
-   .venv/bin/sp analyze all current.yaml      # Analysis
-   ls sessions/                               # Past decisions
-   ```
+### Recording Prices
 
-2. **Check for active session:**
-   ```bash
-   cat sessions/2026-01-30.yaml               # Current decision session
-   ```
+```bash
+sp price add samsung-870-evo-4tb --price=289 --condition=new --source=manual
+sp price add samsung-870-evo-4tb --price=180 --condition=used --source=ebay
+```
 
-3. **Research hardware options** from catalog:
-   ```bash
-   .venv/bin/sp catalog list -c catalog --tag <relevant-tag> --json
-   .venv/bin/sp catalog compare <product1> <product2> -c catalog --json
-   ```
+### Making a Decision
 
-4. **Capture prices in session:**
-   - Look up current retail/used prices
-   - Add to session's `prices:` block with capture date
-   - Prices > 7 days old should be re-checked
+```bash
+# 1. Create configurations for each option
+sp config create "SATA Option"
+sp config add-item "SATA Option" samsung-870-evo-4tb --qty=2
+sp config add-item "SATA Option" owc-dual-mini --qty=1
 
-5. **Model options in session:**
-   - Add options under `options:` in session file
-   - Each option has hardware list with prices referencing session's `prices:`
+sp config create "NVMe Option"
+sp config add-item "NVMe Option" lexar-nm790-4tb --qty=2
 
-6. **Make and document decision:**
-   - Fill in `decision.chosen`, `decision.rationale`, `decision.date`
-   - Update `current.yaml` with chosen topology
-   - Set `from_session: "YYYY-MM-DD"` in current.yaml
+# 2. Create decision session
+sp decide create --purpose="Replace NAS with silent SSD storage"
 
-Always use `--json` output for structured data when parsing results.
+# 3. Add options
+sp decide add-option sata --config="SATA Option"
+sp decide add-option nvme --config="NVMe Option"
 
-## Project Structure
+# 4. Compare
+sp decide compare
+
+# 5. Choose and deploy
+sp decide choose sata --rationale="Better value per TB with RAID1 redundancy"
+sp decide deploy
+```
+
+## File Structure
 
 ```
 storage-planner/
-├── current.yaml          # What's deployed NOW (the truth)
-├── sessions/             # Decision history (append-only)
-│   └── 2026-01-30.yaml   # Active: Replace NAS with SSD
-├── catalog/              # Hardware/software knowledge base
-│   ├── hardware.yaml     # Product specs (NO PRICES)
-│   └── software.yaml     # Sync/backup tools
-├── archive/              # Old structure preserved for reference
-│   ├── state.yaml
-│   ├── topologies/
-│   ├── proposals/
-│   └── decisions/
-├── examples/             # Reference examples
-└── src/storage_planner/
-    ├── cli/              # Typer commands
-    ├── models/           # Pydantic models
-    ├── analysis/         # Pure analysis functions
-    ├── loaders/          # YAML loading + validation
-    └── output/           # Rich console formatting
+├── .sp/                      # Database (gitignored)
+│   └── decisions.db          # SQLite - source of truth
+├── export/                   # Read-only YAML exports
+│   ├── current.yaml          # Current deployed state
+│   ├── catalog/              # Items by category
+│   └── history/              # Decision snapshots
+├── src/                      # Rust implementation
+│   ├── main.rs               # CLI entry point
+│   ├── core/                 # Domain-agnostic models
+│   ├── cli/                  # Command implementations
+│   ├── domains/storage/      # Storage-specific analysis
+│   └── pricing/              # Price API integrations (stubs)
+├── python-archive/           # Old Python implementation (reference)
+├── catalog/                  # Legacy YAML catalog (migrate to DB)
+└── sessions/                 # Legacy decision sessions (migrate to DB)
 ```
 
 ## Development
 
 ```bash
-uv venv && source .venv/bin/activate
-uv pip install -e ".[dev]"
-pytest
+cargo build                   # Build
+cargo test                    # Run tests
+cargo build --release         # Release build
+./target/release/sp --help    # Run CLI
 ```
 
-**Note for agents:** In non-interactive shells, `source .venv/bin/activate` may not put `sp` on PATH. Use `.venv/bin/sp` or `.venv/bin/python -m pytest` directly instead.
+## Key Design Principles
 
-**Environment:** Python is installed via nix. See `~/.nix-config` for system configuration.
+1. **SQLite is truth** - Database is the source of truth, not YAML files
+2. **Append-only events** - All changes recorded in audit log
+3. **Atomic operations** - Commands complete fully or not at all
+4. **No direct editing** - Agents use `sp` commands, not file edits
+5. **Self-documenting** - `sp <command> --help` explains everything
 
 ## Landing the Plane (Session Completion)
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+**When ending a work session**, you MUST complete ALL steps below:
 
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
+1. **File issues for remaining work** - `bd create --type=task --title="..."`
+2. **Run quality gates** - `cargo test && cargo build`
+3. **Update issue status** - `bd close <id1> <id2> ...`
+4. **Sync and push**:
    ```bash
-   git pull --rebase
-   bd sync
-   git push
-   git status  # MUST show "up to date with origin"
+   bd sync --flush-only
+   git add -A && git commit -m "..." && git push
    ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+5. **Verify** - `git status` shows clean, up to date with origin

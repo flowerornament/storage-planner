@@ -1,80 +1,102 @@
 # Storage Planner
 
-CLI tool for modeling and analyzing storage/backup topologies. Define your setup in YAML, get analysis and recommendations.
+Rust CLI tool for evaluating purchase decisions, with a focus on storage systems. Uses SQLite as the source of truth, with all mutations going through CLI commands.
 
 ## Installation
 
 ```bash
-# Clone and enter directory
-cd storage-planner
+# Build from source
+cargo build --release
 
-# Create virtual environment and install
-uv venv
-source .venv/bin/activate
-uv pip install -e .
+# The binary is at ./target/release/sp
+./target/release/sp --help
 
-# Verify installation
-sp --help
+# Or install to your path
+cargo install --path .
 ```
 
 ## Quick Start
 
 ```bash
-# Validate current deployment
-sp validate current.yaml
+# Initialize database
+sp init
 
-# Run full analysis
-sp analyze all current.yaml
+# Add items to catalog
+sp item add samsung-870-evo-4tb \
+  --name="Samsung 870 EVO 4TB" \
+  --category=ssd \
+  --brand=Samsung \
+  --specs='{"capacity":"4TB","read_speed":"560MB/s"}'
 
-# Run quick summaries (redundancy, RPO/RTO, capacity)
-sp analyze quick current.yaml
+# Record prices
+sp price add samsung-870-evo-4tb --price=289 --condition=new
 
-# Simulate a failure
-sp simulate macbook-m4 current.yaml
+# Create and compare configurations
+sp config create "SATA Setup"
+sp config add-item "SATA Setup" samsung-870-evo-4tb --qty=2
 
-# Browse hardware catalog
-sp catalog summary -c catalog
-sp catalog list --use-case time-machine-target -c catalog
+# Make decisions
+sp decide create --purpose="Replace NAS with SSD"
+sp decide add-option sata --config="SATA Setup"
+sp decide compare
+sp decide choose sata --rationale="Best value per TB"
+sp decide deploy
 
-# Compare products
-sp catalog compare samsung-870-qvo-4tb crucial-mx500-4tb -c catalog
-
-# JSON output for agents/tools
-sp analyze redundancy current.yaml --json
+# Check status
+sp prime                    # Full context for agents
+sp doctor                   # Health check
+sp analyze                  # Run analysis on current config
 ```
+
+## Key Commands
+
+| Command | Description |
+|---------|-------------|
+| `sp init` | Initialize database |
+| `sp prime` | Output full context (for agents) |
+| `sp doctor` | Health check |
+| `sp item *` | Manage catalog items |
+| `sp price *` | Manage price observations |
+| `sp config *` | Manage configurations |
+| `sp decide *` | Decision workflow |
+| `sp analyze` | Run analysis |
+| `sp sync` | Export to YAML |
+| `sp events` | View audit log |
 
 ## Documentation
 
 - **[CLAUDE.md](CLAUDE.md)** - Quick reference for agents/users
-- **[docs/schema.md](docs/schema.md)** - YAML schema reference
-- **[docs/analysis.md](docs/analysis.md)** - How analysis works
-- **[docs/cli.md](docs/cli.md)** - CLI reference & JSON output
-- **[docs/extending.md](docs/extending.md)** - Adding features
-- **[docs/research-workflow.md](docs/research-workflow.md)** - Populating the catalog
+- **[docs/](docs/)** - Additional documentation
 
 ## Project Structure
 
 ```
 storage-planner/
-├── current.yaml              # What's deployed NOW (the truth)
-├── sessions/                 # Decision history (append-only)
-│   └── 2026-01-30.yaml       # One file per decision session
-├── catalog/                  # Hardware/software database (YAML)
-│   ├── hardware.yaml         # Products with specs, tags, pros/cons (NO PRICES)
-│   └── software.yaml         # Sync/backup tool definitions
-├── examples/
-│   └── topology.yaml         # Example topology
-├── docs/                     # Documentation
-├── src/storage_planner/      # Python source
-└── tests/                    # Test suite
+├── .sp/                      # Database (gitignored)
+│   └── decisions.db          # SQLite - source of truth
+├── export/                   # Read-only YAML exports
+├── src/                      # Rust implementation
+│   ├── core/                 # Domain-agnostic models
+│   ├── cli/                  # Command implementations
+│   ├── domains/storage/      # Storage-specific analysis
+│   └── pricing/              # Price API stubs
+├── catalog/                  # Legacy YAML (for migration)
+└── python-archive/           # Old Python implementation
 ```
 
-## Running Tests
+## Design Principles
+
+1. **SQLite is truth** - Database is the source of truth, not YAML files
+2. **Append-only events** - All changes recorded in audit log
+3. **Atomic operations** - Commands complete fully or not at all
+4. **No direct editing** - Use `sp` commands, not file edits
+
+## Development
 
 ```bash
-source .venv/bin/activate
-pytest                        # Run all tests
-pytest --cov=storage_planner  # With coverage
+cargo build                   # Build
+cargo test                    # Run tests
+cargo build --release         # Release build
 ```
 
 ## License

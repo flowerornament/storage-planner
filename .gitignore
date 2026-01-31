@@ -43,5 +43,13 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
+# Rust
+target/
+Cargo.lock
+
+# Database
+.sp/
+
 # Project specific
 *.log
+export/
