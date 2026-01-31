@@ -1,0 +1,275 @@
+# Session: Replace NAS with Silent SSD Storage
+# Created: 2026-01-30
+# Status: active (under evaluation)
+
+created: "2026-01-30"
+purpose: "Replace Synology NAS with silent SSD storage attached to Mac mini"
+status: active  # active | decided | abandoned
+
+context: |
+  The Synology DS224+ NAS is too loud (32dB) for home office use.
+  Goal: Move to silent SSD-based storage while maintaining redundancy.
+
+  Key requirements:
+  - Zero noise in home office (max 30dB)
+  - Maintain 3 copies of critical data, 2 copies of important data
+  - Reuse 2×8TB IronWolf HDDs if possible
+  - Budget: ~$1000 hardware
+
+# =============================================================================
+# PRICES CAPTURED FOR THIS SESSION
+# =============================================================================
+# These are point-in-time prices. Do not update - create new session if stale.
+
+prices:
+  captured: "2026-01-30"
+  notes: "NAND shortage driving SSD prices up. Expected to continue through Q4 2027."
+
+  # SSDs - SATA
+  samsung-870-qvo-8tb:
+    retail: 800
+    used_low: 719
+    used_high: 850
+  samsung-870-evo-4tb:
+    retail: 689
+    used_low: 289
+    used_high: 358
+
+  # SSDs - NVMe
+  lexar-nm790-4tb:
+    retail: 420
+    notes: "Micro Center price"
+  lexar-nm790-8tb:
+    retail: 644
+  samsung-990-pro-4tb:
+    retail: 550
+    sale_low: 330
+  teamgroup-mp44-4tb:
+    retail: 421
+  silicon-power-ud90-4tb:
+    retail: 230
+
+  # Portable SSDs
+  samsung-t5-evo-8tb:
+    retail: 715
+
+  # Enclosures
+  owc-mercury-elite-pro-quad:
+    retail: 220
+    with_softraid: 370
+  orico-minitower-m435:
+    retail: 110
+  sabrent-usbc-enclosure:
+    retail: 20
+
+# =============================================================================
+# BASELINE - What current.yaml looked like when session started
+# =============================================================================
+
+baseline:
+  name: "Synology NAS Setup"
+  deployed: "2024-01-01"
+  primary_storage: synology-ds224
+  capacity_used: "3.8TB"
+  capacity_available: "7TB"
+  problems:
+    - "Too loud (32dB, limit 30dB)"
+    - "Slow CPU bottlenecks backups"
+    - "HDD speeds limit transfers"
+
+# =============================================================================
+# OPTIONS EVALUATED
+# =============================================================================
+
+options:
+  # ---------------------------------------------------------------------------
+  # Option A: Simplest - Single 8TB SSD
+  # ---------------------------------------------------------------------------
+  option-a:
+    name: "Simple 8TB SSD"
+    summary: "Single 8TB SATA SSD in basic enclosure. HDDs become cold archive."
+
+    hardware:
+      - product: samsung-870-qvo-8tb
+        qty: 1
+        unit_price: 625
+        source: used
+        subtotal: 625
+      - product: sabrent-usbc-enclosure
+        qty: 1
+        unit_price: 20
+        source: retail
+        subtotal: 20
+
+    total_cost: 645
+
+    pros:
+      - Simplest setup
+      - Cheapest option
+      - Silent operation
+    cons:
+      - No local redundancy
+      - QLC has lower write endurance
+      - Single point of failure locally
+
+    noise_db: 0
+    local_capacity: "7.3TB usable"
+
+  # ---------------------------------------------------------------------------
+  # Option B: OWC Quad with Hybrid SSD+HDD
+  # ---------------------------------------------------------------------------
+  option-b:
+    name: "OWC Quad Hybrid"
+    summary: "4-bay OWC enclosure with 8TB SSD + 2×8TB IronWolf HDDs for local backup."
+
+    hardware:
+      - product: owc-mercury-elite-pro-quad
+        qty: 1
+        unit_price: 220
+        source: retail
+        subtotal: 220
+      - product: samsung-870-qvo-8tb
+        qty: 1
+        unit_price: 625
+        source: used
+        subtotal: 625
+      - product: seagate-ironwolf-8tb
+        qty: 2
+        unit_price: 0
+        source: owned
+        subtotal: 0
+        notes: "Already owned from NAS"
+
+    total_cost: 845
+
+    pros:
+      - Local HDD backup (extra redundancy)
+      - Reuses existing HDDs
+      - Room for expansion (4 bays)
+      - HDDs can be kept unmounted except during backup
+    cons:
+      - HDDs will spin during daily backup window (~30-60 min)
+      - More complex setup
+      - Enclosure has fan (25dB under load)
+
+    noise_db: 25  # During HDD operations
+    local_capacity: "7.3TB SSD + 14.6TB HDD usable"
+
+  # ---------------------------------------------------------------------------
+  # Option B-Lite: OWC Quad SSD Only (sell HDDs)
+  # ---------------------------------------------------------------------------
+  option-b-lite:
+    name: "OWC Quad SSD Only"
+    summary: "Same OWC enclosure but sell HDDs. Rely on offsite for redundancy."
+
+    hardware:
+      - product: owc-mercury-elite-pro-quad
+        qty: 1
+        unit_price: 220
+        source: retail
+        subtotal: 220
+      - product: samsung-870-qvo-8tb
+        qty: 1
+        unit_price: 625
+        source: used
+        subtotal: 625
+
+    hdd_sale_value:
+      item: "2×IronWolf 8TB"
+      low: 160
+      high: 280
+
+    total_cost: 845
+    net_cost_low: 565  # After selling HDDs
+    net_cost_high: 685
+
+    pros:
+      - Completely silent
+      - Simpler setup
+      - Recovers some cost from HDD sale
+    cons:
+      - Recovery requires internet (8-10 hours for 3.8TB)
+      - No local air-gapped backup
+
+    noise_db: 0
+    local_capacity: "7.3TB usable"
+
+  # ---------------------------------------------------------------------------
+  # Option C: ORICO MiniTower (compact NVMe + HDD)
+  # ---------------------------------------------------------------------------
+  option-c:
+    name: "ORICO MiniTower"
+    summary: "Compact tower under Mac mini: 4TB NVMe + 2×8TB HDD. Limited hot storage."
+
+    hardware:
+      - product: orico-minitower-m435
+        qty: 1
+        unit_price: 110
+        source: retail
+        subtotal: 110
+      - product: samsung-990-pro-4tb
+        qty: 1
+        unit_price: 350
+        source: retail
+        notes: "Could use cheaper NVMe"
+        subtotal: 350
+      - product: seagate-ironwolf-8tb
+        qty: 2
+        unit_price: 0
+        source: owned
+        subtotal: 0
+
+    total_cost: 460
+    total_cost_budget_nvme: 340  # With Silicon Power UD90
+
+    pros:
+      - Cheapest with local backup
+      - NVMe speeds
+      - Compact aesthetic
+    cons:
+      - Only 4TB hot storage (vs 8TB needed)
+      - Some data stays EU-only
+      - More complex data placement
+
+    noise_db: 25  # During HDD operations
+    local_capacity: "3.6TB NVMe + 14.6TB HDD usable"
+
+  # ---------------------------------------------------------------------------
+  # Option D: Portable 8TB SSD
+  # ---------------------------------------------------------------------------
+  option-d:
+    name: "Portable 8TB SSD"
+    summary: "Self-contained Samsung T5 EVO portable SSD. No enclosure needed."
+
+    hardware:
+      - product: samsung-t5-evo-8tb
+        qty: 1
+        unit_price: 715
+        source: retail
+        subtotal: 715
+
+    total_cost: 715
+
+    pros:
+      - Simplest possible setup
+      - Portable between machines
+      - No enclosure noise/heat
+    cons:
+      - Slower (USB 3.2 Gen 1 = 460MB/s)
+      - Higher $/TB than bare drive
+      - No local redundancy
+
+    noise_db: 0
+    local_capacity: "7.3TB usable"
+
+# =============================================================================
+# DECISION (filled in when decided)
+# =============================================================================
+
+decision:
+  chosen: null  # "option-a" | "option-b" | "option-b-lite" | "option-c" | "option-d"
+  rationale: null
+  date: null
+
+  # If chosen, this topology replaces current.yaml:
+  # topology: { ... }  # Full topology definition

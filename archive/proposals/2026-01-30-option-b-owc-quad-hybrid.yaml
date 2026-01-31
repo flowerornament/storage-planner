@@ -2,13 +2,18 @@ name: "Option B: OWC Mercury Elite Pro Quad Hybrid"
 version: "1.0"
 description: |
   4-bay OWC enclosure with 8TB SSD + reused IronWolf HDDs.
-  SSD for hot storage, HDDs for daily local backup.
-  Best balance of quality, capacity, and cost.
+  SSD handles ALL active work (hot storage + Time Machine).
+  HDDs mount once daily at 3am for backup, then unmount.
 
   Hardware cost: ~$845
   - OWC Mercury Elite Pro Quad: $220
   - Samsung 870 QVO 8TB (used): ~$625
   - IronWolf 8TB ×2 (owned): $0
+
+  HDD spin-down strategy:
+  - HDDs unmounted by default (prevents Spotlight, fsevents, Finder access)
+  - Launchd job at 3am: mount → rsync → unmount
+  - Expected HDD spin time: ~30-60 min/day
 
 constraints:
   max_monthly_cost: 140.00
@@ -71,13 +76,13 @@ nodes:
           - sqlite-databases
 
       # OPTION B: OWC Mercury Elite Pro Quad with mixed drives
-      # Bay 1: 8TB SSD (hot storage)
+      # Bay 1: 8TB SSD (hot storage + Time Machine)
       - id: mini-ssd-hot
         name: "Samsung 870 QVO 8TB (Bay 1)"
         type: external_ssd
         raw_capacity: "8TB"
         usable_capacity: "7.3TB"
-        used: "3.8TB"
+        used: "4.6TB"  # 3.8TB data + ~800GB Time Machine
         product_id: samsung-870-qvo-8tb
         purchase_cost: 625.00  # Used price
         read_speed: "560MB/s"
@@ -88,8 +93,9 @@ nodes:
           - hot-storage-sync
           - project-archives
           - source-code
+          - time-machine-backups
 
-      # Bay 2: IronWolf HDD (local backup)
+      # Bay 2: IronWolf HDD (daily backup - mount on demand)
       - id: mini-hdd-backup-1
         name: "IronWolf 8TB #1 (Bay 2)"
         type: external_hdd
@@ -100,22 +106,24 @@ nodes:
         purchase_cost: 0  # Already owned
         read_speed: "210MB/s"
         write_speed: "210MB/s"
+        mount_policy: on_demand  # Unmounted except during backup
         hosts_datasets:
           - local-hdd-backup
 
-      # Bay 3: IronWolf HDD (backup mirror or Time Machine)
+      # Bay 3: IronWolf HDD (backup mirror - mount on demand)
       - id: mini-hdd-backup-2
         name: "IronWolf 8TB #2 (Bay 3)"
         type: external_hdd
         raw_capacity: "8TB"
         usable_capacity: "7.3TB"
-        used: "1TB"
+        used: "3.8TB"
         product_id: seagate-ironwolf-8tb
         purchase_cost: 0  # Already owned
         read_speed: "210MB/s"
         write_speed: "210MB/s"
+        mount_policy: on_demand  # Unmounted except during backup
         hosts_datasets:
-          - time-machine-backups
+          - local-hdd-backup-mirror
 
       # Bay 4: Empty for future expansion
 
@@ -336,10 +344,24 @@ datasets:
     change_rate: medium
     required_copies: 2
     required_locations: 2
+    max_rpo: "1h"
+    stored_on:
+      - mini-ssd-hot  # TM on SSD for speed + silence
+      - eu-hdd-array
+
+  # Second HDD as backup mirror (runs after first HDD backup)
+  - id: local-hdd-backup-mirror
+    name: "Local HDD Backup Mirror (daily)"
+    current_size: "3.8TB"
+    growth_rate: "0GB/month"
+    criticality: replaceable
+    change_rate: low
+    required_copies: 1
+    required_locations: 1
     max_rpo: "24h"
     stored_on:
       - mini-hdd-backup-2
-      - eu-hdd-array
+    notes: "Mirror of HDD #1. Runs at 3:30am after primary backup."
 
 sync_regimes:
   - id: hot-storage-resilio
@@ -363,7 +385,7 @@ sync_regimes:
     continuous: true
     achieved_rpo: "30s"
 
-  # Daily local backup: SSD -> HDD
+  # Daily local backup: SSD -> HDD (mount-on-demand)
   - id: local-hdd-backup-rsync
     dataset: local-hdd-backup
     source_volume: mini-ssd-hot
@@ -373,7 +395,13 @@ sync_regimes:
     direction: source_to_target
     schedule: "0 3 * * *"  # Daily at 3am
     achieved_rpo: "24h"
-    notes: "HDDs spin up once per day for backup"
+    notes: |
+      Launchd script:
+      1. diskutil mount "Backup-Daily" && diskutil mount "Backup-Mirror"
+      2. rsync SSD → HDD1 (3.8TB @ 200MB/s ≈ 5-10 min incremental)
+      3. rsync HDD1 → HDD2 (mirror)
+      4. diskutil unmount both HDDs
+      Expected spin time: ~30-60 min/day
 
   - id: photos-borg
     dataset: photos-archive
@@ -419,11 +447,23 @@ sync_regimes:
     dataset: time-machine-backups
     source_volume: macbook-internal
     target_volumes:
-      - mini-hdd-backup-2
+      - mini-ssd-hot  # TM to SSD for speed + silence
     method: time_machine
     direction: source_to_target
     continuous: true
     achieved_rpo: "1h"
+
+  # HDD #2 mirrors HDD #1 (runs 30 min after primary backup)
+  - id: local-hdd-mirror-rsync
+    dataset: local-hdd-backup-mirror
+    source_volume: mini-hdd-backup-1
+    target_volumes:
+      - mini-hdd-backup-2
+    method: rsync
+    direction: source_to_target
+    schedule: "30 3 * * *"  # Daily at 3:30am
+    achieved_rpo: "24h"
+    notes: "Both HDDs mount at 3am, HDD1 backup runs, then HDD1→HDD2 mirror"
 
   - id: hot-storage-offsite
     dataset: hot-storage-sync

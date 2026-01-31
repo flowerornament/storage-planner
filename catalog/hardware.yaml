@@ -1,2986 +1,2750 @@
 products:
-  # =============================================================================
-  # HIGH-CAPACITY SSDs (4TB+) - For backup, archive, NAS replacement
-  # =============================================================================
-
-  - id: samsung-870-qvo-8tb
-    name: "Samsung 870 QVO 8TB"
-    brand: Samsung
-    model: "MZ-77Q8T0B/AM"
-    category: ssd
-    tags:
-      - high-capacity
-      - budget-per-tb
-      - quiet
-      - sata
-      - qlc
-    use_cases:
-      - time-machine-target
-      - media-archive
-      - cold-storage
-      - nas-replacement
-    pros:
-      - Highest capacity consumer SATA SSD
-      - Silent operation
-      - Good read performance
-      - Samsung reliability
-    cons:
-      - QLC has lower write endurance
-      - Slower sustained writes
-      - Premium price for 8TB
-    specs:
-      capacity: "8TB"
-      interface: "SATA"
-      form_factor: "2.5in"
-      read_speed: "560MB/s"
-      write_speed: "530MB/s"
-      tbw: "2880TB"
-      warranty_years: 3
-      nand_type: "QLC"
-    retail_price: 799.99
-    used_price_low: 719.00
-    used_price_high: 850.00
-    retail_url: "https://www.amazon.com/dp/B089C5P5SX"
-    noise_db: 0
-    last_verified: "2026-01-30"
-    notes: "Jan 2026: Retail ~$800, eBay used $719-850 (check health %). NAND shortage pushed prices up from $680."
-
-  - id: samsung-870-qvo-4tb
-    name: "Samsung 870 QVO 4TB"
-    brand: Samsung
-    model: "MZ-77Q4T0B/AM"
-    category: ssd
-    tags:
-      - high-capacity
-      - quiet
-      - sata
-      - qlc
-    use_cases:
-      - time-machine-target
-      - media-archive
-      - portable-backup
-    pros:
-      - Silent
-      - Reliable
-    cons:
-      - QLC write endurance
-      - Slower sustained writes
-      - Prices elevated Jan 2026
-    specs:
-      capacity: "4TB"
-      interface: "SATA"
-      form_factor: "2.5in"
-      read_speed: "560MB/s"
-      write_speed: "530MB/s"
-      tbw: "1440TB"
-      warranty_years: 3
-      nand_type: "QLC"
-    retail_price: 368.00
-    noise_db: 0
-    last_verified: "2026-01-30"
-    notes: "Jan 2026 ~$368 (was ~$200 in mid-2023). NAND shortage impact."
-
-  - id: samsung-870-evo-4tb
-    name: "Samsung 870 EVO 4TB"
-    brand: Samsung
-    model: "MZ-77E4T0B/AM"
-    category: ssd
-    tags:
-      - high-capacity
-      - reliable
-      - quiet
-      - sata
-      - tlc
-      - endurance
-    use_cases:
-      - time-machine-target
-      - working-drive
-      - mixed-workload
-    pros:
-      - TLC more durable than QLC
-      - Better sustained writes
-      - 5-year warranty
-      - Higher TBW rating
-    cons:
-      - Prices elevated Jan 2026
-      - SATA speeds
-    specs:
-      capacity: "4TB"
-      interface: "SATA"
-      form_factor: "2.5in"
-      read_speed: "560MB/s"
-      write_speed: "530MB/s"
-      tbw: "2400TB"
-      warranty_years: 5
-      nand_type: "TLC"
-    retail_price: 689.00
-    used_price_low: 289.00
-    used_price_high: 358.00
-    noise_db: 0
-    last_verified: "2026-01-30"
-    notes: "Jan 2026: Retail ~$689, eBay used $289-358. TLC = better endurance than QVO."
-
-  - id: crucial-mx500-4tb
-    name: "Crucial MX500 4TB"
-    brand: Crucial
-    model: "CT4000MX500SSD1"
-    category: ssd
-    tags:
-      - high-capacity
-      - quiet
-      - sata
-      - tlc
-    use_cases:
-      - time-machine-target
-      - media-archive
-      - budget-backup
-    pros:
-      - Good reliability
-      - Power-loss protection
-    cons:
-      - Lower TBW than Samsung
-      - Slightly slower
-    specs:
-      capacity: "4TB"
-      interface: "SATA"
-      form_factor: "2.5in"
-      read_speed: "560MB/s"
-      write_speed: "510MB/s"
-      tbw: "1000TB"
-      warranty_years: 5
-      nand_type: "TLC"
-    retail_price: 280.00
-    noise_db: 0
-    last_verified: "2026-01-30"
-    notes: "Jan 2026 ~$280 (was ~$165 in mid-2023). Best budget 4TB SATA option."
-
-  - id: crucial-t700-4tb
-    name: "Crucial T700 4TB"
-    brand: Crucial
-    model: "CT4000T700SSD3"
-    category: ssd
-    tags:
-      - high-capacity
-      - nvme
-      - pcie5
-      - fast
-      - premium
-    use_cases:
-      - working-drive
-      - video-editing
-      - high-performance
-    pros:
-      - Fastest consumer SSD
-      - PCIe 5.0 speeds
-      - Good endurance
-    cons:
-      - Expensive
-      - Overkill for backup
-      - Runs hot
-    specs:
-      capacity: "4TB"
-      interface: "NVMe PCIe 5.0"
-      form_factor: "M.2 2280"
-      read_speed: "12400MB/s"
-      write_speed: "11800MB/s"
-      tbw: "2400TB"
-      warranty_years: 5
-      nand_type: "TLC"
-    retail_price: 499.99
-    noise_db: 0
-    last_verified: "2025-01-15"
-    notes: "Overkill for backup. Only if you need maximum speed."
-
-  # =============================================================================
-  # ENTERPRISE SATA SSDs - Datacenter grade, excellent for used market
-  # =============================================================================
-
-  - id: samsung-pm893-3840gb
-    name: "Samsung PM893 3.84TB"
-    brand: Samsung
-    model: "MZ-7L33T80"
-    category: ssd
-    tags:
-      - enterprise
-      - sata
-      - high-endurance
-      - datacenter
-      - quiet
-      - high-capacity
-    use_cases:
-      - time-machine-target
-      - nas-replacement
-      - cold-storage
-      - mixed-workload
-    pros:
-      - Enterprise-grade reliability
-      - 1 DWPD (Drive Writes Per Day) endurance
-      - 5-year warranty
-      - Consistent performance
-      - Often cheap used from datacenter pulls
-    cons:
-      - SATA speeds only
-      - OEM product (no retail box)
-      - Used units need health check
-    specs:
-      capacity: "3.84TB"
-      interface: "SATA"
-      form_factor: "2.5in"
-      read_speed: "550MB/s"
-      write_speed: "520MB/s"
-      tbw: "7008TB"
-      warranty_years: 5
-      nand_type: "TLC"
-      dwpd: 1.0
-    retail_price: 450.00
-    noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Datacenter standard. Used units often 50-70% off retail. Check SMART data."
-
-  - id: samsung-pm893-7680gb
-    name: "Samsung PM893 7.68TB"
-    brand: Samsung
-    model: "MZ-7L37T60"
-    category: ssd
-    tags:
-      - enterprise
-      - sata
-      - high-endurance
-      - datacenter
-      - quiet
-      - high-capacity
-    use_cases:
-      - time-machine-target
-      - nas-replacement
-      - cold-storage
-      - media-archive
-    pros:
-      - Massive 7.68TB capacity
-      - Enterprise reliability
-      - 1 DWPD endurance
-      - Excellent used market value
-    cons:
-      - SATA speed limit
-      - OEM product
-      - Hard to find retail
-    specs:
-      capacity: "7.68TB"
-      interface: "SATA"
-      form_factor: "2.5in"
-      read_speed: "550MB/s"
-      write_speed: "520MB/s"
-      tbw: "14016TB"
-      warranty_years: 5
-      nand_type: "TLC"
-      dwpd: 1.0
-    retail_price: 850.00
-    noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Best $/TB for enterprise SATA. Used market is sweet spot."
-
-  - id: micron-5400-pro-3840gb
-    name: "Micron 5400 PRO 3.84TB"
-    brand: Micron
-    model: "MTFDDAK3T8TGA"
-    category: ssd
-    tags:
-      - enterprise
-      - sata
-      - high-endurance
-      - datacenter
-      - quiet
-      - high-capacity
-      - reliable
-    use_cases:
-      - time-machine-target
-      - nas-replacement
-      - mixed-workload
-    pros:
-      - 50% better reliability than competitors (per Micron)
-      - 5-year warranty
-      - Trusted by major OEMs
-      - Good used market availability
-    cons:
-      - SATA speeds
-      - OEM product
-    specs:
-      capacity: "3.84TB"
-      interface: "SATA"
-      form_factor: "2.5in"
-      read_speed: "540MB/s"
-      write_speed: "520MB/s"
-      tbw: "7008TB"
-      warranty_years: 5
-      nand_type: "TLC"
-      dwpd: 1.0
-    retail_price: 480.00
-    noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Excellent alternative to Samsung PM893. Good used prices."
-
-  - id: micron-5400-pro-7680gb
-    name: "Micron 5400 PRO 7.68TB"
-    brand: Micron
-    model: "MTFDDAK7T6TGA"
-    category: ssd
-    tags:
-      - enterprise
-      - sata
-      - high-endurance
-      - datacenter
-      - quiet
-      - high-capacity
-      - reliable
-    use_cases:
-      - nas-replacement
-      - media-archive
-      - cold-storage
-      - high-capacity
-    pros:
-      - Maximum SATA capacity
-      - Enterprise reliability
-      - Strong used market
-    cons:
-      - SATA speed ceiling
-      - Expensive new
-    specs:
-      capacity: "7.68TB"
-      interface: "SATA"
-      form_factor: "2.5in"
-      read_speed: "540MB/s"
-      write_speed: "520MB/s"
-      tbw: "14016TB"
-      warranty_years: 5
-      nand_type: "TLC"
-      dwpd: 1.0
-    retail_price: 900.00
-    noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Enterprise workhorse. Used market best value for 8TB class."
-
-  # =============================================================================
-  # BUDGET M.2 NVMe SSDs - Best value options
-  # =============================================================================
-
-  - id: teamgroup-mp44-2tb
-    name: "TeamGroup MP44 2TB"
-    brand: TeamGroup
-    model: "TM8FPW002T0C101"
-    category: ssd
-    tags:
-      - nvme
-      - pcie4
-      - budget
-      - value
-      - quiet
-    use_cases:
-      - working-drive
-      - portable-working-drive
-      - budget-backup
-    pros:
-      - Excellent price/performance
-      - Reliable controller
-      - Good for gaming
-    cons:
-      - Not fastest PCIe 4.0
-      - No 8TB option
-    specs:
-      capacity: "2TB"
-      interface: "NVMe PCIe 4.0"
-      form_factor: "M.2 2280"
-      read_speed: "7400MB/s"
-      write_speed: "7000MB/s"
-      tbw: "1400TB"
-      warranty_years: 5
-      nand_type: "TLC"
-    retail_price: 119.99
-    noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Best budget 2TB NVMe. Great value."
-
-  - id: teamgroup-mp44-4tb
-    name: "TeamGroup MP44 4TB"
-    brand: TeamGroup
-    model: "TM8FPW004T0C101"
-    category: ssd
-    tags:
-      - nvme
-      - pcie4
-      - high-capacity
-      - quiet
-    use_cases:
-      - working-drive
-      - time-machine-target
-      - media-archive
-    pros:
-      - Reliable TLC NAND
-      - Good endurance (3000 TBW)
-    cons:
-      - Not fastest sequential
-      - Prices elevated Jan 2026
-    specs:
-      capacity: "4TB"
-      interface: "NVMe PCIe 4.0"
-      form_factor: "M.2 2280"
-      read_speed: "7400MB/s"
-      write_speed: "7000MB/s"
-      tbw: "3000TB"
-      warranty_years: 5
-      nand_type: "TLC"
-    retail_price: 420.99
-    noise_db: 0
-    last_verified: "2026-01-30"
-    notes: "Jan 2026 ~$421 (was ~$240 in early 2025). NAND shortage impact."
-
-  - id: teamgroup-mp44q-2tb
-    name: "TeamGroup MP44Q 2TB (QLC)"
-    brand: TeamGroup
-    model: "TM8FQQ002T0C101"
-    category: ssd
-    tags:
-      - nvme
-      - pcie4
-      - budget
-      - qlc
-      - quiet
-      - single-sided
-    use_cases:
-      - budget-backup
-      - cold-storage
-      - laptop-upgrade
-    pros:
-      - Cheapest 2TB NVMe
-      - Single-sided (good for laptops)
-      - Good power efficiency
-    cons:
-      - QLC endurance limits
-      - Slower sustained writes
-    specs:
-      capacity: "2TB"
-      interface: "NVMe PCIe 4.0"
-      form_factor: "M.2 2280"
-      read_speed: "5000MB/s"
-      write_speed: "4400MB/s"
-      tbw: "480TB"
-      warranty_years: 3
-      nand_type: "QLC"
-    retail_price: 108.99
-    noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Budget king. QLC fine for read-heavy/backup use."
-
-  - id: teamgroup-mp44q-4tb
-    name: "TeamGroup MP44Q 4TB (QLC)"
-    brand: TeamGroup
-    model: "TM8FQQ004T0C101"
-    category: ssd
-    tags:
-      - nvme
-      - pcie4
-      - budget
-      - qlc
-      - high-capacity
-      - quiet
-      - single-sided
-    use_cases:
-      - cold-storage
-      - media-archive
-      - budget-backup
-    pros:
-      - Single-sided at 4TB
-      - Decent performance
-    cons:
-      - QLC write endurance
-      - Lower TBW rating
-      - Prices elevated Jan 2026
-    specs:
-      capacity: "4TB"
-      interface: "NVMe PCIe 4.0"
-      form_factor: "M.2 2280"
-      read_speed: "5000MB/s"
-      write_speed: "4400MB/s"
-      tbw: "720TB"
-      warranty_years: 3
-      nand_type: "QLC"
-    retail_price: 373.00
-    noise_db: 0
-    last_verified: "2026-01-30"
-    notes: "Jan 2026 $373 (Newegg sale) - $433 (list). Often out of stock."
-    notes: "Best for cold storage. QLC trade-off for price."
-
-  # =============================================================================
-  # PREMIUM M.2 NVMe SSDs - "Buy once, cry once" options
-  # =============================================================================
-
-  - id: samsung-990-pro-2tb
-    name: "Samsung 990 Pro 2TB"
-    brand: Samsung
-    model: "MZ-V9P2T0B/AM"
-    category: ssd
-    tags:
-      - nvme
-      - pcie4
-      - premium
-      - fast
-      - reliable
-      - quiet
-    use_cases:
-      - working-drive
-      - video-editing
-      - high-performance
-    pros:
-      - Top-tier PCIe 4.0 performance
-      - Samsung reliability
-      - 5-year warranty
-      - Excellent sustained performance
-    cons:
-      - Premium price
-      - No 8TB option
-    specs:
-      capacity: "2TB"
-      interface: "NVMe PCIe 4.0"
-      form_factor: "M.2 2280"
-      read_speed: "7450MB/s"
-      write_speed: "6900MB/s"
-      tbw: "1200TB"
-      warranty_years: 5
-      nand_type: "TLC"
-    retail_price: 169.99
-    noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Premium choice for 2TB. Best-in-class reliability."
-
-  - id: samsung-990-pro-4tb
-    name: "Samsung 990 Pro 4TB"
-    brand: Samsung
-    model: "MZ-V9P4T0B/AM"
-    category: ssd
-    tags:
-      - nvme
-      - pcie4
-      - premium
-      - fast
-      - reliable
-      - high-capacity
-      - quiet
-      - single-sided
-    use_cases:
-      - working-drive
-      - video-editing
-      - high-performance
-    pros:
-      - Single-sided even at 4TB
-      - Top-tier performance
-      - Samsung reliability
-      - Best 4TB consumer NVMe
-    cons:
-      - Premium price (elevated Jan 2026)
-      - Max 4TB capacity
-    specs:
-      capacity: "4TB"
-      interface: "NVMe PCIe 4.0"
-      form_factor: "M.2 2280"
-      read_speed: "7450MB/s"
-      write_speed: "6900MB/s"
-      tbw: "2400TB"
-      warranty_years: 5
-      nand_type: "TLC"
-    retail_price: 549.99
-    noise_db: 0
-    last_verified: "2026-01-30"
-    notes: "Jan 2026 ~$550 (was ~$340 in early 2025). Sometimes drops to $330 on sale."
-
-  - id: wd-black-sn850x-4tb
-    name: "WD Black SN850X 4TB"
-    brand: Western Digital
-    model: "WDS400T2X0E"
-    category: ssd
-    tags:
-      - nvme
-      - pcie4
-      - premium
-      - fast
-      - gaming
-      - high-capacity
-      - quiet
-    use_cases:
-      - working-drive
-      - video-editing
-      - gaming
-    pros:
-      - Matches 990 Pro performance
-      - Available with heatsink
-      - 8TB option available
-    cons:
-      - Double-sided (thicker)
-      - Prices elevated Jan 2026 due to NAND shortage
-    specs:
-      capacity: "4TB"
-      interface: "NVMe PCIe 4.0"
-      form_factor: "M.2 2280"
-      read_speed: "7300MB/s"
-      write_speed: "6600MB/s"
-      tbw: "2400TB"
-      warranty_years: 5
-      nand_type: "TLC"
-    retail_price: 764.99
-    noise_db: 0
-    last_verified: "2026-01-30"
-    notes: "Jan 2026 prices severely elevated due to NAND shortage. Was ~$250 in early 2025."
-
-  - id: wd-black-sn850x-8tb
-    name: "WD Black SN850X 8TB"
-    brand: Western Digital
-    model: "WDS800T2X0E"
-    category: ssd
-    tags:
-      - nvme
-      - pcie4
-      - premium
-      - fast
-      - high-capacity
-      - quiet
-    use_cases:
-      - video-editing
-      - media-archive
-      - high-capacity
-      - working-drive
-    pros:
-      - Maximum consumer NVMe capacity
-      - Excellent performance
-      - Single drive simplicity
-    cons:
-      - Very expensive (Jan 2026)
-      - Double-sided
-      - Price volatility (NAND shortage)
-    specs:
-      capacity: "8TB"
-      interface: "NVMe PCIe 4.0"
-      form_factor: "M.2 2280"
-      read_speed: "7300MB/s"
-      write_speed: "6600MB/s"
-      tbw: "4800TB"
-      warranty_years: 5
-      nand_type: "TLC"
-    retail_price: 1119.99
-    noise_db: 0
-    last_verified: "2026-01-30"
-    notes: "Jan 2026 ~$1120 (was ~$550 in 2024). NAND shortage until Q4 2027."
-
-  - id: crucial-t500-2tb
-    name: "Crucial T500 2TB"
-    brand: Crucial
-    model: "CT2000T500SSD8"
-    category: ssd
-    tags:
-      - nvme
-      - pcie4
-      - fast
-      - reliable
-      - quiet
-      - value
-    use_cases:
-      - working-drive
-      - gaming
-      - mixed-workload
-    pros:
-      - Strong performance
-      - Good price
-      - Phison E25 controller
-    cons:
-      - Not quite top-tier speed
-      - Max 4TB
-    specs:
-      capacity: "2TB"
-      interface: "NVMe PCIe 4.0"
-      form_factor: "M.2 2280"
-      read_speed: "7400MB/s"
-      write_speed: "7000MB/s"
-      tbw: "1200TB"
-      warranty_years: 5
-      nand_type: "TLC"
-    retail_price: 139.99
-    noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Solid mid-range choice. Between budget and premium."
-
-  - id: crucial-t500-4tb
-    name: "Crucial T500 4TB"
-    brand: Crucial
-    model: "CT4000T500SSD8"
-    category: ssd
-    tags:
-      - nvme
-      - pcie4
-      - fast
-      - reliable
-      - high-capacity
-      - quiet
-    use_cases:
-      - working-drive
-      - media-archive
-      - mixed-workload
-    pros:
-      - Good 4TB performance
-      - Solid endurance
-    cons:
-      - Double-sided
-      - Prices elevated Jan 2026
-    specs:
-      capacity: "4TB"
-      interface: "NVMe PCIe 4.0"
-      form_factor: "M.2 2280"
-      read_speed: "7400MB/s"
-      write_speed: "7000MB/s"
-      tbw: "2400TB"
-      warranty_years: 5
-      nand_type: "TLC"
-    retail_price: 679.00
-    noise_db: 0
-    last_verified: "2026-01-30"
-    notes: "Jan 2026 ~$679 with heatsink (was ~$280 in early 2025). NAND shortage impact."
-
-  # =============================================================================
-  # ADDITIONAL PREMIUM M.2 NVMe SSDs
-  # =============================================================================
-
-  - id: wd-black-sn850x-2tb
-    name: "WD Black SN850X 2TB"
-    brand: Western Digital
-    model: "WDS200T2X0E"
-    category: ssd
-    tags:
-      - nvme
-      - pcie4
-      - premium
-      - fast
-      - gaming
-      - quiet
-    use_cases:
-      - working-drive
-      - gaming
-      - video-editing
-    pros:
-      - Excellent performance
-      - Good value at 2TB
-      - 5-year warranty
-    cons:
-      - Double-sided
-    specs:
-      capacity: "2TB"
-      interface: "NVMe PCIe 4.0"
-      form_factor: "M.2 2280"
-      read_speed: "7300MB/s"
-      write_speed: "6600MB/s"
-      tbw: "1200TB"
-      warranty_years: 5
-      nand_type: "TLC"
-    retail_price: 149.99
-    noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Great 2TB premium option."
-
-  - id: samsung-990-evo-plus-4tb
-    name: "Samsung 990 EVO Plus 4TB"
-    brand: Samsung
-    model: "MZ-V9S4T0B/AM"
-    category: ssd
-    tags:
-      - nvme
-      - pcie4
-      - pcie5
-      - premium
-      - fast
-      - single-sided
-      - quiet
-    use_cases:
-      - working-drive
-      - video-editing
-      - high-performance
-    pros:
-      - PCIe 4.0 x4 and PCIe 5.0 x2 compatible
-      - Single-sided at 4TB
-      - Samsung reliability
-      - Better power efficiency
-    cons:
-      - Premium price
-      - Slightly slower than 990 Pro
-    specs:
-      capacity: "4TB"
-      interface: "NVMe PCIe 4.0/5.0"
-      form_factor: "M.2 2280"
-      read_speed: "7250MB/s"
-      write_speed: "6300MB/s"
-      tbw: "2400TB"
-      warranty_years: 5
-      nand_type: "TLC"
-    retail_price: 439.99
-    noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "PCIe 5.0 ready. Single-sided advantage over competitors."
-
-  - id: samsung-9100-pro-8tb
-    name: "Samsung 9100 Pro 8TB"
-    brand: Samsung
-    model: "MZ-VAP8T0B/AM"
-    category: ssd
-    tags:
-      - nvme
-      - pcie5
-      - premium
-      - fast
-      - high-capacity
-      - quiet
-    use_cases:
-      - video-editing
-      - high-performance
-      - ai-workloads
-      - working-drive
-    pros:
-      - Fastest consumer SSD (14,800 MB/s read)
-      - PCIe 5.0 performance
-      - 8TB capacity
-      - 8GB DRAM cache
-    cons:
-      - Very expensive
-      - Double-sided
-      - High power consumption (10.5W)
-    specs:
-      capacity: "8TB"
-      interface: "NVMe PCIe 5.0"
-      form_factor: "M.2 2280"
-      read_speed: "14800MB/s"
-      write_speed: "13400MB/s"
-      tbw: "4800TB"
-      warranty_years: 5
-      nand_type: "TLC"
-    retail_price: 999.99
-    noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Buy once cry once flagship. First Samsung 8TB consumer NVMe."
-
-  - id: lexar-nm790-4tb
-    name: "Lexar NM790 4TB"
-    brand: Lexar
-    model: "LNM790X004T-RNNNU"
-    category: ssd
-    tags:
-      - nvme
-      - pcie4
-      - single-sided
-      - quiet
-    use_cases:
-      - working-drive
-      - gaming
-      - budget-backup
-    pros:
-      - Single-sided at 4TB
-      - Good endurance (4000 TBW)
-      - PS5 compatible
-    cons:
-      - DRAM-less (uses HMB)
-      - Can run hot
-    specs:
-      capacity: "4TB"
-      interface: "NVMe PCIe 4.0"
-      form_factor: "M.2 2280"
-      read_speed: "7400MB/s"
-      write_speed: "6500MB/s"
-      tbw: "4000TB"
-      warranty_years: 5
-      nand_type: "TLC"
-    retail_price: 420.00
-    noise_db: 0
-    last_verified: "2026-01-30"
-    notes: "Jan 2026 $420 (Micro Center) - $551 (Newegg). NAND shortage impact."
-
-  - id: lexar-nm790-8tb
-    name: "Lexar NM790 8TB"
-    brand: Lexar
-    model: "LNM790X008T-RNNNU"
-    category: ssd
-    tags:
-      - nvme
-      - pcie4
-      - high-capacity
-      - quiet
-    use_cases:
-      - media-archive
-      - cold-storage
-      - high-capacity
-    pros:
-      - Most affordable 8TB NVMe
-      - Good performance
-      - 5-year warranty
-    cons:
-      - DRAM-less
-      - Slightly slower than 4TB model
-      - Double-sided
-    specs:
-      capacity: "8TB"
-      interface: "NVMe PCIe 4.0"
-      form_factor: "M.2 2280"
-      read_speed: "7000MB/s"
-      write_speed: "6200MB/s"
-      tbw: "8000TB"
-      warranty_years: 5
-      nand_type: "TLC"
-    retail_price: 644.00
-    noise_db: 0
-    last_verified: "2026-01-30"
-    notes: "Jan 2026 ~$644. Most affordable 8TB NVMe option."
-
-  - id: silicon-power-ud90-4tb
-    name: "Silicon Power UD90 4TB"
-    brand: Silicon Power
-    model: "SP04KGBP44UD9005"
-    category: ssd
-    tags:
-      - nvme
-      - pcie4
-      - budget
-      - value
-      - single-sided
-      - qlc
-      - quiet
-    use_cases:
-      - budget-backup
-      - cold-storage
-      - working-drive
-    pros:
-      - One of the cheapest 4TB NVMe
-      - Single-sided
-      - Good endurance for QLC (2400 TBW)
-      - 5-year warranty
-    cons:
-      - QLC NAND
-      - DRAM-less
-      - Lower sustained writes
-    specs:
-      capacity: "4TB"
-      interface: "NVMe PCIe 4.0"
-      form_factor: "M.2 2280"
-      read_speed: "5000MB/s"
-      write_speed: "4500MB/s"
-      tbw: "2400TB"
-      warranty_years: 5
-      nand_type: "QLC"
-    retail_price: 229.99
-    noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Budget king. QLC but excellent value."
-
-  # =============================================================================
-  # ADDITIONAL ENTERPRISE SATA SSDs
-  # =============================================================================
-
-  - id: micron-5210-ion-7680gb
-    name: "Micron 5210 ION 7.68TB"
-    brand: Micron
-    model: "MTFDDAK7T6QDE"
-    category: ssd
-    tags:
-      - enterprise
-      - sata
-      - qlc
-      - datacenter
-      - quiet
-      - high-capacity
-      - budget
-    use_cases:
-      - cold-storage
-      - media-archive
-      - nas-replacement
-      - read-heavy
-    pros:
-      - First QLC enterprise SSD
-      - Very cheap per TB used
-      - Good for read-heavy workloads
-      - 175x faster random reads than HDD
-    cons:
-      - Low write performance (360 MB/s)
-      - QLC endurance limits
-      - Read-optimized only
-    specs:
-      capacity: "7.68TB"
-      interface: "SATA"
-      form_factor: "2.5in"
-      read_speed: "540MB/s"
-      write_speed: "360MB/s"
-      tbw: "2628TB"
-      warranty_years: 5
-      nand_type: "QLC"
-      dwpd: 0.2
-    retail_price: 450.00
-    noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Read-optimized QLC. Excellent used prices. Check TBW on used units."
-
-  - id: intel-d3-s4510-7680gb
-    name: "Intel D3-S4510 7.68TB"
-    brand: Intel
-    model: "SSDSC2KB076T801"
-    category: ssd
-    tags:
-      - enterprise
-      - sata
-      - tlc
-      - datacenter
-      - quiet
-      - high-capacity
-      - reliable
-    use_cases:
-      - time-machine-target
-      - nas-replacement
-      - cold-storage
-      - read-heavy
-    pros:
-      - Intel enterprise reliability
-      - TLC NAND (better than QLC)
-      - Read-intensive optimized
-      - Good used market availability
-    cons:
-      - EOL/Solidigm transition
-      - Lower write endurance than 5400 series
-    specs:
-      capacity: "7.68TB"
-      interface: "SATA"
-      form_factor: "2.5in"
-      read_speed: "550MB/s"
-      write_speed: "510MB/s"
-      tbw: "5110TB"
-      warranty_years: 5
-      nand_type: "TLC"
-      dwpd: 0.36
-    retail_price: 600.00
-    noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Intel classic. Now Solidigm. Good used market."
-
-  - id: micron-5300-max-3840gb
-    name: "Micron 5300 MAX 3.84TB"
-    brand: Micron
-    model: "MTFDDAK3T8TDT"
-    category: ssd
-    tags:
-      - enterprise
-      - sata
-      - tlc
-      - datacenter
-      - quiet
-      - high-endurance
-    use_cases:
-      - mixed-workload
-      - working-drive
-      - time-machine-target
-    pros:
-      - 5 DWPD - highest SATA endurance
-      - 24,528 TBW rating
-      - 3 million hour MTTF
-      - Write-heavy workload capable
-    cons:
-      - Expensive
-      - Overkill for backup use
-    specs:
-      capacity: "3.84TB"
-      interface: "SATA"
-      form_factor: "2.5in"
-      read_speed: "540MB/s"
-      write_speed: "520MB/s"
-      tbw: "24528TB"
-      warranty_years: 5
-      nand_type: "TLC"
-      dwpd: 5.0
-    retail_price: 950.00
-    noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Write-intensive enterprise. Overkill for backup but bulletproof."
-
-  # =============================================================================
-  # THUNDERBOLT 5 DOCKS & PREMIUM HUBS
-  # =============================================================================
-
-  - id: satechi-tb5-cubedock
-    name: "Satechi Thunderbolt 5 CubeDock with SSD Enclosure"
-    brand: Satechi
-    model: "ST-T5DCE"
-    category: enclosure
-    tags:
-      - thunderbolt5
-      - dock
-      - nvme
-      - premium
-      - hub
-      - mac-mini-match
-      - quiet
-    use_cases:
-      - desktop-hub
-      - mac-mini-expansion
-      - working-drive
-      - single-cable-setup
-    pros:
-      - Thunderbolt 5 (80Gbps, 120Gbps boost)
-      - M.2 NVMe up to 8TB at 6000 MB/s
-      - 140W power delivery
-      - 3x downstream TB5 ports
-      - 2.5Gb Ethernet
-      - Mac mini form factor match
-    cons:
-      - Expensive
-      - Requires external power (180W)
-      - Whisper-quiet fan (not silent)
-    specs:
-      bays: 1
-      interface: "Thunderbolt 5"
-      max_capacity_per_bay: "8TB"
-      form_factor: "M.2 2280"
-      m4_mini_compatible: true
-      power_delivery_watts: 140
-      ports:
-        - "3x Thunderbolt 5 (downstream)"
-        - "1x Thunderbolt 5 (upstream)"
-        - "1x USB-C (10Gbps, 30W)"
-        - "2x USB-A (10Gbps)"
-        - "1x 2.5GbE Ethernet"
-        - "1x SD/microSD"
-        - "1x 3.5mm audio"
-    retail_price: 399.99
-    noise_db: 20
-    aesthetic_notes: "5x5x2 inch aluminum cube, Mac mini matching"
-    last_verified: "2025-01-29"
-    notes: "Premium TB5 dock with fast NVMe. SSD not included. Ships Q1 2026."
-
-  - id: owc-studiostack
-    name: "OWC StudioStack"
-    brand: OWC
-    model: "OWCTB5SSH000"
-    category: enclosure
-    tags:
-      - thunderbolt5
-      - mac-studio-stand
-      - hub
-      - nvme
-      - hdd
-      - premium
-      - expandable
-    use_cases:
-      - mac-mini-expansion
-      - mac-studio-expansion
-      - time-machine-target
-      - high-capacity
-      - desktop-hub
-    pros:
-      - Thunderbolt 5 (80Gbps)
-      - Up to 32TB (8TB NVMe + 24TB HDD)
-      - 6302 MB/s with fast NVMe
-      - 3x TB5 downstream + 3x USB-A
-      - Stacks under Mac Studio/mini
-      - Smart fan (quiet)
-    cons:
-      - Expensive
-      - Mac Studio form factor (larger than mini)
-      - Has fan
-    specs:
-      bays: 2
-      interface: "Thunderbolt 5"
-      max_capacity_per_bay: "24TB"
-      form_factor: "M.2 + 3.5in"
-      m4_mini_compatible: true
-      ports:
-        - "3x Thunderbolt 5 (downstream)"
-        - "1x Thunderbolt 5 (upstream)"
-        - "3x USB-A (10Gbps)"
-    retail_price: 329.99
-    noise_db: 25
-    aesthetic_notes: "Matches Mac Studio footprint"
-    last_verified: "2025-01-29"
-    notes: "Enclosure only. TB5 cable included. Ships Dec 2025."
-
-  # =============================================================================
-  # USB4 / NVMe ENCLOSURES
-  # =============================================================================
-
-  - id: owc-express-4m2
-    name: "OWC Express 4M2"
-    brand: OWC
-    model: "OWCUS4EXP4M2"
-    category: enclosure
-    tags:
-      - usb4
-      - nvme
-      - 4-bay
-      - raid
-      - fast
-      - quiet
-    use_cases:
-      - high-capacity
-      - high-speed-backup
-      - video-editing
-      - portable-raid
-    pros:
-      - 4x M.2 NVMe slots
-      - USB4 40Gbps
-      - Up to 32TB total
-      - RAID 0/1/4/5/10 support
-      - Smart fan (near silent idle)
-      - SoftRAID compatible
-    cons:
-      - PCIe 4.0 x1 per slot limits individual speed
-      - Expensive with SoftRAID
-    specs:
-      bays: 4
-      interface: "USB4 (40Gbps)"
-      max_capacity_per_bay: "8TB"
-      form_factor: "M.2 2230/2242/2280"
-      m4_mini_compatible: true
-      raid_support:
-        - JBOD
-        - RAID0
-        - RAID1
-        - RAID4
-        - RAID5
-        - RAID10
-    retail_price: 239.99
-    noise_db: 20
-    last_verified: "2025-01-29"
-    notes: "Enclosure only. $379.99 with 3yr SoftRAID. Certified 40Gbps cable included."
-
-  - id: satechi-usb4-slim-nvme
-    name: "Satechi USB4 Slim NVMe SSD Enclosure"
-    brand: Satechi
-    model: "ST-U4SEA"
-    category: enclosure
-    tags:
-      - usb4
-      - nvme
-      - compact
-      - mac-mini-match
-      - quiet
-      - single-bay
-    use_cases:
-      - mac-mini-expansion
-      - working-drive
-      - portable-working-drive
-    pros:
-      - USB4 40Gbps (3840 MB/s)
-      - Exact Mac mini M4 footprint
-      - Supports 2230/2242/2260/2280
-      - Up to 8TB
-      - Hidden cable compartment
-      - TB5/4/3 compatible
-    cons:
-      - Single drive only
-      - No Thunderbolt speeds
-    specs:
-      bays: 1
-      interface: "USB4 (40Gbps)"
-      max_capacity_per_bay: "8TB"
-      form_factor: "M.2 2230/2242/2260/2280"
-      m4_mini_compatible: true
-    retail_price: 119.99
-    noise_db: 0
-    aesthetic_notes: "5x5x0.63 inch, aluminum, Mac mini matching"
-    last_verified: "2026-01-30"
-    notes: "SSD not included. Use code CES2026 for 20% off through Jan 31."
-
-  - id: acasis-tbu405-usb4-nvme
-    name: "ACASIS TBU405 USB4 NVMe Enclosure"
-    brand: ACASIS
-    model: "TBU405"
-    category: enclosure
-    tags:
-      - usb4
-      - thunderbolt
-      - nvme
-      - compact
-      - budget
-      - quiet
-    use_cases:
-      - portable-working-drive
-      - travel-backup
-      - working-drive
-    pros:
-      - True 40Gbps (JHL7440 + RTL9210B chips)
-      - Up to 2805 MB/s tested
-      - Tool-free installation
-      - USB backwards compatible
-      - Budget friendly
-    cons:
-      - Plastic body (some models)
-      - Can run warm
-    specs:
-      bays: 1
-      interface: "USB4 / Thunderbolt 4/3 (40Gbps)"
-      max_capacity_per_bay: "8TB"
-      form_factor: "M.2 2230/2242/2260/2280"
-      m4_mini_compatible: true
-    retail_price: 54.99
-    noise_db: 0
-    last_verified: "2025-01-29"
-    notes: "Budget 40Gbps option. TBU405Pro has fan. Check USB backwards compat."
-
-  # =============================================================================
-  # SATA / DAS ENCLOSURES
-  # =============================================================================
-
-  - id: owc-mercury-elite-pro-dual
-    name: "OWC Mercury Elite Pro Dual with 3-Port Hub"
-    brand: OWC
-    model: "OWCMEDCH7T00"
-    category: enclosure
-    tags:
-      - usb-c
-      - dual-bay
-      - raid
-      - hub
-      - quiet
-    use_cases:
-      - time-machine-target
-      - nas-replacement
-      - high-capacity
-      - desktop-hub
-    pros:
-      - 2x 3.5" or 2.5" bays
-      - Up to 48TB capacity
-      - Hardware RAID 0/1
-      - 3 extra USB ports
-      - 1000+ MB/s with SSDs
-    cons:
-      - USB only (no Thunderbolt)
-      - Has cooling fan
-    specs:
-      bays: 2
-      interface: "USB-C 3.2 Gen 2"
-      max_capacity_per_bay: "24TB"
-      form_factor: "2.5in/3.5in"
-      m4_mini_compatible: true
-      raid_support:
-        - JBOD
-        - SPAN
-        - RAID0
-        - RAID1
-      ports:
-        - "1x USB-C (10Gbps)"
-        - "2x USB-A (10Gbps)"
-    retail_price: 119.99
-    noise_db: 25
-    last_verified: "2025-01-29"
-    notes: "Enclosure only. Good for repurposing NAS drives."
-
-  - id: owc-mercury-elite-pro-mini
-    name: "OWC Mercury Elite Pro mini"
-    brand: OWC
-    model: "OWCMEPMJB00"
-    category: enclosure
-    tags:
-      - usb-c
-      - single-bay
-      - compact
-      - portable
-      - quiet
-    use_cases:
-      - portable-drive
-      - simple-backup
-      - travel-backup
-    pros:
-      - Compact aluminum design
-      - Bus powered for 2.5" drives
-      - USB-C 3.2
-      - Rugged
-    cons:
-      - Single drive only
-      - 2.5" only
-    specs:
-      bays: 1
-      interface: "USB-C 3.2"
-      max_capacity_per_bay: "8TB"
-      form_factor: "2.5in"
-      m4_mini_compatible: true
-    retail_price: 34.99
-    noise_db: 0
-    aesthetic_notes: "Compact aluminum"
-    last_verified: "2025-01-29"
-    notes: "Simple single-drive solution."
-
-  - id: terramaster-d2-320
-    name: "TerraMaster D2-320"
-    brand: TerraMaster
-    model: "D2-320"
-    category: enclosure
-    tags:
-      - usb-c
-      - dual-bay
-      - raid
-      - value
-    use_cases:
-      - nas-replacement
-      - time-machine-target
-      - high-capacity
-    pros:
-      - 10Gbps USB 3.2 Gen 2
-      - Up to 44TB (2x 22TB)
-      - Hardware RAID 0/1
-      - Tool-free trays
-      - NAS expansion capable
-    cons:
-      - Plastic construction
-      - Has cooling fan
-      - Not the quietest
-    specs:
-      bays: 2
-      interface: "USB-C 3.2 Gen 2"
-      max_capacity_per_bay: "22TB"
-      form_factor: "2.5in/3.5in"
-      m4_mini_compatible: true
-      raid_support:
-        - JBOD
-        - Single
-        - RAID0
-        - RAID1
-    retail_price: 149.00
-    noise_db: 30
-    last_verified: "2025-01-29"
-    notes: "Good budget alternative to OWC. Can expand TerraMaster NAS."
-
-  # =============================================================================
-  # NAS REFERENCE
-  # =============================================================================
-
-  - id: synology-ds224-plus
-    name: "Synology DS224+"
-    brand: Synology
-    model: "DS224+"
-    category: nas
-    tags:
-      - nas
-      - dual-bay
-      - btrfs
-    use_cases:
-      - nas-replacement
-      - time-machine-target
-      - media-archive
-    pros:
-      - DSM operating system
-      - Btrfs snapshots
-      - Docker support
-      - 2x drive bays
-    cons:
-      - Outdated CPU (J4125 from 2019)
-      - Only 2GB RAM (need upgrade for Photos AI)
-      - 1GbE only (no 2.5GbE)
-      - No M.2 NVMe cache slots
-      - Spinning disk noise
-    specs:
-      bays: 2
-      interface: "1GbE"
-      max_capacity_per_bay: "20TB"
-      form_factor: "3.5in"
-    retail_price: 299.99
-    noise_db: 35
-    last_verified: "2025-01-29"
-    notes: "Your current NAS. Noisy with HDDs. Consider SSD DAS replacement."
-
-  # =============================================================================
-  # REFERENCE HDDs
-  # =============================================================================
-
-  - id: seagate-ironwolf-8tb
-    name: "Seagate IronWolf 8TB"
-    brand: Seagate
-    model: "ST8000VN004"
-    category: hdd
-    tags:
-      - hdd
-      - nas
-      - high-capacity
-      - cmr
-      - 7200rpm
-    use_cases:
-      - nas-replacement
-      - cold-storage
-      - media-archive
-      - time-machine-target
-    pros:
-      - NAS-optimized (AgileArray)
-      - CMR recording (not SMR)
-      - 7200 RPM speed
-      - 256MB cache
-      - 3-year warranty
-      - IronWolf Health Management
-    cons:
-      - Noisy (spinning disk)
-      - Slower than SSD
-      - Mechanical failure risk
-      - Power hungry vs SSD
-    specs:
-      capacity: "8TB"
-      interface: "SATA 6Gb/s"
-      form_factor: "3.5in"
-      read_speed: "210MB/s"
-      write_speed: "210MB/s"
-      rpm: 7200
-      cache: "256MB"
-      warranty_years: 3
-    retail_price: 169.99
-    noise_db: 32
-    last_verified: "2025-01-29"
-    notes: "Your existing drives from Synology DS224. Can reuse in USB enclosure."
-
-  # =============================================================================
-  # PORTABLE SSDs - For travel, external backup
-  # =============================================================================
-
-  - id: samsung-t7-2tb
-    name: "Samsung T7 Portable 2TB"
-    brand: Samsung
-    model: "MU-PC2T0T/AM"
-    category: ssd
-    tags:
-      - portable
-      - compact
-      - quiet
-      - usb-c
-      - travel
-    use_cases:
-      - travel-backup
-      - portable-working-drive
-      - offsite-rotation
-    pros:
-      - Very compact
-      - Fast USB 3.2 speeds
-      - Multiple colors
-      - Reliable
-    cons:
-      - Max 2TB capacity
-      - No hardware encryption on base model
-    specs:
-      capacity: "2TB"
-      interface: "USB-C 3.2"
-      form_factor: "portable"
-      read_speed: "1050MB/s"
-      write_speed: "1000MB/s"
-    retail_price: 179.99
-    noise_db: 0
-    aesthetic_notes: "Compact, available in gray, blue, red"
-    last_verified: "2025-01-15"
-    notes: "Best portable SSD for most people."
-
-  - id: samsung-t7-4tb
-    name: "Samsung T7 Portable 4TB"
-    brand: Samsung
-    model: "MU-PC4T0T/AM"
-    category: ssd
-    tags:
-      - portable
-      - compact
-      - quiet
-      - usb-c
-      - travel
-      - high-capacity
-    use_cases:
-      - travel-backup
-      - portable-working-drive
-      - mac-mini-expansion
-      - hot-storage-sync
-    pros:
-      - 4TB in compact form factor
-      - Fast USB 3.2 Gen 2 speeds
-      - Samsung reliability
-      - Hardware encryption
-    cons:
-      - Expensive (Jan 2026 pricing elevated)
-      - USB speeds only (no Thunderbolt)
-    specs:
-      capacity: "4TB"
-      interface: "USB-C 3.2 Gen 2"
-      form_factor: "portable"
-      read_speed: "1050MB/s"
-      write_speed: "1000MB/s"
-    retail_price: 474.00
-    noise_db: 0
-    aesthetic_notes: "Compact, available in gray, blue, red"
-    last_verified: "2026-01-30"
-    notes: "Jan 2026 pricing ~$474. SSD prices elevated due to AI/NAND demand."
-
-  - id: samsung-t7-shield-2tb
-    name: "Samsung T7 Shield 2TB"
-    brand: Samsung
-    model: "MU-PE2T0S/AM"
-    category: ssd
-    tags:
-      - portable
-      - rugged
-      - quiet
-      - usb-c
-      - travel
-      - ip65
-    use_cases:
-      - travel-backup
-      - field-work
-      - outdoor
-    pros:
-      - IP65 dust/water resistant
-      - Rugged rubber shell
-      - Drop resistant
-    cons:
-      - Bulkier than T7
-      - Slightly more expensive
-    specs:
-      capacity: "2TB"
-      interface: "USB-C 3.2"
-      form_factor: "portable"
-      read_speed: "1050MB/s"
-      write_speed: "1000MB/s"
-    retail_price: 199.99
-    noise_db: 0
-    aesthetic_notes: "Rugged rubber coating, black/blue/beige"
-    last_verified: "2025-01-15"
-    notes: "For rough conditions. Regular T7 fine for normal use."
-
-  - id: sandisk-extreme-pro-4tb
-    name: "SanDisk Extreme Pro 4TB"
-    brand: SanDisk
-    model: "SDSSDE81-4T00"
-    category: ssd
-    tags:
-      - portable
-      - rugged
-      - quiet
-      - usb-c
-      - high-capacity
-      - ip65
-    use_cases:
-      - travel-backup
-      - video-editing
-      - field-work
-    pros:
-      - 4TB portable capacity
-      - IP65 rated
-      - Fast NVMe speeds
-      - Carabiner loop
-    cons:
-      - Expensive
-      - Can run warm
-    specs:
-      capacity: "4TB"
-      interface: "USB-C 3.2"
-      form_factor: "portable"
-      read_speed: "2000MB/s"
-      write_speed: "2000MB/s"
-    retail_price: 349.99
-    noise_db: 0
-    aesthetic_notes: "Orange loop, rugged design"
-    last_verified: "2025-01-15"
-    notes: "Highest capacity rugged portable."
-
-  # =============================================================================
-  # HIGH-CAPACITY PORTABLE SSDs (8TB) - Jan 2026 pricing elevated due to AI/NAND
-  # =============================================================================
-
-  - id: samsung-t5-evo-8tb
-    name: "Samsung T5 EVO 8TB"
-    brand: Samsung
-    model: "MU-PH8T0S/AM"
-    category: ssd
-    tags:
-      - portable
-      - high-capacity
-      - quiet
-      - usb-c
-    use_cases:
-      - media-archive
-      - cold-storage
-      - travel-backup
-      - offsite-rotation
-    pros:
-      - Largest Samsung portable SSD
-      - Compact for 8TB
-      - Samsung reliability
-    cons:
-      - USB 3.2 Gen 1 only (460MB/s)
-      - Slower than other portables
-      - QLC NAND (lower endurance)
-      - Prices elevated Jan 2026
-    specs:
-      capacity: "8TB"
-      interface: "USB-C 3.2 Gen 1"
-      form_factor: "portable"
-      read_speed: "460MB/s"
-      write_speed: "460MB/s"
-    retail_price: 715.00
-    noise_db: 0
-    aesthetic_notes: "Black, compact rectangular"
-    last_verified: "2026-01-30"
-    notes: "Jan 2026 $715 (Samsung.com) - $900 (Newegg). Often out of stock."
-
-  - id: sandisk-extreme-8tb
-    name: "SanDisk Extreme Portable 8TB"
-    brand: SanDisk
-    model: "SDSSDE61-8T00"
-    category: ssd
-    tags:
-      - portable
-      - high-capacity
-      - quiet
-      - usb-c
-      - rugged
-      - ip65
-    use_cases:
-      - media-archive
-      - travel-backup
-      - video-editing
-      - field-work
-    pros:
-      - USB 3.2 Gen 2 (1050MB/s)
-      - IP65 dust/water resistant
-      - Carabiner loop
-      - Better speed than T5 EVO
-    cons:
-      - More expensive than T5 EVO
-      - Still not fastest portable
-    specs:
-      capacity: "8TB"
-      interface: "USB-C 3.2 Gen 2"
-      form_factor: "portable"
-      read_speed: "1050MB/s"
-      write_speed: "1000MB/s"
-    retail_price: 649.99
-    noise_db: 0
-    aesthetic_notes: "Orange accent, rugged design"
-    last_verified: "2026-01-30"
-    notes: "Jan 2026 ~$650. Faster than T5 EVO. Good middle ground."
-
-  - id: crucial-x10-8tb
-    name: "Crucial X10 Pro 8TB"
-    brand: Crucial
-    model: "CT8000X10PROSSD9"
-    category: ssd
-    tags:
-      - portable
-      - high-capacity
-      - quiet
-      - usb-c
-      - fast
-    use_cases:
-      - video-editing
-      - working-drive
-      - media-archive
-      - travel-backup
-    pros:
-      - USB 3.2 Gen 2x2 (2100MB/s)
-      - Fastest 8TB portable
-      - IP55 rated
-      - Good build quality
-    cons:
-      - Requires 20Gbps USB-C for full speed
-      - Brand ending Feb 2026 (support uncertain)
-      - Premium price
-    specs:
-      capacity: "8TB"
-      interface: "USB-C 3.2 Gen 2x2"
-      form_factor: "portable"
-      read_speed: "2100MB/s"
-      write_speed: "2000MB/s"
-    retail_price: 799.99
-    noise_db: 0
-    aesthetic_notes: "Navy blue, premium feel"
-    last_verified: "2026-01-30"
-    discontinued: true
-    notes: "Jan 2026 $724-846. Fastest but Crucial brand ending Feb 2026. Buy while available if you need speed."
-
-  # =============================================================================
-  # PREMIUM EXTERNAL SSDs - Thunderbolt, high-speed
-  # =============================================================================
-
-  - id: owc-envoy-pro-fx-4tb
-    name: "OWC Envoy Pro FX 4TB"
-    brand: OWC
-    model: "OWCENVPFX04"
-    category: ssd
-    tags:
-      - thunderbolt
-      - premium
-      - quiet
-      - fast
-      - mac-optimized
-    use_cases:
-      - working-drive
-      - video-editing
-      - mac-mini-expansion
-    pros:
-      - Thunderbolt + USB-C compatible
-      - Very fast
-      - Bus powered
-      - Mac optimized
-    cons:
-      - Expensive
-      - Speed overkill for backup
-    specs:
-      capacity: "4TB"
-      interface: "Thunderbolt/USB-C"
-      form_factor: "portable"
-      read_speed: "2800MB/s"
-      write_speed: "2600MB/s"
-    retail_price: 699.99
-    noise_db: 0
-    aesthetic_notes: "Rugged aluminum, space gray"
-    last_verified: "2025-01-15"
-    notes: "Premium option for Mac. Overkill for backup."
-
-  - id: sabrent-rocket-xtrm-4tb
-    name: "Sabrent Rocket XTRM 4TB"
-    brand: Sabrent
-    model: "SB-XTMQ-4TB"
-    category: ssd
-    tags:
-      - thunderbolt
-      - fast
-      - quiet
-      - value
-    use_cases:
-      - working-drive
-      - video-editing
-      - mac-mini-expansion
-    pros:
-      - Thunderbolt 3 speeds
-      - More affordable than OWC
-      - Good capacity
-    cons:
-      - Less premium build
-      - Thunderbolt only (no USB fallback)
-    specs:
-      capacity: "4TB"
-      interface: "Thunderbolt 3"
-      form_factor: "portable"
-      read_speed: "2700MB/s"
-      write_speed: "2400MB/s"
-    retail_price: 549.99
-    noise_db: 0
-    last_verified: "2025-01-15"
-    notes: "Budget Thunderbolt option."
-
-  # =============================================================================
-  # ENCLOSURES - For building custom setups
-  # =============================================================================
-
-  - id: orico-2bay-usbc
-    name: "ORICO 2-Bay USB-C Enclosure"
-    brand: ORICO
-    model: "6629US3-C"
-    category: enclosure
-    tags:
-      - dual-bay
-      - usb-c
-      - value
-      - expandable
-      - quiet
-    use_cases:
-      - nas-replacement
-      - time-machine-target
-      - expandable-storage
-    pros:
-      - Fits 2x 2.5" or 3.5" drives
-      - Tool-free installation
-      - Cheap
-      - RAID 0/1 support
-    cons:
-      - USB speeds only
-      - Plastic build
-    specs:
-      bays: 2
-      interface: "USB-C 3.1"
-      max_capacity_per_bay: "16TB"
-      form_factor: "2.5in/3.5in"
-      stackable: true
-      m4_mini_compatible: true
-      raid_support:
-        - JBOD
-        - RAID0
-        - RAID1
-    retail_price: 45.99
-    noise_db: 0
-    aesthetic_notes: "Black aluminum front, plastic body"
-    last_verified: "2025-01-15"
-    notes: "Best value for dual-drive setup. Great for 2x 4TB SSDs."
-
-  - id: sabrent-usbc-sata-enclosure
-    name: "Sabrent USB-C 2.5\" Enclosure"
-    brand: Sabrent
-    model: "EC-SNVE"
-    category: enclosure
-    tags:
-      - single-bay
-      - usb-c
-      - compact
-      - value
-      - quiet
-    use_cases:
-      - portable-drive
-      - simple-backup
-    pros:
-      - Very cheap
-      - Compact
-      - Tool-free
-    cons:
-      - Single drive only
-      - Basic build
-    specs:
-      bays: 1
-      interface: "USB-C 3.2"
-      max_capacity_per_bay: "8TB"
-      form_factor: "2.5in"
-      m4_mini_compatible: true
-    retail_price: 19.99
-    noise_db: 0
-    last_verified: "2025-01-15"
-    notes: "Cheapest way to use a bare SSD externally."
-
-  - id: owc-thunderbay-4
-    name: "OWC ThunderBay 4"
-    brand: OWC
-    model: "OWCTB3IVT32.0S"
-    category: enclosure
-    tags:
-      - thunderbolt
-      - 4-bay
-      - premium
-      - raid
-      - mac-optimized
-    use_cases:
-      - pro-storage
-      - video-editing
-      - high-capacity
-    pros:
-      - 4 drive bays
-      - Thunderbolt 3
-      - SoftRAID support
-      - Mac optimized
-    cons:
-      - Expensive
-      - Overkill for most
-      - Has a fan (slight noise)
-    specs:
-      bays: 4
-      interface: "Thunderbolt 3"
-      max_capacity_per_bay: "20TB"
-      form_factor: "3.5in"
-      stackable: true
-      m4_mini_compatible: true
-      raid_support:
-        - JBOD
-        - RAID0
-        - RAID1
-        - RAID4
-        - RAID5
-        - RAID10
-    retail_price: 499.00
-    noise_db: 25
-    aesthetic_notes: "Space gray, matches Mac mini"
-    last_verified: "2025-01-15"
-    notes: "Premium multi-bay solution. For serious storage needs."
-
-  - id: ugreen-cm642-2bay
-    name: "UGREEN CM642 2-Bay NVMe Enclosure"
-    brand: UGREEN
-    model: "CM642"
-    category: enclosure
-    tags:
-      - dual-bay
-      - nvme
-      - usb-c
-      - fast
-      - compact
-    use_cases:
-      - high-speed-backup
-      - working-drive
-      - portable-raid
-    pros:
-      - NVMe speeds over USB-C
-      - Dual M.2 slots
-      - Compact
-      - RAID support
-    cons:
-      - M.2 only (no 2.5" drives)
-      - Can run warm
-    specs:
-      bays: 2
-      interface: "USB-C 3.2 Gen 2"
-      max_capacity_per_bay: "4TB"
-      form_factor: "M.2"
-      m4_mini_compatible: true
-      raid_support:
-        - JBOD
-        - RAID0
-        - RAID1
-    retail_price: 59.99
-    noise_db: 0
-    last_verified: "2025-01-15"
-    notes: "For NVMe drives. Faster than SATA enclosures."
-
-  # =============================================================================
-  # DOCKS & HUBS - Multi-purpose connectivity
-  # =============================================================================
-
-  - id: caldigit-ts4
-    name: "CalDigit TS4 Thunderbolt 4 Dock"
-    brand: CalDigit
-    model: "TS4"
-    category: enclosure
-    tags:
-      - dock
-      - thunderbolt
-      - premium
-      - mac-optimized
-      - hub
-    use_cases:
-      - desktop-hub
-      - mac-mini-expansion
-      - single-cable-setup
-    pros:
-      - 18 ports
-      - 98W charging
-      - Excellent Mac compatibility
-      - Thunderbolt 4
-    cons:
-      - Expensive
-      - No internal storage
-    specs:
-      bays: 0
-      interface: "Thunderbolt 4"
-      m4_mini_compatible: true
-      power_delivery_watts: 98
-    retail_price: 399.99
-    noise_db: 0
-    aesthetic_notes: "Space gray aluminum"
-    last_verified: "2025-01-15"
-    notes: "Best dock for Mac. Pairs with external drives."
-
-  # =============================================================================
-  # SATECHI - Mac mini M4 accessories
-  # =============================================================================
-
-  - id: satechi-mac-mini-m4-stand-hub
-    name: "Satechi Mac Mini M4 Stand & Hub with SSD Enclosure"
-    brand: Satechi
-    model: "ST-GNMMES"
-    category: enclosure
-    tags:
-      - mac-mini-stand
-      - usb-c
-      - nvme
-      - compact
-      - m4-optimized
-      - hub
-      - quiet
-    use_cases:
-      - mac-mini-expansion
-      - desktop-hub
-      - working-drive
-      - simple-backup
-    pros:
-      - Designed specifically for M4 Mac mini form factor
-      - M.2 NVMe/SATA SSD support up to 8TB
-      - Adds USB-A ports Mac mini lacks
-      - Clean single-cable design
-      - Built-in cable management
-      - SD card reader
-    cons:
-      - 10Gbps USB 3.2 speed limit (not Thunderbolt)
-      - May reduce Wi-Fi speeds when placed under Mac mini
-      - Not compatible with 2018-2023 Mac mini
-      - Shared bandwidth pool for all devices
-    specs:
-      bays: 1
-      interface: "USB-C 3.2 Gen 2"
-      max_capacity_per_bay: "8TB"
-      form_factor: "M.2 2230/2242/2260/2280"
-      m4_mini_compatible: true
-      ports:
-        - "2x USB-A 3.2 Gen 2 (10Gbps)"
-        - "1x USB-A 2.0 (480Mbps)"
-        - "1x SD/SDHC/SDXC UHS-II (312MB/s)"
-    retail_price: 99.99
-    noise_db: 0
-    aesthetic_notes: "Silver aluminum, matches Mac mini M4 exactly"
-    last_verified: "2025-01-29"
-    notes: "SSD not included. Great for adding USB-A + storage. 10Gbps shared bandwidth."
-
-  # =============================================================================
-  # OWC - Additional products
-  # =============================================================================
-
-  - id: owc-envoy-pro-fx-2tb
-    name: "OWC Envoy Pro FX 2TB"
-    brand: OWC
-    model: "OWCENVPFX02"
-    category: ssd
-    tags:
-      - thunderbolt
-      - usb-c
-      - rugged
-      - fast
-      - mac-optimized
-      - ip67
-      - portable
-      - quiet
-    use_cases:
-      - working-drive
-      - video-editing
-      - travel-backup
-      - mac-mini-expansion
-    pros:
-      - Thunderbolt 4 + USB-C dual interface
-      - 2800MB/s with Thunderbolt
-      - IP67 dust/water resistant
-      - MIL-STD810G drop tested
-      - Bus powered
-      - Works with any host
-    cons:
-      - Expensive per TB
-      - Overkill for backup use
-    specs:
-      capacity: "2TB"
-      interface: "Thunderbolt 4 / USB-C"
-      form_factor: "portable"
-      read_speed: "2800MB/s"
-      write_speed: "2600MB/s"
-    retail_price: 429.00
-    noise_db: 0
-    aesthetic_notes: "Rugged aluminum, space gray"
-    last_verified: "2025-01-29"
-    notes: "Premium portable. Same speed via Thunderbolt or USB4."
-
-  - id: owc-envoy-pro-fx-1tb
-    name: "OWC Envoy Pro FX 1TB"
-    brand: OWC
-    model: "OWCENVPFX01"
-    category: ssd
-    tags:
-      - thunderbolt
-      - usb-c
-      - rugged
-      - fast
-      - mac-optimized
-      - ip67
-      - portable
-      - quiet
-    use_cases:
-      - working-drive
-      - travel-backup
-      - portable-working-drive
-    pros:
-      - Thunderbolt 4 + USB-C dual interface
-      - 2800MB/s with Thunderbolt
-      - IP67 dust/water resistant
-      - Most affordable FX option
-      - Bus powered
-    cons:
-      - 1TB may fill quickly
-      - High price per TB
-    specs:
-      capacity: "1TB"
-      interface: "Thunderbolt 4 / USB-C"
-      form_factor: "portable"
-      read_speed: "2800MB/s"
-      write_speed: "2600MB/s"
-    retail_price: 279.00
-    noise_db: 0
-    aesthetic_notes: "Rugged aluminum, space gray"
-    last_verified: "2025-01-29"
-    notes: "Entry point to Envoy Pro FX line."
-
-  - id: owc-envoy-pro-elektron-2tb
-    name: "OWC Envoy Pro Elektron 2TB"
-    brand: OWC
-    model: "OWCENVPEK02"
-    category: ssd
-    tags:
-      - usb-c
-      - rugged
-      - compact
-      - portable
-      - quiet
-      - value
-    use_cases:
-      - travel-backup
-      - portable-working-drive
-      - offsite-rotation
-    pros:
-      - Extremely compact (fits in pocket)
-      - Crushproof, dustproof, waterproof
-      - Up to 1011MB/s
-      - USB 3.2 Gen 2
-      - More affordable than FX
-    cons:
-      - No Thunderbolt (USB only)
-      - Slower than FX series
-    specs:
-      capacity: "2TB"
-      interface: "USB-C 3.2 Gen 2"
-      form_factor: "portable"
-      read_speed: "1011MB/s"
-      write_speed: "1000MB/s"
-    retail_price: 249.00
-    noise_db: 0
-    aesthetic_notes: "Tiny aluminum puck, space gray"
-    last_verified: "2025-01-29"
-    notes: "Smallest rugged SSD. Great for travel."
-
-  - id: owc-envoy-pro-elektron-4tb
-    name: "OWC Envoy Pro Elektron 4TB"
-    brand: OWC
-    model: "OWCENVPEK04"
-    category: ssd
-    tags:
-      - usb-c
-      - rugged
-      - compact
-      - portable
-      - quiet
-      - high-capacity
-    use_cases:
-      - travel-backup
-      - media-archive
-      - offsite-rotation
-      - field-work
-    pros:
-      - 4TB in tiny form factor
-      - Crushproof, dustproof, waterproof
-      - Up to 1250MB/s
-      - Bus powered
-    cons:
-      - No Thunderbolt
-      - Expensive for USB drive
-    specs:
-      capacity: "4TB"
-      interface: "USB-C 3.2 Gen 2"
-      form_factor: "portable"
-      read_speed: "1250MB/s"
-      write_speed: "1200MB/s"
-    retail_price: 449.00
-    noise_db: 0
-    aesthetic_notes: "Tiny aluminum puck, space gray"
-    last_verified: "2025-01-29"
-    notes: "Highest capacity Elektron. Great for large offsite backups."
-
-  - id: owc-ministack-stx
-    name: "OWC miniStack STX"
-    brand: OWC
-    model: "OWCT4MSS000"
-    category: enclosure
-    tags:
-      - thunderbolt
-      - mac-mini-stand
-      - hub
-      - expandable
-      - mac-optimized
-      - quiet
-    use_cases:
-      - mac-mini-expansion
-      - time-machine-target
-      - desktop-hub
-      - high-capacity
-    pros:
-      - Stacks perfectly under Mac mini
-      - Thunderbolt 4 hub (3 ports out)
-      - Holds 3.5" HDD or 2.5" SSD + M.2 NVMe
-      - Up to 28TB total (18TB HDD + 8TB NVMe)
-      - Daisy chain up to 8 devices
-      - SoftRAID included
-    cons:
-      - Has cooling fan (quiet but not silent)
-      - Complex with multiple drive options
-      - Pricey for enclosure only
-    specs:
-      bays: 2
-      interface: "Thunderbolt 4"
-      max_capacity_per_bay: "18TB"
-      form_factor: "3.5in + M.2"
-      stackable: true
-      m4_mini_compatible: true
-      ports:
-        - "3x Thunderbolt 4 (downstream)"
-        - "1x Thunderbolt 4 (upstream)"
-    retail_price: 279.99
-    noise_db: 20
-    aesthetic_notes: "Matte silver or black, matches Mac mini"
-    last_verified: "2025-01-29"
-    notes: "Enclosure only price. Best Mac mini companion for Thunderbolt expansion."
-
-  - id: owc-thunderbay-4-mini
-    name: "OWC ThunderBay 4 mini"
-    brand: OWC
-    model: "OWCTB3QMJB000"
-    category: enclosure
-    tags:
-      - thunderbolt
-      - 4-bay
-      - compact
-      - raid
-      - mac-optimized
-      - quiet
-    use_cases:
-      - time-machine-target
-      - media-archive
-      - high-capacity
-      - nas-replacement
-    pros:
-      - 4x 2.5" drive bays
-      - Thunderbolt 3 (40Gbps)
-      - Up to 1556MB/s with RAID
-      - SoftRAID included
-      - Compact form factor
-      - Two TB3 ports for daisy chain
-    cons:
-      - 2.5" drives only (no 3.5")
-      - Has cooling fan
-      - Limited to SATA speeds per drive
-    specs:
-      bays: 4
-      interface: "Thunderbolt 3"
-      max_capacity_per_bay: "8TB"
-      form_factor: "2.5in"
-      stackable: true
-      m4_mini_compatible: true
-      raid_support:
-        - JBOD
-        - RAID0
-        - RAID1
-        - RAID4
-        - RAID5
-        - RAID10
-    retail_price: 299.00
-    noise_db: 25
-    aesthetic_notes: "Space gray aluminum"
-    last_verified: "2025-01-29"
-    notes: "Perfect for 4x 4TB SSDs. Quieter than 3.5\" version."
-
-  # =============================================================================
-  # ORICO - Mac mini M4 series
-  # =============================================================================
-
-  - id: orico-minimate-m4pro-1tb
-    name: "ORICO MiniMate M4PRO 1TB"
-    brand: ORICO
-    model: "M4PRO-1TB"
-    category: ssd
-    tags:
-      - thunderbolt
-      - usb4
-      - fast
-      - mac-mini-match
-      - m4-optimized
-      - quiet
-    use_cases:
-      - mac-mini-expansion
-      - working-drive
-      - portable-working-drive
-    pros:
-      - 40Gbps Thunderbolt 4/USB4
-      - Matches Mac mini M4 aesthetic perfectly
-      - Up to 3100MB/s
-      - Five-layer cooling system
-      - Two cables included
-    cons:
-      - Speed depends on internal SSD
-      - Pricier than basic USB enclosures
-    specs:
-      capacity: "1TB"
-      interface: "Thunderbolt 4 / USB4"
-      form_factor: "portable"
-      read_speed: "3100MB/s"
-      write_speed: "2900MB/s"
-    retail_price: 199.99
-    noise_db: 0
-    aesthetic_notes: "Silver aluminum, exact Mac mini M4 footprint"
-    last_verified: "2025-01-29"
-    notes: "Sits perfectly under Mac mini. True Thunderbolt speeds."
-
-  - id: orico-minimate-m4pro-2tb
-    name: "ORICO MiniMate M4PRO 2TB"
-    brand: ORICO
-    model: "M4PRO-2TB"
-    category: ssd
-    tags:
-      - thunderbolt
-      - usb4
-      - fast
-      - mac-mini-match
-      - m4-optimized
-      - quiet
-      - value
-    use_cases:
-      - mac-mini-expansion
-      - working-drive
-      - time-machine-target
-    pros:
-      - 40Gbps Thunderbolt 4/USB4
-      - Matches Mac mini M4 aesthetic
-      - Good balance of capacity and price
-      - Five-layer cooling system
-    cons:
-      - Actual speed depends on SSD inside
-    specs:
-      capacity: "2TB"
-      interface: "Thunderbolt 4 / USB4"
-      form_factor: "portable"
-      read_speed: "3100MB/s"
-      write_speed: "2900MB/s"
-    retail_price: 279.99
-    noise_db: 0
-    aesthetic_notes: "Silver aluminum, exact Mac mini M4 footprint"
-    last_verified: "2025-01-29"
-    notes: "Sweet spot for Mac mini storage expansion."
-
-  - id: orico-minimate-m4pro-4tb
-    name: "ORICO MiniMate M4PRO 4TB"
-    brand: ORICO
-    model: "M4PRO-4TB"
-    category: ssd
-    tags:
-      - thunderbolt
-      - usb4
-      - fast
-      - mac-mini-match
-      - m4-optimized
-      - quiet
-      - high-capacity
-    use_cases:
-      - mac-mini-expansion
-      - time-machine-target
-      - media-archive
-      - working-drive
-    pros:
-      - 40Gbps Thunderbolt 4/USB4
-      - Matches Mac mini M4 aesthetic
-      - 4TB capacity
-      - Five-layer cooling
-    cons:
-      - Expensive
-      - Single drive (no redundancy)
-    specs:
-      capacity: "4TB"
-      interface: "Thunderbolt 4 / USB4"
-      form_factor: "portable"
-      read_speed: "3100MB/s"
-      write_speed: "2900MB/s"
-    retail_price: 499.99
-    noise_db: 0
-    aesthetic_notes: "Silver aluminum, exact Mac mini M4 footprint"
-    last_verified: "2025-01-29"
-    notes: "High capacity with Thunderbolt speed."
-
-  - id: orico-minimate-m4pro-8tb
-    name: "ORICO MiniMate M4PRO 8TB"
-    brand: ORICO
-    model: "M4PRO-8TB"
-    category: ssd
-    tags:
-      - thunderbolt
-      - usb4
-      - fast
-      - mac-mini-match
-      - m4-optimized
-      - quiet
-      - high-capacity
-    use_cases:
-      - mac-mini-expansion
-      - time-machine-target
-      - media-archive
-      - cold-storage
-    pros:
-      - Maximum 8TB capacity
-      - 40Gbps Thunderbolt 4/USB4
-      - Matches Mac mini M4 aesthetic
-      - All-in-one solution
-    cons:
-      - Very expensive
-      - Single point of failure for 8TB
-    specs:
-      capacity: "8TB"
-      interface: "Thunderbolt 4 / USB4"
-      form_factor: "portable"
-      read_speed: "3100MB/s"
-      write_speed: "2900MB/s"
-    retail_price: 999.99
-    noise_db: 0
-    aesthetic_notes: "Silver aluminum, exact Mac mini M4 footprint"
-    last_verified: "2025-01-29"
-    notes: "Maximum storage in minimal footprint. Premium price."
-
-  - id: orico-minidock-vs10
-    name: "ORICO MiniDock VS10 Vertical Stand"
-    brand: ORICO
-    model: "VS10"
-    category: enclosure
-    tags:
-      - mac-mini-stand
-      - usb-c
-      - nvme
-      - hub
-      - ethernet
-      - hdmi
-      - compact
-      - vertical
-    use_cases:
-      - mac-mini-expansion
-      - desktop-hub
-      - space-saving
-      - working-drive
-    pros:
-      - Vertical design saves 45% desk space
-      - 10-in-1 port expansion
-      - M.2 NVMe/SATA SSD slot
-      - 4K HDMI output
-      - Gigabit Ethernet
-      - PD 100W passthrough
-    cons:
-      - 10Gbps max (USB, not Thunderbolt)
-      - SSD slot shares bandwidth with ports
-      - Vertical only (can't lay flat)
-    specs:
-      bays: 1
-      interface: "USB-C 3.2 Gen 2"
-      max_capacity_per_bay: "4TB"
-      form_factor: "M.2"
-      m4_mini_compatible: true
-      ports:
-        - "1x USB-C (10Gbps)"
-        - "1x USB-A (10Gbps)"
-        - "2x USB-A (5Gbps)"
-        - "1x HDMI (4K60Hz)"
-        - "1x RJ45 (1Gbps)"
-        - "1x SD/TF (simultaneous)"
-        - "1x USB-C PD (100W)"
-    retail_price: 79.99
-    noise_db: 0
-    aesthetic_notes: "Silver aluminum, vertical orientation"
-    last_verified: "2025-01-29"
-    notes: "Enclosure only. Great for desk space savings. Add your own NVMe SSD."
-
-  - id: orico-studiolink-mc35m
-    name: "ORICO Studio Link MC35M"
-    brand: ORICO
-    model: "MC35M"
-    category: enclosure
-    tags:
-      - mac-mini-stand
-      - usb-c
-      - nvme
-      - hub
-      - premium
-      - expandable
-      - 3.5-bay
-    use_cases:
-      - mac-mini-expansion
-      - high-capacity
-      - desktop-hub
-      - time-machine-target
-    pros:
-      - 3.5" drive bay for high capacity HDD/SSD
-      - M.2 NVMe/SATA slot
-      - Premium aluminum build
-      - Matches Mac mini/Studio
-      - SD/TF card readers
-      - Audio jack
-    cons:
-      - Expensive
-      - USB only (10Gbps, not Thunderbolt)
-      - Large footprint
-      - Requires external power
-    specs:
-      bays: 2
-      interface: "USB-C 3.2 Gen 2"
-      max_capacity_per_bay: "20TB"
-      form_factor: "3.5in + M.2"
-      m4_mini_compatible: true
-      ports:
-        - "1x USB-C (10Gbps)"
-        - "2x USB-A (10Gbps)"
-        - "1x SD/TF (simultaneous)"
-        - "1x 3.5mm audio"
-    retail_price: 399.99
-    noise_db: 0
-    aesthetic_notes: "Silver aluminum, premium finish"
-    last_verified: "2025-01-29"
-    notes: "Premium option with 3.5\" bay for max capacity. Enclosure only."
-
-  - id: orico-minilink-m47p
-    name: "ORICO MiniLink M47P 7-in-1 Hub"
-    brand: ORICO
-    model: "M47P"
-    category: enclosure
-    tags:
-      - mac-mini-stand
-      - usb4
-      - nvme
-      - hub
-      - fast
-      - dual-nvme
-      - compact
-    use_cases:
-      - mac-mini-expansion
-      - working-drive
-      - high-speed-backup
-    pros:
-      - 40Gbps USB4
-      - Dual M.2 NVMe slots
-      - 7-in-1 port expansion
-      - Compact design
-      - SD 4.0 card reader
-    cons:
-      - NVMe only (no SATA)
-      - Shared bandwidth
-    specs:
-      bays: 2
-      interface: "USB4 (40Gbps)"
-      max_capacity_per_bay: "4TB"
-      form_factor: "M.2"
-      m4_mini_compatible: true
-      ports:
-        - "2x M.2 NVMe slots"
-        - "2x USB-A (10Gbps)"
-        - "1x SD 4.0"
-        - "1x TF 4.0"
-    retail_price: 149.99
-    noise_db: 0
-    aesthetic_notes: "Silver aluminum"
-    last_verified: "2025-01-29"
-    notes: "Dual NVMe with USB4 speed. Add your own SSDs."
-
-  # =============================================================================
-  # LEXAR PORTABLE SSDs
-  # =============================================================================
-
-  - id: lexar-sl400-2tb
-    name: "Lexar SL400 Portable SSD 2TB"
-    brand: Lexar
-    model: "LSL400P002T-RNNNU"
-    category: ssd
-    tags:
-      - portable
-      - compact
-      - quiet
-      - usb-c
-      - travel
-      - value
-    use_cases:
-      - portable-working-drive
-      - travel-backup
-      - hot-storage-sync
-    pros:
-      - Very compact and lightweight
-      - Fast USB 3.2 Gen 2 speeds
-      - Good price/performance
-      - Aluminum housing
-    cons:
-      - Max 2TB capacity
-      - USB speeds only (no Thunderbolt)
-    specs:
-      capacity: "2TB"
-      interface: "USB-C 3.2 Gen 2"
-      form_factor: "portable"
-      read_speed: "1050MB/s"
-      write_speed: "1000MB/s"
-    retail_price: 139.99
-    noise_db: 0
-    aesthetic_notes: "Slim aluminum, gray"
-    last_verified: "2025-01-29"
-    notes: "Good value portable SSD. Popular for MacBook external storage."
-
-  - id: lexar-sl500-2tb
-    name: "Lexar SL500 Portable SSD 2TB"
-    brand: Lexar
-    model: "LSL500P002T-RNNNU"
-    category: ssd
-    tags:
-      - portable
-      - compact
-      - quiet
-      - usb-c
-      - travel
-      - fast
-    use_cases:
-      - portable-working-drive
-      - travel-backup
-      - video-editing
-    pros:
-      - USB 3.2 Gen 2x2 speeds (2000 MB/s)
-      - Compact aluminum design
-      - Up to 4TB capacity
-      - Good for video editing
-    cons:
-      - Requires 20Gbps USB port for full speed
-      - More expensive than SL400
-    specs:
-      capacity: "2TB"
-      interface: "USB-C 3.2 Gen 2x2"
-      form_factor: "portable"
-      read_speed: "2000MB/s"
-      write_speed: "1800MB/s"
-    retail_price: 169.99
-    noise_db: 0
-    aesthetic_notes: "Slim aluminum, space gray"
-    last_verified: "2025-01-29"
-    notes: "Faster than SL400 if you have 20Gbps USB port."
-
-  - id: lexar-sl500-4tb
-    name: "Lexar SL500 Portable SSD 4TB"
-    brand: Lexar
-    model: "LSL500P004T-RNNNU"
-    category: ssd
-    tags:
-      - portable
-      - compact
-      - quiet
-      - usb-c
-      - travel
-      - fast
-      - high-capacity
-    use_cases:
-      - portable-working-drive
-      - travel-backup
-      - video-editing
-      - media-archive
-    pros:
-      - 4TB portable capacity
-      - USB 3.2 Gen 2x2 speeds
-      - Compact form factor
-      - Good for large project files
-    cons:
-      - Expensive for capacity
-      - Needs 20Gbps port for full speed
-    specs:
-      capacity: "4TB"
-      interface: "USB-C 3.2 Gen 2x2"
-      form_factor: "portable"
-      read_speed: "2000MB/s"
-      write_speed: "1800MB/s"
-    retail_price: 299.99
-    noise_db: 0
-    aesthetic_notes: "Slim aluminum, space gray"
-    last_verified: "2025-01-29"
-    notes: "High capacity portable option."
-
-  - id: orico-minitower-m435
-    name: "ORICO MiniTower M435 Hybrid Storage"
-    brand: ORICO
-    model: "M435"
-    category: enclosure
-    tags:
-      - mac-mini-stand
-      - hybrid
-      - nvme
-      - sata
-      - hdd
-      - raid
-      - usb-hub
-    use_cases:
-      - mac-mini-expansion
-      - nas-replacement
-      - hybrid-storage
-      - hdd-reuse
-    pros:
-      - Combines NVMe + 2x SATA in one unit
-      - RAID support (RAID0/1/JBOD) for SATA bays
-      - Reuse existing HDDs
-      - USB hub + SD card reader included
-      - Compact tower design
-    cons:
-      - 10Gbps max (USB, not Thunderbolt)
-      - HDDs will be audible when active
-      - Requires multiple drive types
-    specs:
-      bays: 3
-      interface: "USB-C 3.2 Gen 2 (10Gbps)"
-      nvme_slots: 1
-      sata_bays: 2
-      max_capacity_per_bay: "20TB (SATA), 4TB (NVMe)"
-      form_factor: "Tower"
-      m4_mini_compatible: true
-      raid_support:
-        - JBOD
-        - RAID0
-        - RAID1
-      ports:
-        - "1x USB-A 3.2 (10Gbps)"
-        - "3x USB-A 2.0 (480Mbps)"
-        - "2x SD/TF card readers"
-    retail_price: 109.99
-    retail_url: "https://oricotechs.com/collections/mac-mini/products/minitower-hybrid-storage-system"
-    noise_db: 0
-    aesthetic_notes: "Silver aluminum, tower design"
-    last_verified: "2026-01-30"
-    notes: "Hybrid NVMe+HDD solution. Great for reusing existing HDDs while adding fast NVMe cache."
-
-  # =============================================================================
-  # 4-BAY RAID ENCLOSURES - For mixed SSD/HDD setups
-  # =============================================================================
-
-  - id: mediasonic-hfr7-su31ch
-    name: "Mediasonic ProRaid 4-Bay USB 3.2"
-    brand: Mediasonic
-    model: "HFR7-SU31CH"
-    category: enclosure
-    tags:
-      - 4-bay
-      - raid
-      - usb-c
-      - 3.5-inch
-      - 2.5-inch
-    use_cases:
-      - nas-replacement
-      - hdd-reuse
-      - hybrid-storage
-      - backup-array
-    pros:
-      - USB 3.2 Gen 2 (10Gbps)
-      - Hardware RAID controller
-      - Daisy chain support
-      - Supports 2.5" with bracket
-    cons:
-      - Fan noise when active
-      - External power required
-      - 3.5" form factor (bulky)
-    specs:
-      bays: 4
-      interface: "USB-C 3.2 Gen 2 (10Gbps)"
-      max_capacity_per_bay: "30TB"
-      form_factor: "3.5in (2.5in with bracket)"
-      raid_support:
-        - Single
-        - RAID0
-        - RAID1
-      daisy_chain: true
-    retail_price: 149.99
-    retail_url: "https://mediasonicstore.com/products/mediasonic-raid-4-bay-3-5-sata-hard-drive-enclosure-usb-3-1-gen-2-10gbps-usb-3-1-hub-usb-type-c-hfr7-su31ch"
-    noise_db: 30
-    last_verified: "2026-01-30"
-    notes: "Solid 4-bay option. Can mix SSDs and HDDs. Fan runs when powered."
-
-  - id: maiwo-k35274d-4bay
-    name: "MAIWO 4-Bay RAID Enclosure"
-    brand: MAIWO
-    model: "K35274D"
-    category: enclosure
-    tags:
-      - 4-bay
-      - raid
-      - usb-c
-      - 3.5-inch
-      - 2.5-inch
-      - budget
-    use_cases:
-      - nas-replacement
-      - hdd-reuse
-      - hybrid-storage
-      - backup-array
-    pros:
-      - 8 RAID modes
-      - Supports 2.5" and 3.5" drives
-      - Dual cooling fans
-      - Budget-friendly
-    cons:
-      - USB 3.1 Gen 1 (5Gbps) only
-      - Fan noise
-      - External power required
-    specs:
-      bays: 4
-      interface: "USB-C 3.1 Gen 1 (5Gbps)"
-      max_capacity_per_bay: "24TB"
-      form_factor: "3.5in / 2.5in"
-      raid_support:
-        - Normal
-        - RAID0
-        - RAID1
-        - RAID3
-        - RAID5
-        - RAID10
-        - Clone
-        - JBOD
-    retail_price: 129.99
-    noise_db: 35
-    last_verified: "2026-01-30"
-    notes: "Budget 4-bay option. Good for backup arrays where speed isn't critical."
-
-  - id: owc-mercury-elite-pro-quad
-    name: "OWC Mercury Elite Pro Quad"
-    brand: OWC
-    model: "MEQCTJB000"
-    category: enclosure
-    tags:
-      - 4-bay
-      - usb-c
-      - 3.5-inch
-      - 2.5-inch
-      - raid
-      - owc
-      - quality
-    use_cases:
-      - nas-replacement
-      - hdd-reuse
-      - hybrid-storage
-      - backup-array
-      - video-editing
-    pros:
-      - Mix 2.5" SSDs and 3.5" HDDs freely
-      - OWC build quality
-      - USB-C 10Gbps (plenty for SATA/HDD)
-      - SoftRAID available ($150 more)
-      - Quiet operation
-    cons:
-      - USB not Thunderbolt
-      - Fan noise under load
-      - External power brick
-    specs:
-      bays: 4
-      interface: "USB-C 3.2 Gen 2 (10Gbps)"
-      max_capacity_per_bay: "24TB"
-      form_factor: "3.5in / 2.5in universal"
-      raid_support:
-        - JBOD
-        - RAID0
-        - RAID1
-        - RAID4
-        - RAID5
-        - RAID10
-    retail_price: 219.99
-    retail_url: "https://eshop.macsales.com/shop/owc-mercury-elite-pro-quad/raid-5"
-    noise_db: 25
-    last_verified: "2026-01-30"
-    notes: "Best value OWC 4-bay. $220 without SoftRAID, $370 with. Mix SSDs and HDDs."
-
-  - id: sabrent-usbc-sata-enclosure
-    name: "Sabrent USB-C 2.5\" SATA Enclosure"
-    brand: Sabrent
-    model: "EC-UASP"
-    category: enclosure
-    tags:
-      - single-bay
-      - usb-c
-      - 2.5-inch
-      - budget
-      - passive
-      - compact
-    use_cases:
-      - portable-backup
-      - simple-enclosure
-      - ssd-housing
-    pros:
-      - Cheap and simple
-      - Tool-free installation
-      - Passive cooling (silent)
-      - Compact
-    cons:
-      - Single drive only
-      - No RAID
-      - Basic plastic construction
-    specs:
-      bays: 1
-      interface: "USB-C 3.2 (5Gbps)"
-      max_capacity_per_bay: "8TB"
-      form_factor: "2.5in"
-    retail_price: 19.99
-    noise_db: 0
-    last_verified: "2026-01-30"
-    notes: "Dead simple. Perfect for single SSD backup drive."
+- id: samsung-870-qvo-8tb
+  name: Samsung 870 QVO 8TB
+  brand: Samsung
+  model: MZ-77Q8T0B/AM
+  category: ssd
+  tags:
+  - high-capacity
+  - budget-per-tb
+  - quiet
+  - sata
+  - qlc
+  use_cases:
+  - time-machine-target
+  - media-archive
+  - cold-storage
+  - nas-replacement
+  pros:
+  - Highest capacity consumer SATA SSD
+  - Silent operation
+  - Good read performance
+  - Samsung reliability
+  cons:
+  - QLC has lower write endurance
+  - Slower sustained writes
+  - Premium price for 8TB
+  specs:
+    capacity: 8TB
+    interface: SATA
+    form_factor: 2.5in
+    read_speed: 560MB/s
+    write_speed: 530MB/s
+    tbw: 2880TB
+    warranty_years: 3
+    nand_type: QLC
+  retail_url: https://www.amazon.com/dp/B089C5P5SX
+  noise_db: 0
+  last_verified: '2026-01-30'
+  notes: 'Jan 2026: Retail ~$800, eBay used $719-850 (check health %). NAND shortage pushed prices up from $680.'
+- id: samsung-870-qvo-4tb
+  name: Samsung 870 QVO 4TB
+  brand: Samsung
+  model: MZ-77Q4T0B/AM
+  category: ssd
+  tags:
+  - high-capacity
+  - quiet
+  - sata
+  - qlc
+  use_cases:
+  - time-machine-target
+  - media-archive
+  - portable-backup
+  pros:
+  - Silent
+  - Reliable
+  cons:
+  - QLC write endurance
+  - Slower sustained writes
+  - Prices elevated Jan 2026
+  specs:
+    capacity: 4TB
+    interface: SATA
+    form_factor: 2.5in
+    read_speed: 560MB/s
+    write_speed: 530MB/s
+    tbw: 1440TB
+    warranty_years: 3
+    nand_type: QLC
+  noise_db: 0
+  last_verified: '2026-01-30'
+  notes: Jan 2026 ~$368 (was ~$200 in mid-2023). NAND shortage impact.
+- id: samsung-870-evo-4tb
+  name: Samsung 870 EVO 4TB
+  brand: Samsung
+  model: MZ-77E4T0B/AM
+  category: ssd
+  tags:
+  - high-capacity
+  - reliable
+  - quiet
+  - sata
+  - tlc
+  - endurance
+  use_cases:
+  - time-machine-target
+  - working-drive
+  - mixed-workload
+  pros:
+  - TLC more durable than QLC
+  - Better sustained writes
+  - 5-year warranty
+  - Higher TBW rating
+  cons:
+  - Prices elevated Jan 2026
+  - SATA speeds
+  specs:
+    capacity: 4TB
+    interface: SATA
+    form_factor: 2.5in
+    read_speed: 560MB/s
+    write_speed: 530MB/s
+    tbw: 2400TB
+    warranty_years: 5
+    nand_type: TLC
+  noise_db: 0
+  last_verified: '2026-01-30'
+  notes: 'Jan 2026: Retail ~$689, eBay used $289-358. TLC = better endurance than QVO.'
+- id: crucial-mx500-4tb
+  name: Crucial MX500 4TB
+  brand: Crucial
+  model: CT4000MX500SSD1
+  category: ssd
+  tags:
+  - high-capacity
+  - quiet
+  - sata
+  - tlc
+  use_cases:
+  - time-machine-target
+  - media-archive
+  - budget-backup
+  pros:
+  - Good reliability
+  - Power-loss protection
+  cons:
+  - Lower TBW than Samsung
+  - Slightly slower
+  specs:
+    capacity: 4TB
+    interface: SATA
+    form_factor: 2.5in
+    read_speed: 560MB/s
+    write_speed: 510MB/s
+    tbw: 1000TB
+    warranty_years: 5
+    nand_type: TLC
+  noise_db: 0
+  last_verified: '2026-01-30'
+  notes: Jan 2026 ~$280 (was ~$165 in mid-2023). Best budget 4TB SATA option.
+- id: crucial-t700-4tb
+  name: Crucial T700 4TB
+  brand: Crucial
+  model: CT4000T700SSD3
+  category: ssd
+  tags:
+  - high-capacity
+  - nvme
+  - pcie5
+  - fast
+  - premium
+  use_cases:
+  - working-drive
+  - video-editing
+  - high-performance
+  pros:
+  - Fastest consumer SSD
+  - PCIe 5.0 speeds
+  - Good endurance
+  cons:
+  - Expensive
+  - Overkill for backup
+  - Runs hot
+  specs:
+    capacity: 4TB
+    interface: NVMe PCIe 5.0
+    form_factor: M.2 2280
+    read_speed: 12400MB/s
+    write_speed: 11800MB/s
+    tbw: 2400TB
+    warranty_years: 5
+    nand_type: TLC
+  noise_db: 0
+  last_verified: '2025-01-15'
+  notes: Overkill for backup. Only if you need maximum speed.
+- id: samsung-pm893-3840gb
+  name: Samsung PM893 3.84TB
+  brand: Samsung
+  model: MZ-7L33T80
+  category: ssd
+  tags:
+  - enterprise
+  - sata
+  - high-endurance
+  - datacenter
+  - quiet
+  - high-capacity
+  use_cases:
+  - time-machine-target
+  - nas-replacement
+  - cold-storage
+  - mixed-workload
+  pros:
+  - Enterprise-grade reliability
+  - 1 DWPD (Drive Writes Per Day) endurance
+  - 5-year warranty
+  - Consistent performance
+  - Often cheap used from datacenter pulls
+  cons:
+  - SATA speeds only
+  - OEM product (no retail box)
+  - Used units need health check
+  specs:
+    capacity: 3.84TB
+    interface: SATA
+    form_factor: 2.5in
+    read_speed: 550MB/s
+    write_speed: 520MB/s
+    tbw: 7008TB
+    warranty_years: 5
+    nand_type: TLC
+    dwpd: 1.0
+  noise_db: 0
+  last_verified: '2025-01-29'
+  notes: Datacenter standard. Used units often 50-70% off retail. Check SMART data.
+- id: samsung-pm893-7680gb
+  name: Samsung PM893 7.68TB
+  brand: Samsung
+  model: MZ-7L37T60
+  category: ssd
+  tags:
+  - enterprise
+  - sata
+  - high-endurance
+  - datacenter
+  - quiet
+  - high-capacity
+  use_cases:
+  - time-machine-target
+  - nas-replacement
+  - cold-storage
+  - media-archive
+  pros:
+  - Massive 7.68TB capacity
+  - Enterprise reliability
+  - 1 DWPD endurance
+  - Excellent used market value
+  cons:
+  - SATA speed limit
+  - OEM product
+  - Hard to find retail
+  specs:
+    capacity: 7.68TB
+    interface: SATA
+    form_factor: 2.5in
+    read_speed: 550MB/s
+    write_speed: 520MB/s
+    tbw: 14016TB
+    warranty_years: 5
+    nand_type: TLC
+    dwpd: 1.0
+  noise_db: 0
+  last_verified: '2025-01-29'
+  notes: Best $/TB for enterprise SATA. Used market is sweet spot.
+- id: micron-5400-pro-3840gb
+  name: Micron 5400 PRO 3.84TB
+  brand: Micron
+  model: MTFDDAK3T8TGA
+  category: ssd
+  tags:
+  - enterprise
+  - sata
+  - high-endurance
+  - datacenter
+  - quiet
+  - high-capacity
+  - reliable
+  use_cases:
+  - time-machine-target
+  - nas-replacement
+  - mixed-workload
+  pros:
+  - 50% better reliability than competitors (per Micron)
+  - 5-year warranty
+  - Trusted by major OEMs
+  - Good used market availability
+  cons:
+  - SATA speeds
+  - OEM product
+  specs:
+    capacity: 3.84TB
+    interface: SATA
+    form_factor: 2.5in
+    read_speed: 540MB/s
+    write_speed: 520MB/s
+    tbw: 7008TB
+    warranty_years: 5
+    nand_type: TLC
+    dwpd: 1.0
+  noise_db: 0
+  last_verified: '2025-01-29'
+  notes: Excellent alternative to Samsung PM893. Good used prices.
+- id: micron-5400-pro-7680gb
+  name: Micron 5400 PRO 7.68TB
+  brand: Micron
+  model: MTFDDAK7T6TGA
+  category: ssd
+  tags:
+  - enterprise
+  - sata
+  - high-endurance
+  - datacenter
+  - quiet
+  - high-capacity
+  - reliable
+  use_cases:
+  - nas-replacement
+  - media-archive
+  - cold-storage
+  - high-capacity
+  pros:
+  - Maximum SATA capacity
+  - Enterprise reliability
+  - Strong used market
+  cons:
+  - SATA speed ceiling
+  - Expensive new
+  specs:
+    capacity: 7.68TB
+    interface: SATA
+    form_factor: 2.5in
+    read_speed: 540MB/s
+    write_speed: 520MB/s
+    tbw: 14016TB
+    warranty_years: 5
+    nand_type: TLC
+    dwpd: 1.0
+  noise_db: 0
+  last_verified: '2025-01-29'
+  notes: Enterprise workhorse. Used market best value for 8TB class.
+- id: teamgroup-mp44-2tb
+  name: TeamGroup MP44 2TB
+  brand: TeamGroup
+  model: TM8FPW002T0C101
+  category: ssd
+  tags:
+  - nvme
+  - pcie4
+  - budget
+  - value
+  - quiet
+  use_cases:
+  - working-drive
+  - portable-working-drive
+  - budget-backup
+  pros:
+  - Excellent price/performance
+  - Reliable controller
+  - Good for gaming
+  cons:
+  - Not fastest PCIe 4.0
+  - No 8TB option
+  specs:
+    capacity: 2TB
+    interface: NVMe PCIe 4.0
+    form_factor: M.2 2280
+    read_speed: 7400MB/s
+    write_speed: 7000MB/s
+    tbw: 1400TB
+    warranty_years: 5
+    nand_type: TLC
+  noise_db: 0
+  last_verified: '2025-01-29'
+  notes: Best budget 2TB NVMe. Great value.
+- id: teamgroup-mp44-4tb
+  name: TeamGroup MP44 4TB
+  brand: TeamGroup
+  model: TM8FPW004T0C101
+  category: ssd
+  tags:
+  - nvme
+  - pcie4
+  - high-capacity
+  - quiet
+  use_cases:
+  - working-drive
+  - time-machine-target
+  - media-archive
+  pros:
+  - Reliable TLC NAND
+  - Good endurance (3000 TBW)
+  cons:
+  - Not fastest sequential
+  - Prices elevated Jan 2026
+  specs:
+    capacity: 4TB
+    interface: NVMe PCIe 4.0
+    form_factor: M.2 2280
+    read_speed: 7400MB/s
+    write_speed: 7000MB/s
+    tbw: 3000TB
+    warranty_years: 5
+    nand_type: TLC
+  noise_db: 0
+  last_verified: '2026-01-30'
+  notes: Jan 2026 ~$421 (was ~$240 in early 2025). NAND shortage impact.
+- id: teamgroup-mp44q-2tb
+  name: TeamGroup MP44Q 2TB (QLC)
+  brand: TeamGroup
+  model: TM8FQQ002T0C101
+  category: ssd
+  tags:
+  - nvme
+  - pcie4
+  - budget
+  - qlc
+  - quiet
+  - single-sided
+  use_cases:
+  - budget-backup
+  - cold-storage
+  - laptop-upgrade
+  pros:
+  - Cheapest 2TB NVMe
+  - Single-sided (good for laptops)
+  - Good power efficiency
+  cons:
+  - QLC endurance limits
+  - Slower sustained writes
+  specs:
+    capacity: 2TB
+    interface: NVMe PCIe 4.0
+    form_factor: M.2 2280
+    read_speed: 5000MB/s
+    write_speed: 4400MB/s
+    tbw: 480TB
+    warranty_years: 3
+    nand_type: QLC
+  noise_db: 0
+  last_verified: '2025-01-29'
+  notes: Budget king. QLC fine for read-heavy/backup use.
+- id: teamgroup-mp44q-4tb
+  name: TeamGroup MP44Q 4TB (QLC)
+  brand: TeamGroup
+  model: TM8FQQ004T0C101
+  category: ssd
+  tags:
+  - nvme
+  - pcie4
+  - budget
+  - qlc
+  - high-capacity
+  - quiet
+  - single-sided
+  use_cases:
+  - cold-storage
+  - media-archive
+  - budget-backup
+  pros:
+  - Single-sided at 4TB
+  - Decent performance
+  cons:
+  - QLC write endurance
+  - Lower TBW rating
+  - Prices elevated Jan 2026
+  specs:
+    capacity: 4TB
+    interface: NVMe PCIe 4.0
+    form_factor: M.2 2280
+    read_speed: 5000MB/s
+    write_speed: 4400MB/s
+    tbw: 720TB
+    warranty_years: 3
+    nand_type: QLC
+  noise_db: 0
+  last_verified: '2026-01-30'
+  notes: Best for cold storage. QLC trade-off for price.
+- id: samsung-990-pro-2tb
+  name: Samsung 990 Pro 2TB
+  brand: Samsung
+  model: MZ-V9P2T0B/AM
+  category: ssd
+  tags:
+  - nvme
+  - pcie4
+  - premium
+  - fast
+  - reliable
+  - quiet
+  use_cases:
+  - working-drive
+  - video-editing
+  - high-performance
+  pros:
+  - Top-tier PCIe 4.0 performance
+  - Samsung reliability
+  - 5-year warranty
+  - Excellent sustained performance
+  cons:
+  - Premium price
+  - No 8TB option
+  specs:
+    capacity: 2TB
+    interface: NVMe PCIe 4.0
+    form_factor: M.2 2280
+    read_speed: 7450MB/s
+    write_speed: 6900MB/s
+    tbw: 1200TB
+    warranty_years: 5
+    nand_type: TLC
+  noise_db: 0
+  last_verified: '2025-01-29'
+  notes: Premium choice for 2TB. Best-in-class reliability.
+- id: samsung-990-pro-4tb
+  name: Samsung 990 Pro 4TB
+  brand: Samsung
+  model: MZ-V9P4T0B/AM
+  category: ssd
+  tags:
+  - nvme
+  - pcie4
+  - premium
+  - fast
+  - reliable
+  - high-capacity
+  - quiet
+  - single-sided
+  use_cases:
+  - working-drive
+  - video-editing
+  - high-performance
+  pros:
+  - Single-sided even at 4TB
+  - Top-tier performance
+  - Samsung reliability
+  - Best 4TB consumer NVMe
+  cons:
+  - Premium price (elevated Jan 2026)
+  - Max 4TB capacity
+  specs:
+    capacity: 4TB
+    interface: NVMe PCIe 4.0
+    form_factor: M.2 2280
+    read_speed: 7450MB/s
+    write_speed: 6900MB/s
+    tbw: 2400TB
+    warranty_years: 5
+    nand_type: TLC
+  noise_db: 0
+  last_verified: '2026-01-30'
+  notes: Jan 2026 ~$550 (was ~$340 in early 2025). Sometimes drops to $330 on sale.
+- id: wd-black-sn850x-4tb
+  name: WD Black SN850X 4TB
+  brand: Western Digital
+  model: WDS400T2X0E
+  category: ssd
+  tags:
+  - nvme
+  - pcie4
+  - premium
+  - fast
+  - gaming
+  - high-capacity
+  - quiet
+  use_cases:
+  - working-drive
+  - video-editing
+  - gaming
+  pros:
+  - Matches 990 Pro performance
+  - Available with heatsink
+  - 8TB option available
+  cons:
+  - Double-sided (thicker)
+  - Prices elevated Jan 2026 due to NAND shortage
+  specs:
+    capacity: 4TB
+    interface: NVMe PCIe 4.0
+    form_factor: M.2 2280
+    read_speed: 7300MB/s
+    write_speed: 6600MB/s
+    tbw: 2400TB
+    warranty_years: 5
+    nand_type: TLC
+  noise_db: 0
+  last_verified: '2026-01-30'
+  notes: Jan 2026 prices severely elevated due to NAND shortage. Was ~$250 in early 2025.
+- id: wd-black-sn850x-8tb
+  name: WD Black SN850X 8TB
+  brand: Western Digital
+  model: WDS800T2X0E
+  category: ssd
+  tags:
+  - nvme
+  - pcie4
+  - premium
+  - fast
+  - high-capacity
+  - quiet
+  use_cases:
+  - video-editing
+  - media-archive
+  - high-capacity
+  - working-drive
+  pros:
+  - Maximum consumer NVMe capacity
+  - Excellent performance
+  - Single drive simplicity
+  cons:
+  - Very expensive (Jan 2026)
+  - Double-sided
+  - Price volatility (NAND shortage)
+  specs:
+    capacity: 8TB
+    interface: NVMe PCIe 4.0
+    form_factor: M.2 2280
+    read_speed: 7300MB/s
+    write_speed: 6600MB/s
+    tbw: 4800TB
+    warranty_years: 5
+    nand_type: TLC
+  noise_db: 0
+  last_verified: '2026-01-30'
+  notes: Jan 2026 ~$1120 (was ~$550 in 2024). NAND shortage until Q4 2027.
+- id: crucial-t500-2tb
+  name: Crucial T500 2TB
+  brand: Crucial
+  model: CT2000T500SSD8
+  category: ssd
+  tags:
+  - nvme
+  - pcie4
+  - fast
+  - reliable
+  - quiet
+  - value
+  use_cases:
+  - working-drive
+  - gaming
+  - mixed-workload
+  pros:
+  - Strong performance
+  - Good price
+  - Phison E25 controller
+  cons:
+  - Not quite top-tier speed
+  - Max 4TB
+  specs:
+    capacity: 2TB
+    interface: NVMe PCIe 4.0
+    form_factor: M.2 2280
+    read_speed: 7400MB/s
+    write_speed: 7000MB/s
+    tbw: 1200TB
+    warranty_years: 5
+    nand_type: TLC
+  noise_db: 0
+  last_verified: '2025-01-29'
+  notes: Solid mid-range choice. Between budget and premium.
+- id: crucial-t500-4tb
+  name: Crucial T500 4TB
+  brand: Crucial
+  model: CT4000T500SSD8
+  category: ssd
+  tags:
+  - nvme
+  - pcie4
+  - fast
+  - reliable
+  - high-capacity
+  - quiet
+  use_cases:
+  - working-drive
+  - media-archive
+  - mixed-workload
+  pros:
+  - Good 4TB performance
+  - Solid endurance
+  cons:
+  - Double-sided
+  - Prices elevated Jan 2026
+  specs:
+    capacity: 4TB
+    interface: NVMe PCIe 4.0
+    form_factor: M.2 2280
+    read_speed: 7400MB/s
+    write_speed: 7000MB/s
+    tbw: 2400TB
+    warranty_years: 5
+    nand_type: TLC
+  noise_db: 0
+  last_verified: '2026-01-30'
+  notes: Jan 2026 ~$679 with heatsink (was ~$280 in early 2025). NAND shortage impact.
+- id: wd-black-sn850x-2tb
+  name: WD Black SN850X 2TB
+  brand: Western Digital
+  model: WDS200T2X0E
+  category: ssd
+  tags:
+  - nvme
+  - pcie4
+  - premium
+  - fast
+  - gaming
+  - quiet
+  use_cases:
+  - working-drive
+  - gaming
+  - video-editing
+  pros:
+  - Excellent performance
+  - Good value at 2TB
+  - 5-year warranty
+  cons:
+  - Double-sided
+  specs:
+    capacity: 2TB
+    interface: NVMe PCIe 4.0
+    form_factor: M.2 2280
+    read_speed: 7300MB/s
+    write_speed: 6600MB/s
+    tbw: 1200TB
+    warranty_years: 5
+    nand_type: TLC
+  noise_db: 0
+  last_verified: '2025-01-29'
+  notes: Great 2TB premium option.
+- id: samsung-990-evo-plus-4tb
+  name: Samsung 990 EVO Plus 4TB
+  brand: Samsung
+  model: MZ-V9S4T0B/AM
+  category: ssd
+  tags:
+  - nvme
+  - pcie4
+  - pcie5
+  - premium
+  - fast
+  - single-sided
+  - quiet
+  use_cases:
+  - working-drive
+  - video-editing
+  - high-performance
+  pros:
+  - PCIe 4.0 x4 and PCIe 5.0 x2 compatible
+  - Single-sided at 4TB
+  - Samsung reliability
+  - Better power efficiency
+  cons:
+  - Premium price
+  - Slightly slower than 990 Pro
+  specs:
+    capacity: 4TB
+    interface: NVMe PCIe 4.0/5.0
+    form_factor: M.2 2280
+    read_speed: 7250MB/s
+    write_speed: 6300MB/s
+    tbw: 2400TB
+    warranty_years: 5
+    nand_type: TLC
+  noise_db: 0
+  last_verified: '2025-01-29'
+  notes: PCIe 5.0 ready. Single-sided advantage over competitors.
+- id: samsung-9100-pro-8tb
+  name: Samsung 9100 Pro 8TB
+  brand: Samsung
+  model: MZ-VAP8T0B/AM
+  category: ssd
+  tags:
+  - nvme
+  - pcie5
+  - premium
+  - fast
+  - high-capacity
+  - quiet
+  use_cases:
+  - video-editing
+  - high-performance
+  - ai-workloads
+  - working-drive
+  pros:
+  - Fastest consumer SSD (14,800 MB/s read)
+  - PCIe 5.0 performance
+  - 8TB capacity
+  - 8GB DRAM cache
+  cons:
+  - Very expensive
+  - Double-sided
+  - High power consumption (10.5W)
+  specs:
+    capacity: 8TB
+    interface: NVMe PCIe 5.0
+    form_factor: M.2 2280
+    read_speed: 14800MB/s
+    write_speed: 13400MB/s
+    tbw: 4800TB
+    warranty_years: 5
+    nand_type: TLC
+  noise_db: 0
+  last_verified: '2025-01-29'
+  notes: Buy once cry once flagship. First Samsung 8TB consumer NVMe.
+- id: lexar-nm790-4tb
+  name: Lexar NM790 4TB
+  brand: Lexar
+  model: LNM790X004T-RNNNU
+  category: ssd
+  tags:
+  - nvme
+  - pcie4
+  - single-sided
+  - quiet
+  use_cases:
+  - working-drive
+  - gaming
+  - budget-backup
+  pros:
+  - Single-sided at 4TB
+  - Good endurance (4000 TBW)
+  - PS5 compatible
+  cons:
+  - DRAM-less (uses HMB)
+  - Can run hot
+  specs:
+    capacity: 4TB
+    interface: NVMe PCIe 4.0
+    form_factor: M.2 2280
+    read_speed: 7400MB/s
+    write_speed: 6500MB/s
+    tbw: 4000TB
+    warranty_years: 5
+    nand_type: TLC
+  noise_db: 0
+  last_verified: '2026-01-30'
+  notes: Jan 2026 $420 (Micro Center) - $551 (Newegg). NAND shortage impact.
+- id: lexar-nm790-8tb
+  name: Lexar NM790 8TB
+  brand: Lexar
+  model: LNM790X008T-RNNNU
+  category: ssd
+  tags:
+  - nvme
+  - pcie4
+  - high-capacity
+  - quiet
+  use_cases:
+  - media-archive
+  - cold-storage
+  - high-capacity
+  pros:
+  - Most affordable 8TB NVMe
+  - Good performance
+  - 5-year warranty
+  cons:
+  - DRAM-less
+  - Slightly slower than 4TB model
+  - Double-sided
+  specs:
+    capacity: 8TB
+    interface: NVMe PCIe 4.0
+    form_factor: M.2 2280
+    read_speed: 7000MB/s
+    write_speed: 6200MB/s
+    tbw: 8000TB
+    warranty_years: 5
+    nand_type: TLC
+  noise_db: 0
+  last_verified: '2026-01-30'
+  notes: Jan 2026 ~$644. Most affordable 8TB NVMe option.
+- id: silicon-power-ud90-4tb
+  name: Silicon Power UD90 4TB
+  brand: Silicon Power
+  model: SP04KGBP44UD9005
+  category: ssd
+  tags:
+  - nvme
+  - pcie4
+  - budget
+  - value
+  - single-sided
+  - qlc
+  - quiet
+  use_cases:
+  - budget-backup
+  - cold-storage
+  - working-drive
+  pros:
+  - One of the cheapest 4TB NVMe
+  - Single-sided
+  - Good endurance for QLC (2400 TBW)
+  - 5-year warranty
+  cons:
+  - QLC NAND
+  - DRAM-less
+  - Lower sustained writes
+  specs:
+    capacity: 4TB
+    interface: NVMe PCIe 4.0
+    form_factor: M.2 2280
+    read_speed: 5000MB/s
+    write_speed: 4500MB/s
+    tbw: 2400TB
+    warranty_years: 5
+    nand_type: QLC
+  noise_db: 0
+  last_verified: '2025-01-29'
+  notes: Budget king. QLC but excellent value.
+- id: micron-5210-ion-7680gb
+  name: Micron 5210 ION 7.68TB
+  brand: Micron
+  model: MTFDDAK7T6QDE
+  category: ssd
+  tags:
+  - enterprise
+  - sata
+  - qlc
+  - datacenter
+  - quiet
+  - high-capacity
+  - budget
+  use_cases:
+  - cold-storage
+  - media-archive
+  - nas-replacement
+  - read-heavy
+  pros:
+  - First QLC enterprise SSD
+  - Very cheap per TB used
+  - Good for read-heavy workloads
+  - 175x faster random reads than HDD
+  cons:
+  - Low write performance (360 MB/s)
+  - QLC endurance limits
+  - Read-optimized only
+  specs:
+    capacity: 7.68TB
+    interface: SATA
+    form_factor: 2.5in
+    read_speed: 540MB/s
+    write_speed: 360MB/s
+    tbw: 2628TB
+    warranty_years: 5
+    nand_type: QLC
+    dwpd: 0.2
+  noise_db: 0
+  last_verified: '2025-01-29'
+  notes: Read-optimized QLC. Excellent used prices. Check TBW on used units.
+- id: intel-d3-s4510-7680gb
+  name: Intel D3-S4510 7.68TB
+  brand: Intel
+  model: SSDSC2KB076T801
+  category: ssd
+  tags:
+  - enterprise
+  - sata
+  - tlc
+  - datacenter
+  - quiet
+  - high-capacity
+  - reliable
+  use_cases:
+  - time-machine-target
+  - nas-replacement
+  - cold-storage
+  - read-heavy
+  pros:
+  - Intel enterprise reliability
+  - TLC NAND (better than QLC)
+  - Read-intensive optimized
+  - Good used market availability
+  cons:
+  - EOL/Solidigm transition
+  - Lower write endurance than 5400 series
+  specs:
+    capacity: 7.68TB
+    interface: SATA
+    form_factor: 2.5in
+    read_speed: 550MB/s
+    write_speed: 510MB/s
+    tbw: 5110TB
+    warranty_years: 5
+    nand_type: TLC
+    dwpd: 0.36
+  noise_db: 0
+  last_verified: '2025-01-29'
+  notes: Intel classic. Now Solidigm. Good used market.
+- id: micron-5300-max-3840gb
+  name: Micron 5300 MAX 3.84TB
+  brand: Micron
+  model: MTFDDAK3T8TDT
+  category: ssd
+  tags:
+  - enterprise
+  - sata
+  - tlc
+  - datacenter
+  - quiet
+  - high-endurance
+  use_cases:
+  - mixed-workload
+  - working-drive
+  - time-machine-target
+  pros:
+  - 5 DWPD - highest SATA endurance
+  - 24,528 TBW rating
+  - 3 million hour MTTF
+  - Write-heavy workload capable
+  cons:
+  - Expensive
+  - Overkill for backup use
+  specs:
+    capacity: 3.84TB
+    interface: SATA
+    form_factor: 2.5in
+    read_speed: 540MB/s
+    write_speed: 520MB/s
+    tbw: 24528TB
+    warranty_years: 5
+    nand_type: TLC
+    dwpd: 5.0
+  noise_db: 0
+  last_verified: '2025-01-29'
+  notes: Write-intensive enterprise. Overkill for backup but bulletproof.
+- id: satechi-tb5-cubedock
+  name: Satechi Thunderbolt 5 CubeDock with SSD Enclosure
+  brand: Satechi
+  model: ST-T5DCE
+  category: enclosure
+  tags:
+  - thunderbolt5
+  - dock
+  - nvme
+  - premium
+  - hub
+  - mac-mini-match
+  - quiet
+  use_cases:
+  - desktop-hub
+  - mac-mini-expansion
+  - working-drive
+  - single-cable-setup
+  pros:
+  - Thunderbolt 5 (80Gbps, 120Gbps boost)
+  - M.2 NVMe up to 8TB at 6000 MB/s
+  - 140W power delivery
+  - 3x downstream TB5 ports
+  - 2.5Gb Ethernet
+  - Mac mini form factor match
+  cons:
+  - Expensive
+  - Requires external power (180W)
+  - Whisper-quiet fan (not silent)
+  specs:
+    bays: 1
+    interface: Thunderbolt 5
+    max_capacity_per_bay: 8TB
+    form_factor: M.2 2280
+    m4_mini_compatible: true
+    power_delivery_watts: 140
+    ports:
+    - 3x Thunderbolt 5 (downstream)
+    - 1x Thunderbolt 5 (upstream)
+    - 1x USB-C (10Gbps, 30W)
+    - 2x USB-A (10Gbps)
+    - 1x 2.5GbE Ethernet
+    - 1x SD/microSD
+    - 1x 3.5mm audio
+  noise_db: 20
+  aesthetic_notes: 5x5x2 inch aluminum cube, Mac mini matching
+  last_verified: '2025-01-29'
+  notes: Premium TB5 dock with fast NVMe. SSD not included. Ships Q1 2026.
+- id: owc-studiostack
+  name: OWC StudioStack
+  brand: OWC
+  model: OWCTB5SSH000
+  category: enclosure
+  tags:
+  - thunderbolt5
+  - mac-studio-stand
+  - hub
+  - nvme
+  - hdd
+  - premium
+  - expandable
+  use_cases:
+  - mac-mini-expansion
+  - mac-studio-expansion
+  - time-machine-target
+  - high-capacity
+  - desktop-hub
+  pros:
+  - Thunderbolt 5 (80Gbps)
+  - Up to 32TB (8TB NVMe + 24TB HDD)
+  - 6302 MB/s with fast NVMe
+  - 3x TB5 downstream + 3x USB-A
+  - Stacks under Mac Studio/mini
+  - Smart fan (quiet)
+  cons:
+  - Expensive
+  - Mac Studio form factor (larger than mini)
+  - Has fan
+  specs:
+    bays: 2
+    interface: Thunderbolt 5
+    max_capacity_per_bay: 24TB
+    form_factor: M.2 + 3.5in
+    m4_mini_compatible: true
+    ports:
+    - 3x Thunderbolt 5 (downstream)
+    - 1x Thunderbolt 5 (upstream)
+    - 3x USB-A (10Gbps)
+  noise_db: 25
+  aesthetic_notes: Matches Mac Studio footprint
+  last_verified: '2025-01-29'
+  notes: Enclosure only. TB5 cable included. Ships Dec 2025.
+- id: owc-express-4m2
+  name: OWC Express 4M2
+  brand: OWC
+  model: OWCUS4EXP4M2
+  category: enclosure
+  tags:
+  - usb4
+  - nvme
+  - 4-bay
+  - raid
+  - fast
+  - quiet
+  use_cases:
+  - high-capacity
+  - high-speed-backup
+  - video-editing
+  - portable-raid
+  pros:
+  - 4x M.2 NVMe slots
+  - USB4 40Gbps
+  - Up to 32TB total
+  - RAID 0/1/4/5/10 support
+  - Smart fan (near silent idle)
+  - SoftRAID compatible
+  cons:
+  - PCIe 4.0 x1 per slot limits individual speed
+  - Expensive with SoftRAID
+  specs:
+    bays: 4
+    interface: USB4 (40Gbps)
+    max_capacity_per_bay: 8TB
+    form_factor: M.2 2230/2242/2280
+    m4_mini_compatible: true
+    raid_support:
+    - JBOD
+    - RAID0
+    - RAID1
+    - RAID4
+    - RAID5
+    - RAID10
+  noise_db: 20
+  last_verified: '2025-01-29'
+  notes: Enclosure only. $379.99 with 3yr SoftRAID. Certified 40Gbps cable included.
+- id: satechi-usb4-slim-nvme
+  name: Satechi USB4 Slim NVMe SSD Enclosure
+  brand: Satechi
+  model: ST-U4SEA
+  category: enclosure
+  tags:
+  - usb4
+  - nvme
+  - compact
+  - mac-mini-match
+  - quiet
+  - single-bay
+  use_cases:
+  - mac-mini-expansion
+  - working-drive
+  - portable-working-drive
+  pros:
+  - USB4 40Gbps (3840 MB/s)
+  - Exact Mac mini M4 footprint
+  - Supports 2230/2242/2260/2280
+  - Up to 8TB
+  - Hidden cable compartment
+  - TB5/4/3 compatible
+  cons:
+  - Single drive only
+  - No Thunderbolt speeds
+  specs:
+    bays: 1
+    interface: USB4 (40Gbps)
+    max_capacity_per_bay: 8TB
+    form_factor: M.2 2230/2242/2260/2280
+    m4_mini_compatible: true
+  noise_db: 0
+  aesthetic_notes: 5x5x0.63 inch, aluminum, Mac mini matching
+  last_verified: '2026-01-30'
+  notes: SSD not included. Use code CES2026 for 20% off through Jan 31.
+- id: acasis-tbu405-usb4-nvme
+  name: ACASIS TBU405 USB4 NVMe Enclosure
+  brand: ACASIS
+  model: TBU405
+  category: enclosure
+  tags:
+  - usb4
+  - thunderbolt
+  - nvme
+  - compact
+  - budget
+  - quiet
+  use_cases:
+  - portable-working-drive
+  - travel-backup
+  - working-drive
+  pros:
+  - True 40Gbps (JHL7440 + RTL9210B chips)
+  - Up to 2805 MB/s tested
+  - Tool-free installation
+  - USB backwards compatible
+  - Budget friendly
+  cons:
+  - Plastic body (some models)
+  - Can run warm
+  specs:
+    bays: 1
+    interface: USB4 / Thunderbolt 4/3 (40Gbps)
+    max_capacity_per_bay: 8TB
+    form_factor: M.2 2230/2242/2260/2280
+    m4_mini_compatible: true
+  noise_db: 0
+  last_verified: '2025-01-29'
+  notes: Budget 40Gbps option. TBU405Pro has fan. Check USB backwards compat.
+- id: owc-mercury-elite-pro-dual
+  name: OWC Mercury Elite Pro Dual with 3-Port Hub
+  brand: OWC
+  model: OWCMEDCH7T00
+  category: enclosure
+  tags:
+  - usb-c
+  - dual-bay
+  - raid
+  - hub
+  - quiet
+  use_cases:
+  - time-machine-target
+  - nas-replacement
+  - high-capacity
+  - desktop-hub
+  pros:
+  - 2x 3.5" or 2.5" bays
+  - Up to 48TB capacity
+  - Hardware RAID 0/1
+  - 3 extra USB ports
+  - 1000+ MB/s with SSDs
+  cons:
+  - USB only (no Thunderbolt)
+  - Has cooling fan
+  specs:
+    bays: 2
+    interface: USB-C 3.2 Gen 2
+    max_capacity_per_bay: 24TB
+    form_factor: 2.5in/3.5in
+    m4_mini_compatible: true
+    raid_support:
+    - JBOD
+    - SPAN
+    - RAID0
+    - RAID1
+    ports:
+    - 1x USB-C (10Gbps)
+    - 2x USB-A (10Gbps)
+  noise_db: 25
+  last_verified: '2025-01-29'
+  notes: Enclosure only. Good for repurposing NAS drives.
+- id: owc-mercury-elite-pro-mini
+  name: OWC Mercury Elite Pro mini
+  brand: OWC
+  model: OWCMEPMJB00
+  category: enclosure
+  tags:
+  - usb-c
+  - single-bay
+  - compact
+  - portable
+  - quiet
+  use_cases:
+  - portable-drive
+  - simple-backup
+  - travel-backup
+  pros:
+  - Compact aluminum design
+  - Bus powered for 2.5" drives
+  - USB-C 3.2
+  - Rugged
+  cons:
+  - Single drive only
+  - 2.5" only
+  specs:
+    bays: 1
+    interface: USB-C 3.2
+    max_capacity_per_bay: 8TB
+    form_factor: 2.5in
+    m4_mini_compatible: true
+  noise_db: 0
+  aesthetic_notes: Compact aluminum
+  last_verified: '2025-01-29'
+  notes: Simple single-drive solution.
+- id: terramaster-d2-320
+  name: TerraMaster D2-320
+  brand: TerraMaster
+  model: D2-320
+  category: enclosure
+  tags:
+  - usb-c
+  - dual-bay
+  - raid
+  - value
+  use_cases:
+  - nas-replacement
+  - time-machine-target
+  - high-capacity
+  pros:
+  - 10Gbps USB 3.2 Gen 2
+  - Up to 44TB (2x 22TB)
+  - Hardware RAID 0/1
+  - Tool-free trays
+  - NAS expansion capable
+  cons:
+  - Plastic construction
+  - Has cooling fan
+  - Not the quietest
+  specs:
+    bays: 2
+    interface: USB-C 3.2 Gen 2
+    max_capacity_per_bay: 22TB
+    form_factor: 2.5in/3.5in
+    m4_mini_compatible: true
+    raid_support:
+    - JBOD
+    - Single
+    - RAID0
+    - RAID1
+  noise_db: 30
+  last_verified: '2025-01-29'
+  notes: Good budget alternative to OWC. Can expand TerraMaster NAS.
+- id: synology-ds224-plus
+  name: Synology DS224+
+  brand: Synology
+  model: DS224+
+  category: nas
+  tags:
+  - nas
+  - dual-bay
+  - btrfs
+  use_cases:
+  - nas-replacement
+  - time-machine-target
+  - media-archive
+  pros:
+  - DSM operating system
+  - Btrfs snapshots
+  - Docker support
+  - 2x drive bays
+  cons:
+  - Outdated CPU (J4125 from 2019)
+  - Only 2GB RAM (need upgrade for Photos AI)
+  - 1GbE only (no 2.5GbE)
+  - No M.2 NVMe cache slots
+  - Spinning disk noise
+  specs:
+    bays: 2
+    interface: 1GbE
+    max_capacity_per_bay: 20TB
+    form_factor: 3.5in
+  noise_db: 35
+  last_verified: '2025-01-29'
+  notes: Your current NAS. Noisy with HDDs. Consider SSD DAS replacement.
+- id: seagate-ironwolf-8tb
+  name: Seagate IronWolf 8TB
+  brand: Seagate
+  model: ST8000VN004
+  category: hdd
+  tags:
+  - hdd
+  - nas
+  - high-capacity
+  - cmr
+  - 7200rpm
+  use_cases:
+  - nas-replacement
+  - cold-storage
+  - media-archive
+  - time-machine-target
+  pros:
+  - NAS-optimized (AgileArray)
+  - CMR recording (not SMR)
+  - 7200 RPM speed
+  - 256MB cache
+  - 3-year warranty
+  - IronWolf Health Management
+  cons:
+  - Noisy (spinning disk)
+  - Slower than SSD
+  - Mechanical failure risk
+  - Power hungry vs SSD
+  specs:
+    capacity: 8TB
+    interface: SATA 6Gb/s
+    form_factor: 3.5in
+    read_speed: 210MB/s
+    write_speed: 210MB/s
+    rpm: 7200
+    cache: 256MB
+    warranty_years: 3
+  noise_db: 32
+  last_verified: '2025-01-29'
+  notes: Your existing drives from Synology DS224. Can reuse in USB enclosure.
+- id: samsung-t7-2tb
+  name: Samsung T7 Portable 2TB
+  brand: Samsung
+  model: MU-PC2T0T/AM
+  category: ssd
+  tags:
+  - portable
+  - compact
+  - quiet
+  - usb-c
+  - travel
+  use_cases:
+  - travel-backup
+  - portable-working-drive
+  - offsite-rotation
+  pros:
+  - Very compact
+  - Fast USB 3.2 speeds
+  - Multiple colors
+  - Reliable
+  cons:
+  - Max 2TB capacity
+  - No hardware encryption on base model
+  specs:
+    capacity: 2TB
+    interface: USB-C 3.2
+    form_factor: portable
+    read_speed: 1050MB/s
+    write_speed: 1000MB/s
+  noise_db: 0
+  aesthetic_notes: Compact, available in gray, blue, red
+  last_verified: '2025-01-15'
+  notes: Best portable SSD for most people.
+- id: samsung-t7-4tb
+  name: Samsung T7 Portable 4TB
+  brand: Samsung
+  model: MU-PC4T0T/AM
+  category: ssd
+  tags:
+  - portable
+  - compact
+  - quiet
+  - usb-c
+  - travel
+  - high-capacity
+  use_cases:
+  - travel-backup
+  - portable-working-drive
+  - mac-mini-expansion
+  - hot-storage-sync
+  pros:
+  - 4TB in compact form factor
+  - Fast USB 3.2 Gen 2 speeds
+  - Samsung reliability
+  - Hardware encryption
+  cons:
+  - Expensive (Jan 2026 pricing elevated)
+  - USB speeds only (no Thunderbolt)
+  specs:
+    capacity: 4TB
+    interface: USB-C 3.2 Gen 2
+    form_factor: portable
+    read_speed: 1050MB/s
+    write_speed: 1000MB/s
+  noise_db: 0
+  aesthetic_notes: Compact, available in gray, blue, red
+  last_verified: '2026-01-30'
+  notes: Jan 2026 pricing ~$474. SSD prices elevated due to AI/NAND demand.
+- id: samsung-t7-shield-2tb
+  name: Samsung T7 Shield 2TB
+  brand: Samsung
+  model: MU-PE2T0S/AM
+  category: ssd
+  tags:
+  - portable
+  - rugged
+  - quiet
+  - usb-c
+  - travel
+  - ip65
+  use_cases:
+  - travel-backup
+  - field-work
+  - outdoor
+  pros:
+  - IP65 dust/water resistant
+  - Rugged rubber shell
+  - Drop resistant
+  cons:
+  - Bulkier than T7
+  - Slightly more expensive
+  specs:
+    capacity: 2TB
+    interface: USB-C 3.2
+    form_factor: portable
+    read_speed: 1050MB/s
+    write_speed: 1000MB/s
+  noise_db: 0
+  aesthetic_notes: Rugged rubber coating, black/blue/beige
+  last_verified: '2025-01-15'
+  notes: For rough conditions. Regular T7 fine for normal use.
+- id: sandisk-extreme-pro-4tb
+  name: SanDisk Extreme Pro 4TB
+  brand: SanDisk
+  model: SDSSDE81-4T00
+  category: ssd
+  tags:
+  - portable
+  - rugged
+  - quiet
+  - usb-c
+  - high-capacity
+  - ip65
+  use_cases:
+  - travel-backup
+  - video-editing
+  - field-work
+  pros:
+  - 4TB portable capacity
+  - IP65 rated
+  - Fast NVMe speeds
+  - Carabiner loop
+  cons:
+  - Expensive
+  - Can run warm
+  specs:
+    capacity: 4TB
+    interface: USB-C 3.2
+    form_factor: portable
+    read_speed: 2000MB/s
+    write_speed: 2000MB/s
+  noise_db: 0
+  aesthetic_notes: Orange loop, rugged design
+  last_verified: '2025-01-15'
+  notes: Highest capacity rugged portable.
+- id: samsung-t5-evo-8tb
+  name: Samsung T5 EVO 8TB
+  brand: Samsung
+  model: MU-PH8T0S/AM
+  category: ssd
+  tags:
+  - portable
+  - high-capacity
+  - quiet
+  - usb-c
+  use_cases:
+  - media-archive
+  - cold-storage
+  - travel-backup
+  - offsite-rotation
+  pros:
+  - Largest Samsung portable SSD
+  - Compact for 8TB
+  - Samsung reliability
+  cons:
+  - USB 3.2 Gen 1 only (460MB/s)
+  - Slower than other portables
+  - QLC NAND (lower endurance)
+  - Prices elevated Jan 2026
+  specs:
+    capacity: 8TB
+    interface: USB-C 3.2 Gen 1
+    form_factor: portable
+    read_speed: 460MB/s
+    write_speed: 460MB/s
+  noise_db: 0
+  aesthetic_notes: Black, compact rectangular
+  last_verified: '2026-01-30'
+  notes: Jan 2026 $715 (Samsung.com) - $900 (Newegg). Often out of stock.
+- id: sandisk-extreme-8tb
+  name: SanDisk Extreme Portable 8TB
+  brand: SanDisk
+  model: SDSSDE61-8T00
+  category: ssd
+  tags:
+  - portable
+  - high-capacity
+  - quiet
+  - usb-c
+  - rugged
+  - ip65
+  use_cases:
+  - media-archive
+  - travel-backup
+  - video-editing
+  - field-work
+  pros:
+  - USB 3.2 Gen 2 (1050MB/s)
+  - IP65 dust/water resistant
+  - Carabiner loop
+  - Better speed than T5 EVO
+  cons:
+  - More expensive than T5 EVO
+  - Still not fastest portable
+  specs:
+    capacity: 8TB
+    interface: USB-C 3.2 Gen 2
+    form_factor: portable
+    read_speed: 1050MB/s
+    write_speed: 1000MB/s
+  noise_db: 0
+  aesthetic_notes: Orange accent, rugged design
+  last_verified: '2026-01-30'
+  notes: Jan 2026 ~$650. Faster than T5 EVO. Good middle ground.
+- id: crucial-x10-8tb
+  name: Crucial X10 Pro 8TB
+  brand: Crucial
+  model: CT8000X10PROSSD9
+  category: ssd
+  tags:
+  - portable
+  - high-capacity
+  - quiet
+  - usb-c
+  - fast
+  use_cases:
+  - video-editing
+  - working-drive
+  - media-archive
+  - travel-backup
+  pros:
+  - USB 3.2 Gen 2x2 (2100MB/s)
+  - Fastest 8TB portable
+  - IP55 rated
+  - Good build quality
+  cons:
+  - Requires 20Gbps USB-C for full speed
+  - Brand ending Feb 2026 (support uncertain)
+  - Premium price
+  specs:
+    capacity: 8TB
+    interface: USB-C 3.2 Gen 2x2
+    form_factor: portable
+    read_speed: 2100MB/s
+    write_speed: 2000MB/s
+  noise_db: 0
+  aesthetic_notes: Navy blue, premium feel
+  last_verified: '2026-01-30'
+  discontinued: true
+  notes: Jan 2026 $724-846. Fastest but Crucial brand ending Feb 2026. Buy while available if you need speed.
+- id: owc-envoy-pro-fx-4tb
+  name: OWC Envoy Pro FX 4TB
+  brand: OWC
+  model: OWCENVPFX04
+  category: ssd
+  tags:
+  - thunderbolt
+  - premium
+  - quiet
+  - fast
+  - mac-optimized
+  use_cases:
+  - working-drive
+  - video-editing
+  - mac-mini-expansion
+  pros:
+  - Thunderbolt + USB-C compatible
+  - Very fast
+  - Bus powered
+  - Mac optimized
+  cons:
+  - Expensive
+  - Speed overkill for backup
+  specs:
+    capacity: 4TB
+    interface: Thunderbolt/USB-C
+    form_factor: portable
+    read_speed: 2800MB/s
+    write_speed: 2600MB/s
+  noise_db: 0
+  aesthetic_notes: Rugged aluminum, space gray
+  last_verified: '2025-01-15'
+  notes: Premium option for Mac. Overkill for backup.
+- id: sabrent-rocket-xtrm-4tb
+  name: Sabrent Rocket XTRM 4TB
+  brand: Sabrent
+  model: SB-XTMQ-4TB
+  category: ssd
+  tags:
+  - thunderbolt
+  - fast
+  - quiet
+  - value
+  use_cases:
+  - working-drive
+  - video-editing
+  - mac-mini-expansion
+  pros:
+  - Thunderbolt 3 speeds
+  - More affordable than OWC
+  - Good capacity
+  cons:
+  - Less premium build
+  - Thunderbolt only (no USB fallback)
+  specs:
+    capacity: 4TB
+    interface: Thunderbolt 3
+    form_factor: portable
+    read_speed: 2700MB/s
+    write_speed: 2400MB/s
+  noise_db: 0
+  last_verified: '2025-01-15'
+  notes: Budget Thunderbolt option.
+- id: orico-2bay-usbc
+  name: ORICO 2-Bay USB-C Enclosure
+  brand: ORICO
+  model: 6629US3-C
+  category: enclosure
+  tags:
+  - dual-bay
+  - usb-c
+  - value
+  - expandable
+  - quiet
+  use_cases:
+  - nas-replacement
+  - time-machine-target
+  - expandable-storage
+  pros:
+  - Fits 2x 2.5" or 3.5" drives
+  - Tool-free installation
+  - Cheap
+  - RAID 0/1 support
+  cons:
+  - USB speeds only
+  - Plastic build
+  specs:
+    bays: 2
+    interface: USB-C 3.1
+    max_capacity_per_bay: 16TB
+    form_factor: 2.5in/3.5in
+    stackable: true
+    m4_mini_compatible: true
+    raid_support:
+    - JBOD
+    - RAID0
+    - RAID1
+  noise_db: 0
+  aesthetic_notes: Black aluminum front, plastic body
+  last_verified: '2025-01-15'
+  notes: Best value for dual-drive setup. Great for 2x 4TB SSDs.
+- id: sabrent-usbc-sata-enclosure
+  name: Sabrent USB-C 2.5" Enclosure
+  brand: Sabrent
+  model: EC-SNVE
+  category: enclosure
+  tags:
+  - single-bay
+  - usb-c
+  - compact
+  - value
+  - quiet
+  use_cases:
+  - portable-drive
+  - simple-backup
+  pros:
+  - Very cheap
+  - Compact
+  - Tool-free
+  cons:
+  - Single drive only
+  - Basic build
+  specs:
+    bays: 1
+    interface: USB-C 3.2
+    max_capacity_per_bay: 8TB
+    form_factor: 2.5in
+    m4_mini_compatible: true
+  noise_db: 0
+  last_verified: '2025-01-15'
+  notes: Cheapest way to use a bare SSD externally.
+- id: owc-thunderbay-4
+  name: OWC ThunderBay 4
+  brand: OWC
+  model: OWCTB3IVT32.0S
+  category: enclosure
+  tags:
+  - thunderbolt
+  - 4-bay
+  - premium
+  - raid
+  - mac-optimized
+  use_cases:
+  - pro-storage
+  - video-editing
+  - high-capacity
+  pros:
+  - 4 drive bays
+  - Thunderbolt 3
+  - SoftRAID support
+  - Mac optimized
+  cons:
+  - Expensive
+  - Overkill for most
+  - Has a fan (slight noise)
+  specs:
+    bays: 4
+    interface: Thunderbolt 3
+    max_capacity_per_bay: 20TB
+    form_factor: 3.5in
+    stackable: true
+    m4_mini_compatible: true
+    raid_support:
+    - JBOD
+    - RAID0
+    - RAID1
+    - RAID4
+    - RAID5
+    - RAID10
+  noise_db: 25
+  aesthetic_notes: Space gray, matches Mac mini
+  last_verified: '2025-01-15'
+  notes: Premium multi-bay solution. For serious storage needs.
+- id: ugreen-cm642-2bay
+  name: UGREEN CM642 2-Bay NVMe Enclosure
+  brand: UGREEN
+  model: CM642
+  category: enclosure
+  tags:
+  - dual-bay
+  - nvme
+  - usb-c
+  - fast
+  - compact
+  use_cases:
+  - high-speed-backup
+  - working-drive
+  - portable-raid
+  pros:
+  - NVMe speeds over USB-C
+  - Dual M.2 slots
+  - Compact
+  - RAID support
+  cons:
+  - M.2 only (no 2.5" drives)
+  - Can run warm
+  specs:
+    bays: 2
+    interface: USB-C 3.2 Gen 2
+    max_capacity_per_bay: 4TB
+    form_factor: M.2
+    m4_mini_compatible: true
+    raid_support:
+    - JBOD
+    - RAID0
+    - RAID1
+  noise_db: 0
+  last_verified: '2025-01-15'
+  notes: For NVMe drives. Faster than SATA enclosures.
+- id: caldigit-ts4
+  name: CalDigit TS4 Thunderbolt 4 Dock
+  brand: CalDigit
+  model: TS4
+  category: enclosure
+  tags:
+  - dock
+  - thunderbolt
+  - premium
+  - mac-optimized
+  - hub
+  use_cases:
+  - desktop-hub
+  - mac-mini-expansion
+  - single-cable-setup
+  pros:
+  - 18 ports
+  - 98W charging
+  - Excellent Mac compatibility
+  - Thunderbolt 4
+  cons:
+  - Expensive
+  - No internal storage
+  specs:
+    bays: 0
+    interface: Thunderbolt 4
+    m4_mini_compatible: true
+    power_delivery_watts: 98
+  noise_db: 0
+  aesthetic_notes: Space gray aluminum
+  last_verified: '2025-01-15'
+  notes: Best dock for Mac. Pairs with external drives.
+- id: satechi-mac-mini-m4-stand-hub
+  name: Satechi Mac Mini M4 Stand & Hub with SSD Enclosure
+  brand: Satechi
+  model: ST-GNMMES
+  category: enclosure
+  tags:
+  - mac-mini-stand
+  - usb-c
+  - nvme
+  - compact
+  - m4-optimized
+  - hub
+  - quiet
+  use_cases:
+  - mac-mini-expansion
+  - desktop-hub
+  - working-drive
+  - simple-backup
+  pros:
+  - Designed specifically for M4 Mac mini form factor
+  - M.2 NVMe/SATA SSD support up to 8TB
+  - Adds USB-A ports Mac mini lacks
+  - Clean single-cable design
+  - Built-in cable management
+  - SD card reader
+  cons:
+  - 10Gbps USB 3.2 speed limit (not Thunderbolt)
+  - May reduce Wi-Fi speeds when placed under Mac mini
+  - Not compatible with 2018-2023 Mac mini
+  - Shared bandwidth pool for all devices
+  specs:
+    bays: 1
+    interface: USB-C 3.2 Gen 2
+    max_capacity_per_bay: 8TB
+    form_factor: M.2 2230/2242/2260/2280
+    m4_mini_compatible: true
+    ports:
+    - 2x USB-A 3.2 Gen 2 (10Gbps)
+    - 1x USB-A 2.0 (480Mbps)
+    - 1x SD/SDHC/SDXC UHS-II (312MB/s)
+  noise_db: 0
+  aesthetic_notes: Silver aluminum, matches Mac mini M4 exactly
+  last_verified: '2025-01-29'
+  notes: SSD not included. Great for adding USB-A + storage. 10Gbps shared bandwidth.
+- id: owc-envoy-pro-fx-2tb
+  name: OWC Envoy Pro FX 2TB
+  brand: OWC
+  model: OWCENVPFX02
+  category: ssd
+  tags:
+  - thunderbolt
+  - usb-c
+  - rugged
+  - fast
+  - mac-optimized
+  - ip67
+  - portable
+  - quiet
+  use_cases:
+  - working-drive
+  - video-editing
+  - travel-backup
+  - mac-mini-expansion
+  pros:
+  - Thunderbolt 4 + USB-C dual interface
+  - 2800MB/s with Thunderbolt
+  - IP67 dust/water resistant
+  - MIL-STD810G drop tested
+  - Bus powered
+  - Works with any host
+  cons:
+  - Expensive per TB
+  - Overkill for backup use
+  specs:
+    capacity: 2TB
+    interface: Thunderbolt 4 / USB-C
+    form_factor: portable
+    read_speed: 2800MB/s
+    write_speed: 2600MB/s
+  noise_db: 0
+  aesthetic_notes: Rugged aluminum, space gray
+  last_verified: '2025-01-29'
+  notes: Premium portable. Same speed via Thunderbolt or USB4.
+- id: owc-envoy-pro-fx-1tb
+  name: OWC Envoy Pro FX 1TB
+  brand: OWC
+  model: OWCENVPFX01
+  category: ssd
+  tags:
+  - thunderbolt
+  - usb-c
+  - rugged
+  - fast
+  - mac-optimized
+  - ip67
+  - portable
+  - quiet
+  use_cases:
+  - working-drive
+  - travel-backup
+  - portable-working-drive
+  pros:
+  - Thunderbolt 4 + USB-C dual interface
+  - 2800MB/s with Thunderbolt
+  - IP67 dust/water resistant
+  - Most affordable FX option
+  - Bus powered
+  cons:
+  - 1TB may fill quickly
+  - High price per TB
+  specs:
+    capacity: 1TB
+    interface: Thunderbolt 4 / USB-C
+    form_factor: portable
+    read_speed: 2800MB/s
+    write_speed: 2600MB/s
+  noise_db: 0
+  aesthetic_notes: Rugged aluminum, space gray
+  last_verified: '2025-01-29'
+  notes: Entry point to Envoy Pro FX line.
+- id: owc-envoy-pro-elektron-2tb
+  name: OWC Envoy Pro Elektron 2TB
+  brand: OWC
+  model: OWCENVPEK02
+  category: ssd
+  tags:
+  - usb-c
+  - rugged
+  - compact
+  - portable
+  - quiet
+  - value
+  use_cases:
+  - travel-backup
+  - portable-working-drive
+  - offsite-rotation
+  pros:
+  - Extremely compact (fits in pocket)
+  - Crushproof, dustproof, waterproof
+  - Up to 1011MB/s
+  - USB 3.2 Gen 2
+  - More affordable than FX
+  cons:
+  - No Thunderbolt (USB only)
+  - Slower than FX series
+  specs:
+    capacity: 2TB
+    interface: USB-C 3.2 Gen 2
+    form_factor: portable
+    read_speed: 1011MB/s
+    write_speed: 1000MB/s
+  noise_db: 0
+  aesthetic_notes: Tiny aluminum puck, space gray
+  last_verified: '2025-01-29'
+  notes: Smallest rugged SSD. Great for travel.
+- id: owc-envoy-pro-elektron-4tb
+  name: OWC Envoy Pro Elektron 4TB
+  brand: OWC
+  model: OWCENVPEK04
+  category: ssd
+  tags:
+  - usb-c
+  - rugged
+  - compact
+  - portable
+  - quiet
+  - high-capacity
+  use_cases:
+  - travel-backup
+  - media-archive
+  - offsite-rotation
+  - field-work
+  pros:
+  - 4TB in tiny form factor
+  - Crushproof, dustproof, waterproof
+  - Up to 1250MB/s
+  - Bus powered
+  cons:
+  - No Thunderbolt
+  - Expensive for USB drive
+  specs:
+    capacity: 4TB
+    interface: USB-C 3.2 Gen 2
+    form_factor: portable
+    read_speed: 1250MB/s
+    write_speed: 1200MB/s
+  noise_db: 0
+  aesthetic_notes: Tiny aluminum puck, space gray
+  last_verified: '2025-01-29'
+  notes: Highest capacity Elektron. Great for large offsite backups.
+- id: owc-ministack-stx
+  name: OWC miniStack STX
+  brand: OWC
+  model: OWCT4MSS000
+  category: enclosure
+  tags:
+  - thunderbolt
+  - mac-mini-stand
+  - hub
+  - expandable
+  - mac-optimized
+  - quiet
+  use_cases:
+  - mac-mini-expansion
+  - time-machine-target
+  - desktop-hub
+  - high-capacity
+  pros:
+  - Stacks perfectly under Mac mini
+  - Thunderbolt 4 hub (3 ports out)
+  - Holds 3.5" HDD or 2.5" SSD + M.2 NVMe
+  - Up to 28TB total (18TB HDD + 8TB NVMe)
+  - Daisy chain up to 8 devices
+  - SoftRAID included
+  cons:
+  - Has cooling fan (quiet but not silent)
+  - Complex with multiple drive options
+  - Pricey for enclosure only
+  specs:
+    bays: 2
+    interface: Thunderbolt 4
+    max_capacity_per_bay: 18TB
+    form_factor: 3.5in + M.2
+    stackable: true
+    m4_mini_compatible: true
+    ports:
+    - 3x Thunderbolt 4 (downstream)
+    - 1x Thunderbolt 4 (upstream)
+  noise_db: 20
+  aesthetic_notes: Matte silver or black, matches Mac mini
+  last_verified: '2025-01-29'
+  notes: Enclosure only price. Best Mac mini companion for Thunderbolt expansion.
+- id: owc-thunderbay-4-mini
+  name: OWC ThunderBay 4 mini
+  brand: OWC
+  model: OWCTB3QMJB000
+  category: enclosure
+  tags:
+  - thunderbolt
+  - 4-bay
+  - compact
+  - raid
+  - mac-optimized
+  - quiet
+  use_cases:
+  - time-machine-target
+  - media-archive
+  - high-capacity
+  - nas-replacement
+  pros:
+  - 4x 2.5" drive bays
+  - Thunderbolt 3 (40Gbps)
+  - Up to 1556MB/s with RAID
+  - SoftRAID included
+  - Compact form factor
+  - Two TB3 ports for daisy chain
+  cons:
+  - 2.5" drives only (no 3.5")
+  - Has cooling fan
+  - Limited to SATA speeds per drive
+  specs:
+    bays: 4
+    interface: Thunderbolt 3
+    max_capacity_per_bay: 8TB
+    form_factor: 2.5in
+    stackable: true
+    m4_mini_compatible: true
+    raid_support:
+    - JBOD
+    - RAID0
+    - RAID1
+    - RAID4
+    - RAID5
+    - RAID10
+  noise_db: 25
+  aesthetic_notes: Space gray aluminum
+  last_verified: '2025-01-29'
+  notes: Perfect for 4x 4TB SSDs. Quieter than 3.5" version.
+- id: orico-minimate-m4pro-1tb
+  name: ORICO MiniMate M4PRO 1TB
+  brand: ORICO
+  model: M4PRO-1TB
+  category: ssd
+  tags:
+  - thunderbolt
+  - usb4
+  - fast
+  - mac-mini-match
+  - m4-optimized
+  - quiet
+  use_cases:
+  - mac-mini-expansion
+  - working-drive
+  - portable-working-drive
+  pros:
+  - 40Gbps Thunderbolt 4/USB4
+  - Matches Mac mini M4 aesthetic perfectly
+  - Up to 3100MB/s
+  - Five-layer cooling system
+  - Two cables included
+  cons:
+  - Speed depends on internal SSD
+  - Pricier than basic USB enclosures
+  specs:
+    capacity: 1TB
+    interface: Thunderbolt 4 / USB4
+    form_factor: portable
+    read_speed: 3100MB/s
+    write_speed: 2900MB/s
+  noise_db: 0
+  aesthetic_notes: Silver aluminum, exact Mac mini M4 footprint
+  last_verified: '2025-01-29'
+  notes: Sits perfectly under Mac mini. True Thunderbolt speeds.
+- id: orico-minimate-m4pro-2tb
+  name: ORICO MiniMate M4PRO 2TB
+  brand: ORICO
+  model: M4PRO-2TB
+  category: ssd
+  tags:
+  - thunderbolt
+  - usb4
+  - fast
+  - mac-mini-match
+  - m4-optimized
+  - quiet
+  - value
+  use_cases:
+  - mac-mini-expansion
+  - working-drive
+  - time-machine-target
+  pros:
+  - 40Gbps Thunderbolt 4/USB4
+  - Matches Mac mini M4 aesthetic
+  - Good balance of capacity and price
+  - Five-layer cooling system
+  cons:
+  - Actual speed depends on SSD inside
+  specs:
+    capacity: 2TB
+    interface: Thunderbolt 4 / USB4
+    form_factor: portable
+    read_speed: 3100MB/s
+    write_speed: 2900MB/s
+  noise_db: 0
+  aesthetic_notes: Silver aluminum, exact Mac mini M4 footprint
+  last_verified: '2025-01-29'
+  notes: Sweet spot for Mac mini storage expansion.
+- id: orico-minimate-m4pro-4tb
+  name: ORICO MiniMate M4PRO 4TB
+  brand: ORICO
+  model: M4PRO-4TB
+  category: ssd
+  tags:
+  - thunderbolt
+  - usb4
+  - fast
+  - mac-mini-match
+  - m4-optimized
+  - quiet
+  - high-capacity
+  use_cases:
+  - mac-mini-expansion
+  - time-machine-target
+  - media-archive
+  - working-drive
+  pros:
+  - 40Gbps Thunderbolt 4/USB4
+  - Matches Mac mini M4 aesthetic
+  - 4TB capacity
+  - Five-layer cooling
+  cons:
+  - Expensive
+  - Single drive (no redundancy)
+  specs:
+    capacity: 4TB
+    interface: Thunderbolt 4 / USB4
+    form_factor: portable
+    read_speed: 3100MB/s
+    write_speed: 2900MB/s
+  noise_db: 0
+  aesthetic_notes: Silver aluminum, exact Mac mini M4 footprint
+  last_verified: '2025-01-29'
+  notes: High capacity with Thunderbolt speed.
+- id: orico-minimate-m4pro-8tb
+  name: ORICO MiniMate M4PRO 8TB
+  brand: ORICO
+  model: M4PRO-8TB
+  category: ssd
+  tags:
+  - thunderbolt
+  - usb4
+  - fast
+  - mac-mini-match
+  - m4-optimized
+  - quiet
+  - high-capacity
+  use_cases:
+  - mac-mini-expansion
+  - time-machine-target
+  - media-archive
+  - cold-storage
+  pros:
+  - Maximum 8TB capacity
+  - 40Gbps Thunderbolt 4/USB4
+  - Matches Mac mini M4 aesthetic
+  - All-in-one solution
+  cons:
+  - Very expensive
+  - Single point of failure for 8TB
+  specs:
+    capacity: 8TB
+    interface: Thunderbolt 4 / USB4
+    form_factor: portable
+    read_speed: 3100MB/s
+    write_speed: 2900MB/s
+  noise_db: 0
+  aesthetic_notes: Silver aluminum, exact Mac mini M4 footprint
+  last_verified: '2025-01-29'
+  notes: Maximum storage in minimal footprint. Premium price.
+- id: orico-minidock-vs10
+  name: ORICO MiniDock VS10 Vertical Stand
+  brand: ORICO
+  model: VS10
+  category: enclosure
+  tags:
+  - mac-mini-stand
+  - usb-c
+  - nvme
+  - hub
+  - ethernet
+  - hdmi
+  - compact
+  - vertical
+  use_cases:
+  - mac-mini-expansion
+  - desktop-hub
+  - space-saving
+  - working-drive
+  pros:
+  - Vertical design saves 45% desk space
+  - 10-in-1 port expansion
+  - M.2 NVMe/SATA SSD slot
+  - 4K HDMI output
+  - Gigabit Ethernet
+  - PD 100W passthrough
+  cons:
+  - 10Gbps max (USB, not Thunderbolt)
+  - SSD slot shares bandwidth with ports
+  - Vertical only (can't lay flat)
+  specs:
+    bays: 1
+    interface: USB-C 3.2 Gen 2
+    max_capacity_per_bay: 4TB
+    form_factor: M.2
+    m4_mini_compatible: true
+    ports:
+    - 1x USB-C (10Gbps)
+    - 1x USB-A (10Gbps)
+    - 2x USB-A (5Gbps)
+    - 1x HDMI (4K60Hz)
+    - 1x RJ45 (1Gbps)
+    - 1x SD/TF (simultaneous)
+    - 1x USB-C PD (100W)
+  noise_db: 0
+  aesthetic_notes: Silver aluminum, vertical orientation
+  last_verified: '2025-01-29'
+  notes: Enclosure only. Great for desk space savings. Add your own NVMe SSD.
+- id: orico-studiolink-mc35m
+  name: ORICO Studio Link MC35M
+  brand: ORICO
+  model: MC35M
+  category: enclosure
+  tags:
+  - mac-mini-stand
+  - usb-c
+  - nvme
+  - hub
+  - premium
+  - expandable
+  - 3.5-bay
+  use_cases:
+  - mac-mini-expansion
+  - high-capacity
+  - desktop-hub
+  - time-machine-target
+  pros:
+  - 3.5" drive bay for high capacity HDD/SSD
+  - M.2 NVMe/SATA slot
+  - Premium aluminum build
+  - Matches Mac mini/Studio
+  - SD/TF card readers
+  - Audio jack
+  cons:
+  - Expensive
+  - USB only (10Gbps, not Thunderbolt)
+  - Large footprint
+  - Requires external power
+  specs:
+    bays: 2
+    interface: USB-C 3.2 Gen 2
+    max_capacity_per_bay: 20TB
+    form_factor: 3.5in + M.2
+    m4_mini_compatible: true
+    ports:
+    - 1x USB-C (10Gbps)
+    - 2x USB-A (10Gbps)
+    - 1x SD/TF (simultaneous)
+    - 1x 3.5mm audio
+  noise_db: 0
+  aesthetic_notes: Silver aluminum, premium finish
+  last_verified: '2025-01-29'
+  notes: Premium option with 3.5" bay for max capacity. Enclosure only.
+- id: orico-minilink-m47p
+  name: ORICO MiniLink M47P 7-in-1 Hub
+  brand: ORICO
+  model: M47P
+  category: enclosure
+  tags:
+  - mac-mini-stand
+  - usb4
+  - nvme
+  - hub
+  - fast
+  - dual-nvme
+  - compact
+  use_cases:
+  - mac-mini-expansion
+  - working-drive
+  - high-speed-backup
+  pros:
+  - 40Gbps USB4
+  - Dual M.2 NVMe slots
+  - 7-in-1 port expansion
+  - Compact design
+  - SD 4.0 card reader
+  cons:
+  - NVMe only (no SATA)
+  - Shared bandwidth
+  specs:
+    bays: 2
+    interface: USB4 (40Gbps)
+    max_capacity_per_bay: 4TB
+    form_factor: M.2
+    m4_mini_compatible: true
+    ports:
+    - 2x M.2 NVMe slots
+    - 2x USB-A (10Gbps)
+    - 1x SD 4.0
+    - 1x TF 4.0
+  noise_db: 0
+  aesthetic_notes: Silver aluminum
+  last_verified: '2025-01-29'
+  notes: Dual NVMe with USB4 speed. Add your own SSDs.
+- id: lexar-sl400-2tb
+  name: Lexar SL400 Portable SSD 2TB
+  brand: Lexar
+  model: LSL400P002T-RNNNU
+  category: ssd
+  tags:
+  - portable
+  - compact
+  - quiet
+  - usb-c
+  - travel
+  - value
+  use_cases:
+  - portable-working-drive
+  - travel-backup
+  - hot-storage-sync
+  pros:
+  - Very compact and lightweight
+  - Fast USB 3.2 Gen 2 speeds
+  - Good price/performance
+  - Aluminum housing
+  cons:
+  - Max 2TB capacity
+  - USB speeds only (no Thunderbolt)
+  specs:
+    capacity: 2TB
+    interface: USB-C 3.2 Gen 2
+    form_factor: portable
+    read_speed: 1050MB/s
+    write_speed: 1000MB/s
+  noise_db: 0
+  aesthetic_notes: Slim aluminum, gray
+  last_verified: '2025-01-29'
+  notes: Good value portable SSD. Popular for MacBook external storage.
+- id: lexar-sl500-2tb
+  name: Lexar SL500 Portable SSD 2TB
+  brand: Lexar
+  model: LSL500P002T-RNNNU
+  category: ssd
+  tags:
+  - portable
+  - compact
+  - quiet
+  - usb-c
+  - travel
+  - fast
+  use_cases:
+  - portable-working-drive
+  - travel-backup
+  - video-editing
+  pros:
+  - USB 3.2 Gen 2x2 speeds (2000 MB/s)
+  - Compact aluminum design
+  - Up to 4TB capacity
+  - Good for video editing
+  cons:
+  - Requires 20Gbps USB port for full speed
+  - More expensive than SL400
+  specs:
+    capacity: 2TB
+    interface: USB-C 3.2 Gen 2x2
+    form_factor: portable
+    read_speed: 2000MB/s
+    write_speed: 1800MB/s
+  noise_db: 0
+  aesthetic_notes: Slim aluminum, space gray
+  last_verified: '2025-01-29'
+  notes: Faster than SL400 if you have 20Gbps USB port.
+- id: lexar-sl500-4tb
+  name: Lexar SL500 Portable SSD 4TB
+  brand: Lexar
+  model: LSL500P004T-RNNNU
+  category: ssd
+  tags:
+  - portable
+  - compact
+  - quiet
+  - usb-c
+  - travel
+  - fast
+  - high-capacity
+  use_cases:
+  - portable-working-drive
+  - travel-backup
+  - video-editing
+  - media-archive
+  pros:
+  - 4TB portable capacity
+  - USB 3.2 Gen 2x2 speeds
+  - Compact form factor
+  - Good for large project files
+  cons:
+  - Expensive for capacity
+  - Needs 20Gbps port for full speed
+  specs:
+    capacity: 4TB
+    interface: USB-C 3.2 Gen 2x2
+    form_factor: portable
+    read_speed: 2000MB/s
+    write_speed: 1800MB/s
+  noise_db: 0
+  aesthetic_notes: Slim aluminum, space gray
+  last_verified: '2025-01-29'
+  notes: High capacity portable option.
+- id: orico-minitower-m435
+  name: ORICO MiniTower M435 Hybrid Storage
+  brand: ORICO
+  model: M435
+  category: enclosure
+  tags:
+  - mac-mini-stand
+  - hybrid
+  - nvme
+  - sata
+  - hdd
+  - raid
+  - usb-hub
+  use_cases:
+  - mac-mini-expansion
+  - nas-replacement
+  - hybrid-storage
+  - hdd-reuse
+  pros:
+  - Combines NVMe + 2x SATA in one unit
+  - RAID support (RAID0/1/JBOD) for SATA bays
+  - Reuse existing HDDs
+  - USB hub + SD card reader included
+  - Compact tower design
+  cons:
+  - 10Gbps max (USB, not Thunderbolt)
+  - HDDs will be audible when active
+  - Requires multiple drive types
+  specs:
+    bays: 3
+    interface: USB-C 3.2 Gen 2 (10Gbps)
+    nvme_slots: 1
+    sata_bays: 2
+    max_capacity_per_bay: 20TB (SATA), 4TB (NVMe)
+    form_factor: Tower
+    m4_mini_compatible: true
+    raid_support:
+    - JBOD
+    - RAID0
+    - RAID1
+    ports:
+    - 1x USB-A 3.2 (10Gbps)
+    - 3x USB-A 2.0 (480Mbps)
+    - 2x SD/TF card readers
+  retail_url: https://oricotechs.com/collections/mac-mini/products/minitower-hybrid-storage-system
+  noise_db: 0
+  aesthetic_notes: Silver aluminum, tower design
+  last_verified: '2026-01-30'
+  notes: Hybrid NVMe+HDD solution. Great for reusing existing HDDs while adding fast NVMe cache.
+- id: mediasonic-hfr7-su31ch
+  name: Mediasonic ProRaid 4-Bay USB 3.2
+  brand: Mediasonic
+  model: HFR7-SU31CH
+  category: enclosure
+  tags:
+  - 4-bay
+  - raid
+  - usb-c
+  - 3.5-inch
+  - 2.5-inch
+  use_cases:
+  - nas-replacement
+  - hdd-reuse
+  - hybrid-storage
+  - backup-array
+  pros:
+  - USB 3.2 Gen 2 (10Gbps)
+  - Hardware RAID controller
+  - Daisy chain support
+  - Supports 2.5" with bracket
+  cons:
+  - Fan noise when active
+  - External power required
+  - 3.5" form factor (bulky)
+  specs:
+    bays: 4
+    interface: USB-C 3.2 Gen 2 (10Gbps)
+    max_capacity_per_bay: 30TB
+    form_factor: 3.5in (2.5in with bracket)
+    raid_support:
+    - Single
+    - RAID0
+    - RAID1
+    daisy_chain: true
+  retail_url: https://mediasonicstore.com/products/mediasonic-raid-4-bay-3-5-sata-hard-drive-enclosure-usb-3-1-gen-2-10gbps-usb-3-1-hub-usb-type-c-hfr7-su31ch
+  noise_db: 30
+  last_verified: '2026-01-30'
+  notes: Solid 4-bay option. Can mix SSDs and HDDs. Fan runs when powered.
+- id: maiwo-k35274d-4bay
+  name: MAIWO 4-Bay RAID Enclosure
+  brand: MAIWO
+  model: K35274D
+  category: enclosure
+  tags:
+  - 4-bay
+  - raid
+  - usb-c
+  - 3.5-inch
+  - 2.5-inch
+  - budget
+  use_cases:
+  - nas-replacement
+  - hdd-reuse
+  - hybrid-storage
+  - backup-array
+  pros:
+  - 8 RAID modes
+  - Supports 2.5" and 3.5" drives
+  - Dual cooling fans
+  - Budget-friendly
+  cons:
+  - USB 3.1 Gen 1 (5Gbps) only
+  - Fan noise
+  - External power required
+  specs:
+    bays: 4
+    interface: USB-C 3.1 Gen 1 (5Gbps)
+    max_capacity_per_bay: 24TB
+    form_factor: 3.5in / 2.5in
+    raid_support:
+    - Normal
+    - RAID0
+    - RAID1
+    - RAID3
+    - RAID5
+    - RAID10
+    - Clone
+    - JBOD
+  noise_db: 35
+  last_verified: '2026-01-30'
+  notes: Budget 4-bay option. Good for backup arrays where speed isn't critical.
+- id: owc-mercury-elite-pro-quad
+  name: OWC Mercury Elite Pro Quad
+  brand: OWC
+  model: MEQCTJB000
+  category: enclosure
+  tags:
+  - 4-bay
+  - usb-c
+  - 3.5-inch
+  - 2.5-inch
+  - raid
+  - owc
+  - quality
+  use_cases:
+  - nas-replacement
+  - hdd-reuse
+  - hybrid-storage
+  - backup-array
+  - video-editing
+  pros:
+  - Mix 2.5" SSDs and 3.5" HDDs freely
+  - OWC build quality
+  - USB-C 10Gbps (plenty for SATA/HDD)
+  - SoftRAID available ($150 more)
+  - Quiet operation
+  cons:
+  - USB not Thunderbolt
+  - Fan noise under load
+  - External power brick
+  specs:
+    bays: 4
+    interface: USB-C 3.2 Gen 2 (10Gbps)
+    max_capacity_per_bay: 24TB
+    form_factor: 3.5in / 2.5in universal
+    raid_support:
+    - JBOD
+    - RAID0
+    - RAID1
+    - RAID4
+    - RAID5
+    - RAID10
+  retail_url: https://eshop.macsales.com/shop/owc-mercury-elite-pro-quad/raid-5
+  noise_db: 25
+  last_verified: '2026-01-30'
+  notes: Best value OWC 4-bay. $220 without SoftRAID, $370 with. Mix SSDs and HDDs.
+- id: sabrent-usbc-sata-enclosure
+  name: Sabrent USB-C 2.5" SATA Enclosure
+  brand: Sabrent
+  model: EC-UASP
+  category: enclosure
+  tags:
+  - single-bay
+  - usb-c
+  - 2.5-inch
+  - budget
+  - passive
+  - compact
+  use_cases:
+  - portable-backup
+  - simple-enclosure
+  - ssd-housing
+  pros:
+  - Cheap and simple
+  - Tool-free installation
+  - Passive cooling (silent)
+  - Compact
+  cons:
+  - Single drive only
+  - No RAID
+  - Basic plastic construction
+  specs:
+    bays: 1
+    interface: USB-C 3.2 (5Gbps)
+    max_capacity_per_bay: 8TB
+    form_factor: 2.5in
+  noise_db: 0
+  last_verified: '2026-01-30'
+  notes: Dead simple. Perfect for single SSD backup drive.
