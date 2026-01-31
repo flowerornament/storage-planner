@@ -39,7 +39,9 @@ sp doctor                         # Health check
 sp events -n 10                   # Recent audit log
 
 # Catalog management
+sp item add --url=<URL>           # Add from retailer URL (auto-fetch)
 sp item add <id> --name=... --category=... --specs='{...}'
+sp item import --json='{...}'     # Import from JSON (agent workflow)
 sp item list [--category=ssd] [--tags=nvme]
 sp item show <id> --prices        # Include price history
 sp item compare <id1> <id2>       # Side-by-side comparison
@@ -50,6 +52,7 @@ sp price add <item-id> --price=299 --condition=new --source=manual
 sp price show <item-id>           # Current prices by condition
 sp price history <item-id>        # Price trend
 sp price compare <id1> <id2>      # Compare prices
+sp price refresh --stale=7d       # Refresh stale prices
 
 # Configuration management
 sp config current                 # Show deployed configuration
@@ -83,6 +86,42 @@ sp prime                          # Get full context
 ```
 
 ### Adding Products to Catalog
+
+**Preferred: Add by URL** (auto-fetches specs and price if API keys available):
+
+```bash
+sp item add --url="https://www.bestbuy.com/site/samsung-870-evo-4tb/6405087.p"
+```
+
+**If API keys unavailable**, the CLI outputs a fallback with search query:
+
+```
+! Could not auto-fetch (reason: no API keys configured)
+Search manually for: samsung 870 evo 4tb
+```
+
+Then use `sp item import` with the data you find:
+
+```bash
+sp item import --json='{
+  "name": "Samsung 870 EVO 4TB",
+  "brand": "Samsung",
+  "category": "ssd",
+  "specs": {"capacity": "4TB", "interface": "SATA"},
+  "price": 289,
+  "source": "bestbuy"
+}'
+```
+
+**For agent-mode** (structured JSON fallback):
+
+```bash
+sp item add --url="https://amazon.com/dp/B089C5P5SX" --agent-mode
+```
+
+Returns JSON schema with search query and partial data for the agent to complete.
+
+**Manual add** (when you have all the details):
 
 ```bash
 sp item add samsung-870-evo-4tb \

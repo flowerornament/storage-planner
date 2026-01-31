@@ -33,6 +33,25 @@ sp events -e <id>       # Events for specific entity
 
 ### Add Items
 
+**By URL** (preferred - auto-fetches specs and price):
+
+```bash
+sp item add --url="https://www.bestbuy.com/site/samsung-870-evo-4tb/6405087.p"
+sp item add --url="https://amazon.com/dp/B089C5P5SX"
+sp item add --url="https://ebay.com/itm/123456789012"
+```
+
+Supported retailers: Amazon, Best Buy, eBay. Requires API keys for auto-fetch (see Environment Variables).
+
+**By identifier**:
+
+```bash
+sp item add --asin=B089C5P5SX              # Amazon ASIN
+sp item add --upc=887276458519             # Universal Product Code
+```
+
+**Manual** (all details provided):
+
 ```bash
 sp item add samsung-870-evo-4tb \
   --name="Samsung 870 EVO 4TB" \
@@ -41,6 +60,34 @@ sp item add samsung-870-evo-4tb \
   --specs='{"capacity":"4TB","read_speed":"560MB/s","write_speed":"530MB/s","interface":"SATA"}' \
   --tags=sata,ssd,2.5inch
 ```
+
+**Import from JSON** (agent workflow):
+
+```bash
+sp item import --json='{"name":"Samsung 870 EVO 4TB","category":"ssd","price":289}'
+echo '{"name":"...","category":"ssd"}' | sp item import --stdin
+sp item import --json='{...}' --id=custom-id    # Override generated ID
+```
+
+### Agent Fallback
+
+When API keys are unavailable, `--agent-mode` returns structured JSON:
+
+```bash
+sp item add --url="https://amazon.com/dp/B089C5P5SX" --agent-mode
+```
+
+Returns:
+```json
+{
+  "status": "fallback_required",
+  "search_query": "amazon product B089C5P5SX",
+  "schema": { "name": {...}, "category": {...}, ... },
+  "partial_data": { "identifiers": { "asin": "B089C5P5SX" } }
+}
+```
+
+The agent should search for the product, then call `sp item import --json='{...}'`.
 
 ### Query Items
 
@@ -80,8 +127,19 @@ Sources: `manual`, `ebay`, `bestbuy`, `amazon`, or any custom source name
 sp price show <item-id>               # Current prices by condition
 sp price history <item-id> -n 20      # Price trend
 sp price compare <id1> <id2>          # Compare prices across items
-sp price fetch --stale                # Refresh items with old prices (requires API keys)
 ```
+
+### Refresh Stale Prices
+
+```bash
+sp price refresh                      # Refresh items with prices older than 7 days
+sp price refresh --stale=14d          # Custom staleness threshold
+sp price refresh --all                # Refresh all items regardless of staleness
+sp price refresh --agent-mode         # Output JSON for agent consumption
+sp price refresh -n 10                # Limit to 10 items
+```
+
+When API keys are unavailable, outputs fallback instructions for manual update.
 
 ## Configuration Management
 
