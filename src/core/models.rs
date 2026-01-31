@@ -167,7 +167,7 @@ impl Price {
 }
 
 /// Where a price observation came from
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum PriceSource {
     Ebay,
@@ -175,16 +175,20 @@ pub enum PriceSource {
     Keepa,
     Amazon,
     Manual,
+    /// Custom source for retailers not in the known list
+    #[serde(untagged)]
+    Custom(String),
 }
 
 impl PriceSource {
-    pub fn as_str(&self) -> &'static str {
+    pub fn as_str(&self) -> String {
         match self {
-            Self::Ebay => "ebay",
-            Self::BestBuy => "bestbuy",
-            Self::Keepa => "keepa",
-            Self::Amazon => "amazon",
-            Self::Manual => "manual",
+            Self::Ebay => "ebay".to_string(),
+            Self::BestBuy => "bestbuy".to_string(),
+            Self::Keepa => "keepa".to_string(),
+            Self::Amazon => "amazon".to_string(),
+            Self::Manual => "manual".to_string(),
+            Self::Custom(s) => s.clone(),
         }
     }
 
@@ -194,7 +198,8 @@ impl PriceSource {
             "bestbuy" | "best_buy" => Self::BestBuy,
             "keepa" => Self::Keepa,
             "amazon" => Self::Amazon,
-            _ => Self::Manual,
+            "manual" => Self::Manual,
+            _ => Self::Custom(s.to_string()),
         }
     }
 }
@@ -599,6 +604,17 @@ mod tests {
         assert_eq!(PriceSource::Ebay.as_str(), "ebay");
         assert_eq!(PriceSource::from_str("ebay"), PriceSource::Ebay);
         assert_eq!(PriceSource::from_str("EBAY"), PriceSource::Ebay);
+    }
+
+    #[test]
+    fn test_price_source_custom() {
+        // Unknown sources should become Custom, not Manual
+        let custom = PriceSource::from_str("owc");
+        assert_eq!(custom, PriceSource::Custom("owc".to_string()));
+        assert_eq!(custom.as_str(), "owc");
+
+        // Manual should still work explicitly
+        assert_eq!(PriceSource::from_str("manual"), PriceSource::Manual);
     }
 
     #[test]

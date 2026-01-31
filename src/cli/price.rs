@@ -163,8 +163,8 @@ fn add(db_path: Utf8PathBuf, args: AddArgs, format: OutputFormat) -> Result<()> 
             serde_json::json!({
                 "item_id": args.item_id,
                 "price": args.price,
-                "source": source.as_str(),
-                "condition": condition.as_str(),
+                "source": price.source.as_str(),
+                "condition": price.condition.as_str(),
             }),
             &actor,
         )?;
@@ -181,8 +181,8 @@ fn add(db_path: Utf8PathBuf, args: AddArgs, format: OutputFormat) -> Result<()> 
                 style("✓").green(),
                 args.price,
                 args.item_id,
-                condition.as_str(),
-                source.as_str()
+                price.condition.as_str(),
+                price.source.as_str()
             );
         }
     }
@@ -473,7 +473,11 @@ fn print_price_summary(item_id: &str, item_name: &str, prices: &[Price]) {
 
 fn print_price_history(item_id: &str, prices: &[Price]) {
     if prices.is_empty() {
-        println!("{}", style("No price history available").dim());
+        println!("{}", style("No price history for this item").dim());
+        println!(
+            "Add prices with: {}",
+            style(format!("sp price add {} --price=X", item_id)).cyan()
+        );
         return;
     }
 

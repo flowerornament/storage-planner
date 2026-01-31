@@ -60,6 +60,8 @@ struct Summary {
     total_items: usize,
     total_cost: f64,
     total_capacity: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cost_per_tb: Option<f64>,
     passes: usize,
     warnings: usize,
     failures: usize,
@@ -113,19 +115,30 @@ pub fn run(db_path: Utf8PathBuf, args: AnalyzeArgs, format: OutputFormat) -> Res
     }
 
     // Calculate summary
-    let total_capacity = item_specs
+    let total_capacity_bytes: u64 = item_specs
         .iter()
         .filter_map(|(_, specs)| get_capacity(specs))
         .fold(0u64, |acc, cap| acc + cap.bytes);
 
+    let total_cost = config.total_cost();
+
+    // Calculate $/TB if we have both cost and capacity
+    let cost_per_tb = if total_cost > 0.0 && total_capacity_bytes > 0 {
+        let tb = total_capacity_bytes as f64 / Capacity::TB as f64;
+        Some(total_cost / tb)
+    } else {
+        None
+    };
+
     let summary = Summary {
         total_items: config.items.len(),
-        total_cost: config.total_cost(),
-        total_capacity: if total_capacity > 0 {
-            Some(Capacity::from_bytes(total_capacity).to_string())
+        total_cost,
+        total_capacity: if total_capacity_bytes > 0 {
+            Some(Capacity::from_bytes(total_capacity_bytes).to_string())
         } else {
             None
         },
+        cost_per_tb,
         passes: checks.iter().filter(|c| matches!(c.status, CheckStatus::Pass)).count(),
         warnings: checks.iter().filter(|c| matches!(c.status, CheckStatus::Warn)).count(),
         failures: checks.iter().filter(|c| matches!(c.status, CheckStatus::Fail)).count(),
@@ -361,6 +374,9 @@ fn print_analysis(result: &AnalysisResult) {
     }
     if let Some(ref cap) = result.summary.total_capacity {
         println!("  Capacity: {}", cap);
+    }
+    if let Some(cost_per_tb) = result.summary.cost_per_tb {
+        println!("  $/TB: ${:.2}", cost_per_tb);
     }
     println!();
 

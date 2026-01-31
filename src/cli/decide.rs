@@ -243,6 +243,8 @@ fn add_option(db_path: Utf8PathBuf, args: AddOptionArgs) -> Result<()> {
 }
 
 fn compare(_db_path: Utf8PathBuf, _args: CompareArgs, format: OutputFormat) -> Result<()> {
+    use crate::core::specs::{get_capacity, Capacity};
+
     let db = Database::open(&_db_path)?;
 
     let decision = get_active_decision(&db)?;
@@ -257,8 +259,11 @@ fn compare(_db_path: Utf8PathBuf, _args: CompareArgs, format: OutputFormat) -> R
         name: String,
         config_id: String,
         config_name: String,
-        item_count: usize,
+        item_count: u32,
         total_cost: f64,
+        total_capacity_bytes: u64,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        cost_per_tb: Option<f64>,
     }
 
     let mut options: Vec<OptionDetail> = Vec::new();
@@ -274,8 +279,34 @@ fn compare(_db_path: Utf8PathBuf, _args: CompareArgs, format: OutputFormat) -> R
             )
             .map_err(|_| anyhow::anyhow!("Configuration '{}' not found", config_id))?;
 
-        let item_count = config.items.len();
+        let item_count: u32 = config.items.iter().map(|i| i.quantity).sum();
         let total_cost = config.total_cost();
+
+        // Calculate total capacity from item specs
+        let mut total_capacity_bytes: u64 = 0;
+        for config_item in &config.items {
+            let specs_str: String = db
+                .conn()
+                .query_row(
+                    "SELECT specs FROM items WHERE id = ?1",
+                    [&config_item.item_id],
+                    |row| row.get(0),
+                )
+                .unwrap_or_else(|_| "{}".to_string());
+
+            let specs: serde_json::Value = serde_json::from_str(&specs_str).unwrap_or_default();
+            if let Some(cap) = get_capacity(&specs) {
+                total_capacity_bytes += cap.bytes * config_item.quantity as u64;
+            }
+        }
+
+        // Calculate $/TB if we have both cost and capacity
+        let cost_per_tb = if total_cost > 0.0 && total_capacity_bytes > 0 {
+            let tb = total_capacity_bytes as f64 / Capacity::TB as f64;
+            Some(total_cost / tb)
+        } else {
+            None
+        };
 
         options.push(OptionDetail {
             name: name.clone(),
@@ -283,6 +314,8 @@ fn compare(_db_path: Utf8PathBuf, _args: CompareArgs, format: OutputFormat) -> R
             config_name: config.name,
             item_count,
             total_cost,
+            total_capacity_bytes,
+            cost_per_tb,
         });
     }
 
@@ -306,29 +339,46 @@ fn compare(_db_path: Utf8PathBuf, _args: CompareArgs, format: OutputFormat) -> R
         OutputFormat::Text => {
             println!("{}", style("Decision: ").bold().cyan());
             println!("{}", decision.purpose);
-            println!("{}", style("─".repeat(60)).dim());
+            println!("{}", style("─".repeat(80)).dim());
             println!();
 
             println!(
-                "{:<15} {:<25} {:>6} {:>12}",
+                "{:<12} {:<20} {:>5} {:>10} {:>10} {:>10}",
                 style("OPTION").bold(),
                 style("CONFIGURATION").bold(),
                 style("ITEMS").bold(),
-                style("COST").bold()
+                style("CAPACITY").bold(),
+                style("COST").bold(),
+                style("$/TB").bold()
             );
-            println!("{}", style("─".repeat(60)).dim());
+            println!("{}", style("─".repeat(80)).dim());
 
             for opt in &options {
+                let capacity_str = if opt.total_capacity_bytes > 0 {
+                    Capacity::from_bytes(opt.total_capacity_bytes).to_string()
+                } else {
+                    "-".to_string()
+                };
+
+                let cost_str = if opt.total_cost > 0.0 {
+                    format!("${:.2}", opt.total_cost)
+                } else {
+                    "-".to_string()
+                };
+
+                let cost_per_tb_str = opt
+                    .cost_per_tb
+                    .map(|c| format!("${:.2}", c))
+                    .unwrap_or_else(|| "-".to_string());
+
                 println!(
-                    "{:<15} {:<25} {:>6} {:>12}",
-                    opt.name,
-                    truncate(&opt.config_name, 24),
+                    "{:<12} {:<20} {:>5} {:>10} {:>10} {:>10}",
+                    truncate(&opt.name, 11),
+                    truncate(&opt.config_name, 19),
                     opt.item_count,
-                    if opt.total_cost > 0.0 {
-                        format!("${:.2}", opt.total_cost)
-                    } else {
-                        "-".to_string()
-                    }
+                    capacity_str,
+                    cost_str,
+                    cost_per_tb_str
                 );
             }
         }
