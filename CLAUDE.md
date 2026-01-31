@@ -2,6 +2,35 @@
 
 CLI tool for **evaluating storage decisions** by modeling and analyzing storage/backup topologies. Pure function of YAML inputs.
 
+## First Thing: Understand the Current Decision
+
+Run these commands immediately to understand what we're working on:
+
+```bash
+# 1. What's deployed now?
+cat current.yaml | head -20
+
+# 2. What decision session is active?
+ls sessions/
+cat sessions/2026-01-30.yaml | head -60
+
+# 3. Analyze current problems
+.venv/bin/sp analyze all current.yaml 2>/dev/null || echo "CLI not installed - read YAML directly"
+```
+
+**Current situation (as of 2026-01-30):**
+- Deployed: Synology DS224+ NAS with 2×8TB IronWolf HDDs
+- Problem: NAS is too loud (32dB, limit is 30dB for home office)
+- Goal: Replace with silent SSD-based storage
+- Budget: ~$1000 hardware
+- Session: `sessions/2026-01-30.yaml` has 5 options being evaluated
+
+**Key questions to ask the user:**
+1. "Which option are you leaning toward?" (review session options first)
+2. "Are there any new constraints or requirements?"
+3. "Have prices changed significantly?" (session prices from 2026-01-30)
+4. "Ready to make a decision, or still exploring?"
+
 ## What This Tool Is For
 
 This tool helps you make informed storage decisions by:
