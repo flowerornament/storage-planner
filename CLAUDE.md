@@ -142,9 +142,11 @@ storage-planner/
 │   ├── cli/                  # Command implementations
 │   ├── domains/storage/      # Storage-specific analysis
 │   └── pricing/              # Price API integrations (stubs)
-├── python-archive/           # Old Python implementation (reference)
-├── catalog/                  # Legacy YAML catalog (migrate to DB)
-└── sessions/                 # Legacy decision sessions (migrate to DB)
+├── catalog/                  # Legacy YAML catalog (to migrate to DB)
+├── sessions/                 # Legacy decision sessions (to migrate)
+├── archive/                  # Legacy proposals/topologies (to migrate)
+├── current.yaml              # Legacy current config (to migrate)
+└── system.yaml               # Legacy system config (to migrate)
 ```
 
 ## Development
