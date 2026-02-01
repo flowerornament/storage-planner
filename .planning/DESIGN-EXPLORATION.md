@@ -666,5 +666,64 @@ From `bd --help`, key patterns we borrowed:
 
 ---
 
+## Meta-Observations
+
+### 1. We Over-Explored Decision Formalism
+
+We spent significant time on QOC (Questions, Options, Criteria), IBIS, AND-OR trees, and other formal decision frameworks before realizing: **the agent is already good at reasoning**. It just needs structured state and simple commands.
+
+The lesson: don't over-engineer decision tracking. A simple hierarchy (goal → questions → requirements) with links to topology versions is enough. The formalism is for the tool's internal bookkeeping, not the agent's reasoning.
+
+### 2. The Graph Model Needs Another Pass
+
+We said "nodes = equipment, edges = sync regimes" but sync regimes connect *volumes*, not nodes directly. This needs clarification:
+
+- **Option A**: Two graphs — physical (nodes + network links) and data flow (volumes + sync regimes)
+- **Option B**: Nodes contain volumes; sync regimes reference volumes; the "edge" is implicit
+- **Option C**: Volumes are the primary nodes; equipment is just a container
+
+The old Python model had nodes (with volumes) connected by links (network), plus sync regimes as a separate concept referencing volumes. That might be the right approach.
+
+### 3. Is This Overkill?
+
+Honest question: You need to replace a NAS. You could just... make the decision without a tool.
+
+The value here is partly:
+- The actual decision (replace NAS with what?)
+- Learning how to build agent-friendly decision-support tools
+- A prototype for general purchase/configuration assistance
+
+Worth being honest about the motivation. If it's primarily a learning exercise, that's fine — but shapes how much to invest in polish vs. exploration.
+
+### 4. Existing bd Issues May Be Obsolete
+
+There are 10 open issues in bd for this project:
+```
+○ storage-planner-58m [epic] Add System Topology Modeling
+○ storage-planner-5ie [task] Schema and core types
+○ storage-planner-j5d [task] Nodes and volumes CLI
+○ storage-planner-yun [task] Datasets and sync regimes CLI
+○ storage-planner-9ht [task] Topology analysis
+○ storage-planner-0kp [task] Integration with purchase workflow
+...
+```
+
+The design exploration might obsolete or reshape these. Before starting implementation, review `bd list` against the new model and update/close as appropriate.
+
+### 5. Test the Hypothesis Early
+
+The core hypothesis: **simple commands + rich output = agent can figure it out**.
+
+Before building everything, test this:
+1. Mock up `sp prime` output (the full context dump)
+2. Mock up `sp --help` (the command list)
+3. Give both to Claude in a fresh session
+4. Ask it to "continue working on the NAS replacement decision"
+5. See if it can figure out the workflow
+
+If the agent gets confused, the interface needs simplification. Validate before investing in implementation.
+
+---
+
 *Generated: 2026-02-01*
 *Context: Design exploration session for storage-planner v2*
