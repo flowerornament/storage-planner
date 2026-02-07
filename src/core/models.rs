@@ -20,13 +20,13 @@ pub struct Topology {
     pub name: String,
     pub description: String,
     pub parent_id: Option<String>,
-    pub is_active: bool,
+    pub tag: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
 impl Topology {
-    /// Create a new topology. Defaults: is_active=false, no parent.
+    /// Create a new topology. Defaults: tag=None, no parent.
     pub fn new(name: impl Into<String>, description: impl Into<String>) -> Self {
         let now = Utc::now();
         Self {
@@ -34,7 +34,7 @@ impl Topology {
             name: name.into(),
             description: description.into(),
             parent_id: None,
-            is_active: false,
+            tag: None,
             created_at: now,
             updated_at: now,
         }
@@ -42,14 +42,14 @@ impl Topology {
 
     pub fn insert(&self, tx: &Transaction) -> rusqlite::Result<()> {
         tx.execute(
-            "INSERT INTO topologies (id, name, description, parent_id, is_active, created_at, updated_at)
+            "INSERT INTO topologies (id, name, description, parent_id, tag, created_at, updated_at)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
             params![
                 self.id,
                 self.name,
                 self.description,
                 self.parent_id,
-                self.is_active as i32,
+                self.tag,
                 self.created_at.to_rfc3339(),
                 self.updated_at.to_rfc3339(),
             ],
@@ -65,7 +65,7 @@ impl Topology {
             name: row.get("name")?,
             description: row.get("description")?,
             parent_id: row.get("parent_id")?,
-            is_active: row.get::<_, i32>("is_active")? != 0,
+            tag: row.get("tag")?,
             created_at: DateTime::parse_from_rfc3339(&created_str)
                 .map(|dt| dt.with_timezone(&Utc))
                 .unwrap_or_else(|_| Utc::now()),
@@ -713,7 +713,7 @@ mod tests {
         let topo = Topology::new("my-setup", "Main storage topology");
         assert_eq!(topo.name, "my-setup");
         assert_eq!(topo.description, "Main storage topology");
-        assert!(!topo.is_active);
+        assert!(topo.tag.is_none());
         // UUID format: 8-4-4-4-12 hex chars
         assert_eq!(topo.id.len(), 36);
         assert_eq!(topo.id.chars().filter(|c| *c == '-').count(), 4);
@@ -733,7 +733,7 @@ mod tests {
         let loaded: Topology = db
             .conn()
             .query_row(
-                "SELECT id, name, description, parent_id, is_active, created_at, updated_at FROM topologies WHERE id = ?1",
+                "SELECT id, name, description, parent_id, tag, created_at, updated_at FROM topologies WHERE id = ?1",
                 [&topo.id],
                 Topology::from_row,
             )
@@ -742,7 +742,7 @@ mod tests {
         assert_eq!(loaded.id, topo.id);
         assert_eq!(loaded.name, "test-topo");
         assert_eq!(loaded.description, "A test topology");
-        assert!(!loaded.is_active);
+        assert!(loaded.tag.is_none());
         assert!(loaded.parent_id.is_none());
     }
 
@@ -794,7 +794,7 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(&json_str).unwrap();
         assert_eq!(parsed["name"], "json-test");
         assert_eq!(parsed["description"], "Testing JSON");
-        assert_eq!(parsed["is_active"], false);
+        assert!(parsed["tag"].is_null());
         assert!(parsed["id"].is_string());
     }
 

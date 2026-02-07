@@ -8,7 +8,7 @@ use rusqlite::{Connection, Transaction};
 use std::path::{Path, PathBuf};
 
 /// Current schema version. Bump this when adding new migrations.
-pub const CURRENT_VERSION: i32 = 1;
+pub const CURRENT_VERSION: i32 = 2;
 
 /// A single schema migration step.
 struct Migration {
@@ -18,10 +18,16 @@ struct Migration {
 
 /// All migrations in order. Each migration's SQL must end with
 /// `PRAGMA user_version = N;` to record its version.
-const MIGRATIONS: &[Migration] = &[Migration {
-    version: 1,
-    sql: SCHEMA_V1,
-}];
+const MIGRATIONS: &[Migration] = &[
+    Migration {
+        version: 1,
+        sql: SCHEMA_V1,
+    },
+    Migration {
+        version: 2,
+        sql: SCHEMA_V2,
+    },
+];
 
 /// Database wrapper providing atomic transactions and migrations
 pub struct Database {
@@ -273,6 +279,19 @@ CREATE INDEX idx_sync_regimes_dataset ON sync_regimes(dataset_id);
 PRAGMA user_version = 1;
 "#;
 
+/// Phase 3 schema (version 2): Replace is_active boolean with tag-based lifecycle
+///
+/// Tags: "current" (was is_active=1), "exploring", "archived", or NULL.
+/// Partial unique index enforces at most one "current" topology.
+const SCHEMA_V2: &str = r#"
+ALTER TABLE topologies ADD COLUMN tag TEXT DEFAULT NULL;
+UPDATE topologies SET tag = 'current' WHERE is_active = 1;
+ALTER TABLE topologies DROP COLUMN is_active;
+CREATE UNIQUE INDEX idx_topologies_current ON topologies(tag) WHERE tag = 'current';
+
+PRAGMA user_version = 2;
+"#;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -391,6 +410,57 @@ mod tests {
             )
             .unwrap();
         assert_eq!(seq, 0);
+    }
+
+    #[test]
+    fn test_migration_v2_tag_column() {
+        // Create a v1 database manually
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        conn.execute_batch(SCHEMA_V1).unwrap();
+
+        // Insert a topology with is_active=1
+        conn.execute(
+            "INSERT INTO topologies (id, name, is_active) VALUES ('t1', 'active-topo', 1)",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO topologies (id, name, is_active) VALUES ('t2', 'inactive-topo', 0)",
+            [],
+        )
+        .unwrap();
+
+        // Apply migration v2
+        conn.execute_batch(SCHEMA_V2).unwrap();
+
+        // Verify the tag column exists with correct values
+        let tag1: Option<String> = conn
+            .query_row("SELECT tag FROM topologies WHERE id = 't1'", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(tag1, Some("current".to_string()));
+
+        let tag2: Option<String> = conn
+            .query_row("SELECT tag FROM topologies WHERE id = 't2'", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(tag2, None);
+
+        // Verify partial unique index prevents two 'current' tags
+        let result = conn.execute(
+            "UPDATE topologies SET tag = 'current' WHERE id = 't2'",
+            [],
+        );
+        assert!(result.is_err(), "Partial unique index should prevent two 'current' tags");
+
+        // Verify version is 2
+        let version: i32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 2);
     }
 
     #[test]
