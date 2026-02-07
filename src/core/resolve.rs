@@ -35,7 +35,7 @@ pub fn validate_slug(name: &str) -> Result<()> {
 /// Resolve the active topology, or the one specified by `--topology` override.
 ///
 /// If `override_name` is Some, resolves that topology by name-or-ID.
-/// Otherwise, finds the topology where `is_active = 1`.
+/// Otherwise, finds the topology where `tag = 'current'`.
 pub fn resolve_active_topology(db: &Database, override_name: Option<&str>) -> Result<Topology> {
     if let Some(name) = override_name {
         return resolve_topology(db, name);
@@ -43,8 +43,8 @@ pub fn resolve_active_topology(db: &Database, override_name: Option<&str>) -> Re
 
     db.conn()
         .query_row(
-            "SELECT id, name, description, parent_id, is_active, created_at, updated_at \
-             FROM topologies WHERE is_active = 1",
+            "SELECT id, name, description, parent_id, tag, created_at, updated_at \
+             FROM topologies WHERE tag = 'current'",
             [],
             Topology::from_row,
         )
@@ -62,7 +62,7 @@ pub fn resolve_active_topology(db: &Database, override_name: Option<&str>) -> Re
 pub fn resolve_topology(db: &Database, name_or_id: &str) -> Result<Topology> {
     // Try exact name match first
     let name_result = db.conn().query_row(
-        "SELECT id, name, description, parent_id, is_active, created_at, updated_at \
+        "SELECT id, name, description, parent_id, tag, created_at, updated_at \
          FROM topologies WHERE name = ?1",
         params![name_or_id],
         Topology::from_row,
@@ -82,7 +82,7 @@ pub fn resolve_topology(db: &Database, name_or_id: &str) -> Result<Topology> {
 
     let pattern = format!("{}%", name_or_id);
     let mut stmt = db.conn().prepare(
-        "SELECT id, name, description, parent_id, is_active, created_at, updated_at \
+        "SELECT id, name, description, parent_id, tag, created_at, updated_at \
          FROM topologies WHERE id LIKE ?1",
     )?;
 
@@ -443,7 +443,7 @@ mod tests {
     fn test_resolve_active_topology() {
         let mut db = setup_db();
         let mut topo = Topology::new("active-one", "Active topology");
-        topo.is_active = true;
+        topo.tag = Some("current".to_string());
 
         db.transaction(|tx| {
             topo.insert(tx)?;
@@ -453,14 +453,14 @@ mod tests {
 
         let resolved = resolve_active_topology(&db, None).unwrap();
         assert_eq!(resolved.id, topo.id);
-        assert!(resolved.is_active);
+        assert_eq!(resolved.tag.as_deref(), Some("current"));
     }
 
     #[test]
     fn test_resolve_active_topology_with_override() {
         let mut db = setup_db();
         let mut topo1 = Topology::new("active-one", "Active");
-        topo1.is_active = true;
+        topo1.tag = Some("current".to_string());
         let topo2 = Topology::new("other-one", "Not active");
 
         db.transaction(|tx| {

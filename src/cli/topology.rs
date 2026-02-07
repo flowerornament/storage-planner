@@ -55,9 +55,23 @@ pub enum TopologyCommands {
         rename: Option<String>,
     },
 
-    /// Set a topology as the active topology
+    /// Set a topology as the active topology (deprecated: use 'tag' instead)
     SetActive {
         /// Topology name or ID prefix to activate
+        name: String,
+    },
+
+    /// Tag a topology with a lifecycle state
+    Tag {
+        /// Topology name or ID prefix
+        name: String,
+        /// Tag to apply: current, exploring, or archived
+        tag: String,
+    },
+
+    /// Remove a topology's tag
+    Untag {
+        /// Topology name or ID prefix
         name: String,
     },
 
@@ -79,6 +93,11 @@ pub fn run(cmd: TopologyCommands, db: &mut Database, format: OutputFormat) -> Re
             rename,
         } => update(db, &name, description.as_deref(), rename.as_deref(), format),
         TopologyCommands::SetActive { name } => set_active(db, &name),
+        TopologyCommands::Tag {
+            name,
+            tag: tag_value,
+        } => tag(db, &name, &tag_value, format),
+        TopologyCommands::Untag { name } => untag(db, &name, format),
         TopologyCommands::Delete { name } => delete(db, &name),
     }
 }
@@ -92,15 +111,15 @@ fn create(db: &mut Database, name: &str, description: &str, format: OutputFormat
     let topo_name = topo.name.clone();
 
     db.transaction(|tx| {
-        // Check if this is the first topology -- if so, make it active
+        // Check if this is the first topology -- if so, tag it as current
         let count: i64 = tx.query_row("SELECT COUNT(*) FROM topologies", [], |row| row.get(0))?;
 
         let mut topo = topo;
         if count == 0 {
-            topo.is_active = true;
+            topo.tag = Some("current".to_string());
         }
 
-        // Re-compute after_state with potentially updated is_active
+        // Re-compute after_state with potentially updated tag
         let after_json = if count == 0 {
             topo.to_json()?
         } else {
@@ -143,7 +162,7 @@ fn create(db: &mut Database, name: &str, description: &str, format: OutputFormat
 
 fn list(db: &mut Database, format: OutputFormat) -> Result<()> {
     let mut stmt = db.conn().prepare(
-        "SELECT id, name, description, parent_id, is_active, created_at, updated_at FROM topologies ORDER BY name",
+        "SELECT id, name, description, parent_id, tag, created_at, updated_at FROM topologies ORDER BY name",
     )?;
 
     let topologies: Vec<Topology> = stmt
@@ -156,13 +175,17 @@ fn list(db: &mut Database, format: OutputFormat) -> Result<()> {
                 println!("No topologies found. Create one with 'sp topology create <name>'");
             } else {
                 for topo in &topologies {
-                    let active = if topo.is_active { " (active)" } else { "" };
+                    let tag_str = topo
+                        .tag
+                        .as_ref()
+                        .map(|t| format!(" [{}]", t))
+                        .unwrap_or_default();
                     let desc = if topo.description.is_empty() {
                         String::new()
                     } else {
                         format!(" - {}", topo.description)
                     };
-                    println!("  {}{}{}", topo.name, active, desc);
+                    println!("  {}{}{}", topo.name, tag_str, desc);
                 }
             }
         }
@@ -174,7 +197,7 @@ fn list(db: &mut Database, format: OutputFormat) -> Result<()> {
                         "id": t.id,
                         "name": t.name,
                         "description": t.description,
-                        "is_active": t.is_active,
+                        "tag": t.tag,
                         "created_at": t.created_at.to_rfc3339(),
                     })
                 })
@@ -206,11 +229,35 @@ fn show(db: &mut Database, name: &str, tree: bool, format: OutputFormat) -> Resu
         |row| row.get(0),
     )?;
 
+    // Get parent info and fork count
+    let parent_name: Option<String> = topo.parent_id.as_ref().and_then(|pid| {
+        db.conn()
+            .query_row("SELECT name FROM topologies WHERE id = ?1", [pid], |row| {
+                row.get(0)
+            })
+            .ok()
+    });
+    let fork_count: i64 = db.conn().query_row(
+        "SELECT COUNT(*) FROM topologies WHERE parent_id = ?1",
+        [&topo.id],
+        |row| row.get(0),
+    )?;
+
     match format {
         OutputFormat::Text => {
-            let active = if topo.is_active { " (active)" } else { "" };
-            println!("Topology: {}{}", topo.name, active);
+            let tag_str = topo
+                .tag
+                .as_ref()
+                .map(|t| format!(" [{}]", t))
+                .unwrap_or_default();
+            println!("Topology: {}{}", topo.name, tag_str);
             println!("  Description: {}", topo.description);
+            if let Some(ref pname) = parent_name {
+                println!("  Forked from: {}", pname);
+            }
+            if fork_count > 0 {
+                println!("  Forks: {}", fork_count);
+            }
             println!(
                 "  Nodes: {} | Volumes: {} | Datasets: {}",
                 node_count, volume_count, dataset_count
@@ -460,26 +507,29 @@ fn set_active(db: &mut Database, name: &str) -> Result<()> {
     let topo = resolve_topology(db, name)?;
     let topo_name = topo.name.clone();
 
-    if topo.is_active {
-        bail!("Topology '{}' is already active", topo_name);
+    if topo.tag.as_deref() == Some("current") {
+        bail!("Topology '{}' is already the current topology", topo_name);
     }
 
     let before_json = topo.to_json()?;
     let topo_id = topo.id.clone();
 
     db.transaction(|tx| {
-        // Deactivate all topologies
-        tx.execute("UPDATE topologies SET is_active = 0", [])?;
-
-        // Activate the target
+        // Clear any existing current tag
         tx.execute(
-            "UPDATE topologies SET is_active = 1, updated_at = datetime('now') WHERE id = ?1",
+            "UPDATE topologies SET tag = NULL, updated_at = datetime('now') WHERE tag = 'current'",
+            [],
+        )?;
+
+        // Tag the target as current
+        tx.execute(
+            "UPDATE topologies SET tag = 'current', updated_at = datetime('now') WHERE id = ?1",
             [&topo_id],
         )?;
 
         // Build after state
         let mut after = topo.clone();
-        after.is_active = true;
+        after.tag = Some("current".to_string());
         let after_json = after.to_json()?;
 
         record_event(
@@ -487,7 +537,7 @@ fn set_active(db: &mut Database, name: &str) -> Result<()> {
             "topology.updated",
             "topology",
             &topo_id,
-            &format!("Set topology '{}' as active", topo_name),
+            &format!("Set topology '{}' as current", topo_name),
             Some(&before_json),
             Some(&after_json),
             &EventSource::User,
@@ -496,7 +546,136 @@ fn set_active(db: &mut Database, name: &str) -> Result<()> {
         Ok(())
     })?;
 
-    println!("Set topology '{}' as active", topo_name);
+    eprintln!(
+        "Note: 'set-active' is deprecated. Use 'sp topology tag {} current' instead.",
+        topo_name
+    );
+    println!("Set topology '{}' as current", topo_name);
+    Ok(())
+}
+
+fn tag(db: &mut Database, name: &str, tag_value: &str, format: OutputFormat) -> Result<()> {
+    // Validate tag value
+    match tag_value {
+        "current" | "exploring" | "archived" => {}
+        _ => bail!(
+            "Invalid tag '{}'. Must be one of: current, exploring, archived",
+            tag_value
+        ),
+    }
+
+    // Resolve outside transaction
+    let topo = resolve_topology(db, name)?;
+    let before_json = topo.to_json()?;
+    let topo_id = topo.id.clone();
+    let topo_name = topo.name.clone();
+
+    db.transaction(|tx| {
+        // If tagging as "current", first clear any existing current
+        if tag_value == "current" {
+            tx.execute(
+                "UPDATE topologies SET tag = NULL, updated_at = datetime('now') WHERE tag = 'current'",
+                [],
+            )?;
+        }
+
+        // Set the tag
+        tx.execute(
+            "UPDATE topologies SET tag = ?1, updated_at = datetime('now') WHERE id = ?2",
+            params![tag_value, topo_id],
+        )?;
+
+        // Build after state
+        let mut after = topo.clone();
+        after.tag = Some(tag_value.to_string());
+        let after_json = after.to_json()?;
+
+        record_event(
+            tx,
+            "topology.updated",
+            "topology",
+            &topo_id,
+            &format!("Tagged topology '{}' as '{}'", topo_name, tag_value),
+            Some(&before_json),
+            Some(&after_json),
+            &EventSource::User,
+        )?;
+
+        Ok(())
+    })?;
+
+    match format {
+        OutputFormat::Text => {
+            println!("Tagged topology '{}' as [{}]", topo_name, tag_value);
+        }
+        OutputFormat::Json => {
+            let json = serde_json::json!({
+                "action": "tagged",
+                "topology": topo_name,
+                "id": topo_id,
+                "tag": tag_value,
+            });
+            println!("{}", serde_json::to_string_pretty(&json)?);
+        }
+    }
+
+    Ok(())
+}
+
+fn untag(db: &mut Database, name: &str, format: OutputFormat) -> Result<()> {
+    // Resolve outside transaction
+    let topo = resolve_topology(db, name)?;
+    let topo_name = topo.name.clone();
+
+    if topo.tag.is_none() {
+        bail!("Topology '{}' has no tag", topo_name);
+    }
+
+    let before_json = topo.to_json()?;
+    let topo_id = topo.id.clone();
+    let old_tag = topo.tag.clone().unwrap();
+
+    db.transaction(|tx| {
+        // Clear the tag
+        tx.execute(
+            "UPDATE topologies SET tag = NULL, updated_at = datetime('now') WHERE id = ?1",
+            [&topo_id],
+        )?;
+
+        // Build after state
+        let mut after = topo.clone();
+        after.tag = None;
+        let after_json = after.to_json()?;
+
+        record_event(
+            tx,
+            "topology.updated",
+            "topology",
+            &topo_id,
+            &format!("Removed tag '{}' from topology '{}'", old_tag, topo_name),
+            Some(&before_json),
+            Some(&after_json),
+            &EventSource::User,
+        )?;
+
+        Ok(())
+    })?;
+
+    match format {
+        OutputFormat::Text => {
+            println!("Removed tag [{}] from topology '{}'", old_tag, topo_name);
+        }
+        OutputFormat::Json => {
+            let json = serde_json::json!({
+                "action": "untagged",
+                "topology": topo_name,
+                "id": topo_id,
+                "previous_tag": old_tag,
+            });
+            println!("{}", serde_json::to_string_pretty(&json)?);
+        }
+    }
+
     Ok(())
 }
 
