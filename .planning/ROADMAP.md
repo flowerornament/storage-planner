@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Schema and Core Types** - Database foundation for topology modeling (REWRITE)
 - [x] **Phase 2: CLI Scaffolding and Basic Commands** - Usable topology management
 - [x] **Phase 3: Topology Versioning** - Fork, tag, and diff topologies
-- [ ] **Phase 4: Analysis Functions** - Redundancy, failure sim, RPO, capacity
+- [x] **Phase 4: Analysis Functions** - Redundancy, failure sim, RPO, capacity
 - [ ] **Phase 5: Decision Integration** - Link decisions to topologies
 - [ ] **Phase 6: Cost and Context** - Cost analysis and AI context features
 
@@ -83,8 +83,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md -- Analysis engine with redundancy and capacity commands (result types, pure functions, CLI wiring)
-- [ ] 04-02-PLAN.md -- RPO compliance, failure simulation, and combined dashboard command
+- [x] 04-01-PLAN.md -- Analysis engine with redundancy and capacity commands (result types, pure functions, CLI wiring)
+- [x] 04-02-PLAN.md -- RPO compliance, failure simulation, and combined dashboard command
 
 ### Phase 5: Decision Integration
 **Goal**: Users can track decisions with topology comparisons and constraint checking
@@ -128,7 +128,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 1. Schema and Core Types | 2/2 | Complete | 2026-02-07 |
 | 2. CLI Scaffolding and Basic Commands | 4/4 | Complete | 2026-02-07 |
 | 3. Topology Versioning | 3/3 | Complete | 2026-02-07 |
-| 4. Analysis Functions | 0/2 | Planning complete | - |
+| 4. Analysis Functions | 2/2 | Complete | 2026-02-07 |
 | 5. Decision Integration | 0/TBD | Not started | - |
 | 6. Cost and Context | 0/TBD | Not started | - |
 
