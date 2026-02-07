@@ -5,6 +5,10 @@
 use anyhow::Result;
 use clap::Subcommand;
 
+use crate::core::db::Database;
+
+use super::OutputFormat;
+
 #[derive(Subcommand)]
 pub enum LinkCommands {
     /// Add a network link between two nodes
@@ -28,30 +32,46 @@ pub enum LinkCommands {
         /// Whether the connection is metered
         #[arg(long)]
         metered: bool,
+
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
     },
 
     /// List links in the active topology
-    List,
+    List {
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
+    },
 
     /// Show details of a specific link
     Show {
         /// Link identifier (source--target)
         name: String,
+
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
     },
 
     /// Remove a link between nodes
     Remove {
         /// Link identifier (source--target)
         name: String,
+
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
     },
 }
 
-pub fn run(cmd: LinkCommands) -> Result<()> {
+pub fn run(cmd: LinkCommands, _db: &mut Database, _format: OutputFormat) -> Result<()> {
     match cmd {
         LinkCommands::Add { .. } => {
             println!("Link commands coming in Phase 2.");
         }
-        LinkCommands::List => {
+        LinkCommands::List { .. } => {
             println!("Link commands coming in Phase 2.");
         }
         LinkCommands::Show { .. } => {

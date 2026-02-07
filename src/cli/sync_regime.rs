@@ -5,6 +5,10 @@
 use anyhow::Result;
 use clap::Subcommand;
 
+use crate::core::db::Database;
+
+use super::OutputFormat;
+
 #[derive(Subcommand)]
 pub enum SyncCommands {
     /// Add a sync regime for a dataset between two volumes
@@ -31,30 +35,46 @@ pub enum SyncCommands {
         /// Sync schedule (cron expression)
         #[arg(long)]
         schedule: Option<String>,
+
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
     },
 
     /// List sync regimes in the active topology
-    List,
+    List {
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
+    },
 
     /// Show details of a specific sync regime
     Show {
-        /// Sync regime name
+        /// Sync regime name or ID
         name: String,
+
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
     },
 
     /// Remove a sync regime
     Remove {
-        /// Sync regime name to remove
+        /// Sync regime name or ID to remove
         name: String,
+
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
     },
 }
 
-pub fn run(cmd: SyncCommands) -> Result<()> {
+pub fn run(cmd: SyncCommands, _db: &mut Database, _format: OutputFormat) -> Result<()> {
     match cmd {
         SyncCommands::Add { .. } => {
             println!("Sync commands coming in Phase 2.");
         }
-        SyncCommands::List => {
+        SyncCommands::List { .. } => {
             println!("Sync commands coming in Phase 2.");
         }
         SyncCommands::Show { .. } => {

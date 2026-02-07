@@ -9,6 +9,7 @@
 //!   sp node ...          - Node management (Phase 2)
 //!   sp volume ...        - Volume management (Phase 2)
 //!   sp dataset ...       - Dataset management (Phase 2)
+//!   sp placement ...     - Placement management (Phase 2)
 //!   sp link ...          - Link management (Phase 2)
 //!   sp sync ...          - Sync regime management (Phase 2)
 //!   sp undo              - Undo last action
@@ -24,6 +25,7 @@ mod dataset;
 mod init;
 mod link;
 mod node;
+mod placement;
 mod redo;
 mod sync_regime;
 mod topology;
@@ -71,6 +73,10 @@ pub enum Commands {
     #[command(subcommand)]
     Dataset(dataset::DatasetCommands),
 
+    /// Manage dataset placements on volumes
+    #[command(subcommand)]
+    Placement(placement::PlacementCommands),
+
     /// Manage network links between nodes
     #[command(subcommand)]
     Link(link::LinkCommands),
@@ -116,11 +122,30 @@ impl Cli {
                 let mut db = open_db(&db_path)?;
                 topology::run(cmd, &mut db, format)
             }
-            Commands::Node(cmd) => node::run(cmd),
-            Commands::Volume(cmd) => volume::run(cmd),
-            Commands::Dataset(cmd) => dataset::run(cmd),
-            Commands::Link(cmd) => link::run(cmd),
-            Commands::Sync(cmd) => sync_regime::run(cmd),
+            Commands::Node(cmd) => {
+                let mut db = open_db(&db_path)?;
+                node::run(cmd, &mut db, format)
+            }
+            Commands::Volume(cmd) => {
+                let mut db = open_db(&db_path)?;
+                volume::run(cmd, &mut db, format)
+            }
+            Commands::Dataset(cmd) => {
+                let mut db = open_db(&db_path)?;
+                dataset::run(cmd, &mut db, format)
+            }
+            Commands::Placement(cmd) => {
+                let mut db = open_db(&db_path)?;
+                placement::run(cmd, &mut db, format)
+            }
+            Commands::Link(cmd) => {
+                let mut db = open_db(&db_path)?;
+                link::run(cmd, &mut db, format)
+            }
+            Commands::Sync(cmd) => {
+                let mut db = open_db(&db_path)?;
+                sync_regime::run(cmd, &mut db, format)
+            }
             Commands::Undo => {
                 let mut db = open_db(&db_path)?;
                 undo::run(&mut db)

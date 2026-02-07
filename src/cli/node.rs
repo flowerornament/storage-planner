@@ -5,6 +5,10 @@
 use anyhow::Result;
 use clap::Subcommand;
 
+use crate::core::db::Database;
+
+use super::OutputFormat;
+
 #[derive(Subcommand)]
 pub enum NodeCommands {
     /// Add a compute node to the active topology
@@ -23,30 +27,46 @@ pub enum NodeCommands {
         /// Number of available drive bays
         #[arg(long)]
         bays: Option<i32>,
+
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
     },
 
     /// List nodes in the active topology
-    List,
+    List {
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
+    },
 
     /// Show details of a specific node
     Show {
-        /// Node name
+        /// Node name or ID
         name: String,
+
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
     },
 
     /// Remove a node (and its volumes) from the active topology
     Remove {
-        /// Node name to remove
+        /// Node name or ID to remove
         name: String,
+
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
     },
 }
 
-pub fn run(cmd: NodeCommands) -> Result<()> {
+pub fn run(cmd: NodeCommands, _db: &mut Database, _format: OutputFormat) -> Result<()> {
     match cmd {
         NodeCommands::Add { .. } => {
             println!("Node commands coming in Phase 2.");
         }
-        NodeCommands::List => {
+        NodeCommands::List { .. } => {
             println!("Node commands coming in Phase 2.");
         }
         NodeCommands::Show { .. } => {

@@ -8,4 +8,5 @@
 pub mod db;
 pub mod events;
 pub mod models;
+pub mod resolve;
 pub mod specs;

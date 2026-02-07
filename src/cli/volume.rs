@@ -5,6 +5,10 @@
 use anyhow::Result;
 use clap::Subcommand;
 
+use crate::core::db::Database;
+
+use super::OutputFormat;
+
 #[derive(Subcommand)]
 pub enum VolumeCommands {
     /// Add a storage volume to a node
@@ -27,30 +31,46 @@ pub enum VolumeCommands {
         /// RAID level if applicable (e.g., raid1, raid5, raidz2)
         #[arg(long)]
         raid: Option<String>,
+
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
     },
 
     /// List volumes in the active topology
-    List,
+    List {
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
+    },
 
     /// Show details of a specific volume
     Show {
-        /// Volume name
+        /// Volume name or ID
         name: String,
+
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
     },
 
     /// Remove a volume from a node
     Remove {
-        /// Volume name to remove
+        /// Volume name or ID to remove
         name: String,
+
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
     },
 }
 
-pub fn run(cmd: VolumeCommands) -> Result<()> {
+pub fn run(cmd: VolumeCommands, _db: &mut Database, _format: OutputFormat) -> Result<()> {
     match cmd {
         VolumeCommands::Add { .. } => {
             println!("Volume commands coming in Phase 2.");
         }
-        VolumeCommands::List => {
+        VolumeCommands::List { .. } => {
             println!("Volume commands coming in Phase 2.");
         }
         VolumeCommands::Show { .. } => {
