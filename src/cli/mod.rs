@@ -12,6 +12,7 @@
 //!   sp placement ...     - Placement management (Phase 2)
 //!   sp link ...          - Link management (Phase 2)
 //!   sp sync ...          - Sync regime management (Phase 2)
+//!   sp analyze ...       - Run analysis reports (Phase 4)
 //!   sp undo              - Undo last action
 //!   sp redo              - Redo last undone action
 
@@ -21,6 +22,7 @@ use std::path::{Path, PathBuf};
 
 use crate::core::db::Database;
 
+mod analyze;
 mod dataset;
 mod init;
 mod link;
@@ -85,6 +87,10 @@ pub enum Commands {
     #[command(subcommand)]
     Sync(sync_regime::SyncCommands),
 
+    /// Run analysis reports against topology data
+    #[command(subcommand)]
+    Analyze(analyze::AnalyzeCommands),
+
     /// Undo the last action
     Undo,
 
@@ -145,6 +151,10 @@ impl Cli {
             Commands::Sync(cmd) => {
                 let mut db = open_db(&db_path)?;
                 sync_regime::run(cmd, &mut db, format)
+            }
+            Commands::Analyze(cmd) => {
+                let mut db = open_db(&db_path)?;
+                analyze::run(cmd, &mut db, format)
             }
             Commands::Undo => {
                 let mut db = open_db(&db_path)?;
