@@ -78,11 +78,11 @@
 
 ### Infrastructure (INFRA)
 
-- [ ] **INFRA-01**: Database schema with all tables (topologies, nodes, volumes, datasets, etc.)
-- [ ] **INFRA-02**: Schema migration tracking (PRAGMA user_version)
+- [x] **INFRA-01**: Database schema with all tables (topologies, nodes, volumes, datasets, etc.)
+- [x] **INFRA-02**: Schema migration tracking (PRAGMA user_version)
 - [ ] **INFRA-03**: Global --format flag (human, json) on all commands
-- [ ] **INFRA-04**: Nested CLI structure (App + Command enum)
-- [ ] **INFRA-05**: Event logging for significant actions
+- [x] **INFRA-04**: Nested CLI structure (App + Command enum)
+- [x] **INFRA-05**: Event logging for significant actions
 
 ## v2 Requirements
 
@@ -119,10 +119,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFRA-01 | Phase 1 | Pending |
-| INFRA-02 | Phase 1 | Pending |
-| INFRA-04 | Phase 1 | Pending |
-| INFRA-05 | Phase 1 | Pending |
+| INFRA-01 | Phase 1 | Complete |
+| INFRA-02 | Phase 1 | Complete |
+| INFRA-04 | Phase 1 | Complete |
+| INFRA-05 | Phase 1 | Complete |
 | TOPO-01 | Phase 2 | Pending |
 | TOPO-03 | Phase 2 | Pending |
 | TOPO-04 | Phase 2 | Pending |

@@ -12,7 +12,7 @@ Storage Planner transforms an existing purchase decision CLI into a topology-awa
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Schema and Core Types** - Database foundation for topology modeling (REWRITE)
+- [x] **Phase 1: Schema and Core Types** - Database foundation for topology modeling (REWRITE)
 - [ ] **Phase 2: CLI Scaffolding and Basic Commands** - Usable topology management
 - [ ] **Phase 3: Topology Versioning** - Fork, tag, and diff topologies
 - [ ] **Phase 4: Analysis Functions** - Redundancy, failure sim, RPO, capacity
@@ -33,8 +33,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md -- Database layer with migration system, schema DDL, all topology model structs
-- [ ] 01-02-PLAN.md -- Event system with undo/redo engine, CLI scaffold with topology CRUD and placeholder commands
+- [x] 01-01-PLAN.md -- Database layer with migration system, schema DDL, all topology model structs
+- [x] 01-02-PLAN.md -- Event system with undo/redo engine, CLI scaffold with topology CRUD and placeholder commands
 
 ### Phase 2: CLI Scaffolding and Basic Commands
 **Goal**: Users can create and populate topologies with nodes, volumes, datasets, and sync regimes
@@ -119,7 +119,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Schema and Core Types | 0/2 | Planning complete | - |
+| 1. Schema and Core Types | 2/2 | Complete | 2026-02-07 |
 | 2. CLI Scaffolding and Basic Commands | 0/TBD | Not started | - |
 | 3. Topology Versioning | 0/TBD | Not started | - |
 | 4. Analysis Functions | 0/TBD | Not started | - |
