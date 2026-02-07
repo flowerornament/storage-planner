@@ -64,10 +64,12 @@ Plans:
   3. Only one topology can have the "current" tag at a time (enforced)
   4. User can diff two topologies to see what changed
   5. Global --format flag works on all commands (human, json)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: TBD
+- [ ] 03-01-PLAN.md -- Schema migration v2 (tag replaces is_active), tag/untag commands, list/show updates
+- [ ] 03-02-PLAN.md -- Fork command with deep copy and ID remapping for all 6 entity types
+- [ ] 03-03-PLAN.md -- Diff engine with field-level detail and entity filtering, lineage tree and log commands
 
 ### Phase 4: Analysis Functions
 **Goal**: Users can analyze topologies for redundancy, failures, RPO compliance, and capacity
@@ -124,7 +126,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 |-------|----------------|--------|-----------|
 | 1. Schema and Core Types | 2/2 | Complete | 2026-02-07 |
 | 2. CLI Scaffolding and Basic Commands | 4/4 | Complete | 2026-02-07 |
-| 3. Topology Versioning | 0/TBD | Not started | - |
+| 3. Topology Versioning | 0/3 | Not started | - |
 | 4. Analysis Functions | 0/TBD | Not started | - |
 | 5. Decision Integration | 0/TBD | Not started | - |
 | 6. Cost and Context | 0/TBD | Not started | - |
