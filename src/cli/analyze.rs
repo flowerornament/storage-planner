@@ -246,8 +246,10 @@ fn print_redundancy_text(
                 }
             } else {
                 // Count copies and locations for passing dataset
-                let ds_placements: Vec<_> =
-                    placements.iter().filter(|p| p.dataset_id == ds.id).collect();
+                let ds_placements: Vec<_> = placements
+                    .iter()
+                    .filter(|p| p.dataset_id == ds.id)
+                    .collect();
                 let copies = ds_placements.len();
                 println!(
                     "  {} {} [{}]: {} copy/copies",
@@ -261,10 +263,7 @@ fn print_redundancy_text(
     } else {
         // Show only issues
         for issue in &report.issues {
-            print!(
-                "  {} [{}]:",
-                issue.dataset_name, issue.criticality
-            );
+            print!("  {} [{}]:", issue.dataset_name, issue.criticality);
             for problem in &issue.problems {
                 print!(" {}", problem);
             }
@@ -421,11 +420,7 @@ fn run_failure(
     Ok(())
 }
 
-fn print_failure_text(
-    report: &FailureReport,
-    placements: &[PlacementWithContext],
-    verbose: bool,
-) {
+fn print_failure_text(report: &FailureReport, placements: &[PlacementWithContext], verbose: bool) {
     println!(
         "Failure simulation: {} offline",
         report
@@ -633,11 +628,7 @@ fn print_capacity_text(report: &CapacityReport, verbose: bool) {
 
             println!(
                 "  {} on {}: full in {:.0} months ({}/{})",
-                issue.volume_name,
-                issue.node_name,
-                issue.months_until_full,
-                used_str,
-                ceiling_str
+                issue.volume_name, issue.node_name, issue.months_until_full, used_str, ceiling_str
             );
         }
     }
@@ -709,10 +700,7 @@ fn load_nodes(db: &Database, topology_id: &str) -> Result<Vec<Node>> {
 }
 
 /// Load all sync regimes for a topology with context (via the JOINed loader).
-fn load_sync_regimes(
-    db: &Database,
-    topology_id: &str,
-) -> Result<Vec<SyncRegimeWithContext>> {
+fn load_sync_regimes(db: &Database, topology_id: &str) -> Result<Vec<SyncRegimeWithContext>> {
     load_sync_regimes_with_context(db, topology_id)
 }
 

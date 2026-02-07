@@ -243,10 +243,7 @@ pub fn analyze_redundancy(
 
         if actual_copies == 0 {
             problems.push("no placements -- dataset is unplaced".to_string());
-            suggestion = Some(format!(
-                "add {} placement(s)",
-                dataset.min_copies
-            ));
+            suggestion = Some(format!("add {} placement(s)", dataset.min_copies));
         } else {
             if (actual_copies as i32) < dataset.min_copies {
                 let needed = dataset.min_copies as usize - actual_copies;
@@ -743,9 +740,11 @@ pub fn simulate_failure(
 
     for p in placements {
         if failed_node_ids.contains(&p.node_id) {
-            volume_info
-                .entry(p.volume_id.clone())
-                .or_insert((&p.volume_name, &p.node_name, p.capacity_bytes));
+            volume_info.entry(p.volume_id.clone()).or_insert((
+                &p.volume_name,
+                &p.node_name,
+                p.capacity_bytes,
+            ));
             volume_dataset_count
                 .entry(p.volume_id.clone())
                 .or_default()
@@ -759,10 +758,7 @@ pub fn simulate_failure(
             volume_name: vname.to_string(),
             node_name: nname.to_string(),
             capacity_bytes: *cap,
-            datasets_hosted: volume_dataset_count
-                .get(vid)
-                .map(|s| s.len())
-                .unwrap_or(0),
+            datasets_hosted: volume_dataset_count.get(vid).map(|s| s.len()).unwrap_or(0),
         })
         .collect();
     volume_impact.sort_by(|a, b| a.volume_name.cmp(&b.volume_name));
@@ -791,8 +787,7 @@ pub fn simulate_failure(
         }
 
         let total_copies = ds_placements.len() as i32;
-        let total_locations =
-            count_distinct_locations(&ds_placements.to_vec()) as i32;
+        let total_locations = count_distinct_locations(&ds_placements.to_vec()) as i32;
 
         let remaining_placements: Vec<&PlacementWithContext> = ds_placements
             .iter()
@@ -804,9 +799,7 @@ pub fn simulate_failure(
         let remaining_locations = if remaining_placements.is_empty() {
             0i32
         } else {
-            count_distinct_locations(
-                &remaining_placements.to_vec(),
-            ) as i32
+            count_distinct_locations(&remaining_placements.to_vec()) as i32
         };
 
         let lost_volumes: Vec<String> = lost_placements
@@ -821,8 +814,7 @@ pub fn simulate_failure(
         {
             // Check if this is "at risk" (copies still meet min but locations don't)
             // vs "degraded" (copies dropped below minimum)
-            if remaining_copies >= dataset.min_copies
-                && remaining_locations < dataset.min_locations
+            if remaining_copies >= dataset.min_copies && remaining_locations < dataset.min_locations
             {
                 FailureSeverity::AtRisk
             } else {
@@ -957,10 +949,7 @@ mod tests {
     }
 
     /// Helper to create a SyncRegimeWithContext for testing
-    fn make_sync_regime(
-        dataset: &Dataset,
-        schedule: Option<&str>,
-    ) -> SyncRegimeWithContext {
+    fn make_sync_regime(dataset: &Dataset, schedule: Option<&str>) -> SyncRegimeWithContext {
         SyncRegimeWithContext {
             id: uuid::Uuid::new_v4().to_string(),
             dataset_id: dataset.id.clone(),
@@ -1075,8 +1064,8 @@ mod tests {
         let ds = make_dataset(
             "t1",
             "photos",
-            1_000_000_000_000,              // 1TB used
-            Some(100_000_000_000.0),         // 100GB/month growth
+            1_000_000_000_000,       // 1TB used
+            Some(100_000_000_000.0), // 100GB/month growth
             "normal",
             1,
             1,
@@ -1175,7 +1164,7 @@ mod tests {
 
         let proj = &report.projections[0];
         assert_eq!(proj.ceiling_bytes, 2_000_000_000_000); // usable, not capacity
-        // (2TB - 1TB) / 100GB = 10 months
+                                                           // (2TB - 1TB) / 100GB = 10 months
         let mtf = proj.months_until_full.unwrap();
         assert!((mtf - 10.0).abs() < 0.01);
     }
@@ -1338,13 +1327,8 @@ mod tests {
             make_placement_on_node(&ds, &vol2, &node2),
         ];
 
-        let report = simulate_failure(
-            &["nas-01".to_string()],
-            &[node1, node2],
-            &[ds],
-            &placements,
-        )
-        .unwrap();
+        let report =
+            simulate_failure(&["nas-01".to_string()], &[node1, node2], &[ds], &placements).unwrap();
 
         assert_eq!(report.dataset_impact.len(), 1);
         assert_eq!(report.dataset_impact[0].severity, FailureSeverity::Degraded);
@@ -1362,13 +1346,8 @@ mod tests {
 
         let placements = vec![make_placement_on_node(&ds, &vol1, &node1)];
 
-        let report = simulate_failure(
-            &["nas-01".to_string()],
-            &[node1],
-            &[ds],
-            &placements,
-        )
-        .unwrap();
+        let report =
+            simulate_failure(&["nas-01".to_string()], &[node1], &[ds], &placements).unwrap();
 
         assert_eq!(report.dataset_impact.len(), 1);
         assert_eq!(report.dataset_impact[0].severity, FailureSeverity::Lost);
@@ -1456,13 +1435,8 @@ mod tests {
         // Dataset is only on node1, fail node2 -> no impact
         let placements = vec![make_placement_on_node(&ds, &vol1, &node1)];
 
-        let report = simulate_failure(
-            &["nas-02".to_string()],
-            &[node1, node2],
-            &[ds],
-            &placements,
-        )
-        .unwrap();
+        let report =
+            simulate_failure(&["nas-02".to_string()], &[node1, node2], &[ds], &placements).unwrap();
 
         assert!(report.dataset_impact.is_empty());
         assert_eq!(report.summary.datasets_lost, 0);
