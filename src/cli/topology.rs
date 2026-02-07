@@ -4,13 +4,16 @@
 //! All mutating commands log events for undo/redo support.
 //! All lookups support name-or-ID resolution via the entity resolver.
 
+use std::collections::HashMap;
+
 use anyhow::{bail, Result};
 use clap::Subcommand;
 use rusqlite::params;
+use uuid::Uuid;
 
 use crate::core::db::Database;
 use crate::core::events::{record_event, EventSource};
-use crate::core::models::{Node, Topology, Volume};
+use crate::core::models::{Dataset, Link, Node, Placement, SyncRegime, Topology, Volume};
 use crate::core::resolve::{resolve_topology, validate_slug};
 use crate::core::specs::Capacity;
 
@@ -75,6 +78,16 @@ pub enum TopologyCommands {
         name: String,
     },
 
+    /// Fork a topology (deep copy with new IDs)
+    Fork {
+        /// Source topology name or ID prefix to fork from
+        source: String,
+
+        /// Optional name for the fork (auto-generated if omitted)
+        #[arg(long)]
+        name: Option<String>,
+    },
+
     /// Delete a topology and all its contents
     Delete {
         /// Topology name or ID prefix to delete
@@ -98,6 +111,7 @@ pub fn run(cmd: TopologyCommands, db: &mut Database, format: OutputFormat) -> Re
             tag: tag_value,
         } => tag(db, &name, &tag_value, format),
         TopologyCommands::Untag { name } => untag(db, &name, format),
+        TopologyCommands::Fork { source, name } => fork(db, &source, name.as_deref(), format),
         TopologyCommands::Delete { name } => delete(db, &name),
     }
 }
@@ -671,6 +685,327 @@ fn untag(db: &mut Database, name: &str, format: OutputFormat) -> Result<()> {
                 "topology": topo_name,
                 "id": topo_id,
                 "previous_tag": old_tag,
+            });
+            println!("{}", serde_json::to_string_pretty(&json)?);
+        }
+    }
+
+    Ok(())
+}
+
+fn generate_fork_name(db: &Database, source_name: &str) -> Result<String> {
+    for n in 1..100 {
+        let candidate = format!("{}-fork-{}", source_name, n);
+        let exists: i64 = db.conn().query_row(
+            "SELECT COUNT(*) FROM topologies WHERE name = ?1",
+            params![candidate],
+            |row| row.get(0),
+        )?;
+        if exists == 0 {
+            return Ok(candidate);
+        }
+    }
+    bail!(
+        "Could not generate fork name for '{}' (tried 99 suffixes)",
+        source_name
+    );
+}
+
+fn fork(
+    db: &mut Database,
+    source_name: &str,
+    fork_name: Option<&str>,
+    format: OutputFormat,
+) -> Result<()> {
+    // Resolve source topology (can be ANY topology, not just active)
+    let source = resolve_topology(db, source_name)?;
+
+    // Determine fork name
+    let name = match fork_name {
+        Some(n) => {
+            validate_slug(n)?;
+            // Check uniqueness
+            let exists: i64 = db.conn().query_row(
+                "SELECT COUNT(*) FROM topologies WHERE name = ?1",
+                params![n],
+                |row| row.get(0),
+            )?;
+            if exists > 0 {
+                bail!("Topology name '{}' already exists", n);
+            }
+            n.to_string()
+        }
+        None => generate_fork_name(db, &source.name)?,
+    };
+
+    // Build ID remapping tables
+    let mut node_map: HashMap<String, String> = HashMap::new();
+    let mut volume_map: HashMap<String, String> = HashMap::new();
+    let mut dataset_map: HashMap<String, String> = HashMap::new();
+
+    let new_topo_id = Uuid::new_v4().to_string();
+    let fork_name_clone = name.clone();
+    let source_name_clone = source.name.clone();
+    let source_id = source.id.clone();
+
+    // Load all entities from source BEFORE the transaction (D009 pattern)
+    // Each block scopes the prepared statement so borrows are dropped before transaction
+    // Load all entities from source BEFORE the transaction (D009 pattern)
+    // Each block scopes the prepared statement so borrows are dropped before transaction
+    let nodes: Vec<Node> = {
+        let mut stmt = db.conn().prepare(
+            "SELECT id, topology_id, name, role, location, available_bays, interface_types, \
+             power_draw_watts, created_at, updated_at FROM nodes WHERE topology_id = ?1",
+        )?;
+        let result = stmt
+            .query_map(params![source_id], Node::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+        result
+    };
+
+    let volumes: Vec<Volume> = {
+        let mut stmt = db.conn().prepare(
+            "SELECT id, topology_id, node_id, name, capacity_bytes, usable_bytes, filesystem, \
+             raid_level, pool_type, item_id, created_at, updated_at \
+             FROM volumes WHERE topology_id = ?1",
+        )?;
+        let result = stmt
+            .query_map(params![source_id], Volume::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+        result
+    };
+
+    let datasets: Vec<Dataset> = {
+        let mut stmt = db.conn().prepare(
+            "SELECT id, topology_id, name, size_bytes, growth_rate_bytes_month, criticality, \
+             min_copies, min_locations, max_rpo_hours, created_at, updated_at \
+             FROM datasets WHERE topology_id = ?1",
+        )?;
+        let result = stmt
+            .query_map(params![source_id], Dataset::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+        result
+    };
+
+    let placements: Vec<Placement> = {
+        let mut stmt = db.conn().prepare(
+            "SELECT id, topology_id, dataset_id, volume_id, role, priority, created_at \
+             FROM placements WHERE topology_id = ?1",
+        )?;
+        let result = stmt
+            .query_map(params![source_id], Placement::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+        result
+    };
+
+    let links: Vec<Link> = {
+        let mut stmt = db.conn().prepare(
+            "SELECT id, topology_id, source_node_id, target_node_id, bandwidth_bytes_sec, \
+             connection_type, latency_ms, is_metered, cost_per_gb_cents, created_at, updated_at \
+             FROM links WHERE topology_id = ?1",
+        )?;
+        let result = stmt
+            .query_map(params![source_id], Link::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+        result
+    };
+
+    let sync_regimes: Vec<SyncRegime> = {
+        let mut stmt = db.conn().prepare(
+            "SELECT id, topology_id, name, dataset_id, source_volume_id, target_volume_id, \
+             sync_type, schedule, direction, created_at, updated_at \
+             FROM sync_regimes WHERE topology_id = ?1",
+        )?;
+        let result = stmt
+            .query_map(params![source_id], SyncRegime::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+        result
+    };
+
+    // Execute deep copy in a single transaction
+    db.transaction(|tx| {
+        // 1. Create new topology with parent_id = source.id
+        let now = chrono::Utc::now();
+        tx.execute(
+            "INSERT INTO topologies (id, name, description, parent_id, tag, created_at, updated_at) \
+             VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?6)",
+            params![
+                new_topo_id,
+                fork_name_clone,
+                source.description,
+                source_id,
+                now.to_rfc3339(),
+                now.to_rfc3339()
+            ],
+        )?;
+
+        // 2. Copy nodes (build node_map)
+        for node in &nodes {
+            let new_id = Uuid::new_v4().to_string();
+            node_map.insert(node.id.clone(), new_id.clone());
+            let mut new_node = node.clone();
+            new_node.id = new_id;
+            new_node.topology_id = new_topo_id.clone();
+            new_node.created_at = now;
+            new_node.updated_at = now;
+            new_node.insert(tx)?;
+        }
+
+        // 3. Copy volumes (remap node_id using node_map, build volume_map)
+        for vol in &volumes {
+            let new_id = Uuid::new_v4().to_string();
+            volume_map.insert(vol.id.clone(), new_id.clone());
+            let mut new_vol = vol.clone();
+            new_vol.id = new_id;
+            new_vol.topology_id = new_topo_id.clone();
+            new_vol.node_id = node_map
+                .get(&vol.node_id)
+                .ok_or_else(|| {
+                    anyhow::anyhow!("Node ID {} not found in remap table", vol.node_id)
+                })?
+                .clone();
+            new_vol.created_at = now;
+            new_vol.updated_at = now;
+            new_vol.insert(tx)?;
+        }
+
+        // 4. Copy datasets (build dataset_map)
+        for ds in &datasets {
+            let new_id = Uuid::new_v4().to_string();
+            dataset_map.insert(ds.id.clone(), new_id.clone());
+            let mut new_ds = ds.clone();
+            new_ds.id = new_id;
+            new_ds.topology_id = new_topo_id.clone();
+            new_ds.created_at = now;
+            new_ds.updated_at = now;
+            new_ds.insert(tx)?;
+        }
+
+        // 5. Copy placements (remap dataset_id and volume_id)
+        for pl in &placements {
+            let new_id = Uuid::new_v4().to_string();
+            let mut new_pl = pl.clone();
+            new_pl.id = new_id;
+            new_pl.topology_id = new_topo_id.clone();
+            new_pl.dataset_id = dataset_map
+                .get(&pl.dataset_id)
+                .ok_or_else(|| {
+                    anyhow::anyhow!("Dataset ID {} not found in remap table", pl.dataset_id)
+                })?
+                .clone();
+            new_pl.volume_id = volume_map
+                .get(&pl.volume_id)
+                .ok_or_else(|| {
+                    anyhow::anyhow!("Volume ID {} not found in remap table", pl.volume_id)
+                })?
+                .clone();
+            new_pl.created_at = now;
+            new_pl.insert(tx)?;
+        }
+
+        // 6. Copy links (remap source_node_id and target_node_id)
+        for link in &links {
+            let new_id = Uuid::new_v4().to_string();
+            let mut new_link = link.clone();
+            new_link.id = new_id;
+            new_link.topology_id = new_topo_id.clone();
+            new_link.source_node_id = node_map
+                .get(&link.source_node_id)
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "Source node ID {} not found in remap table",
+                        link.source_node_id
+                    )
+                })?
+                .clone();
+            new_link.target_node_id = node_map
+                .get(&link.target_node_id)
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "Target node ID {} not found in remap table",
+                        link.target_node_id
+                    )
+                })?
+                .clone();
+            new_link.created_at = now;
+            new_link.updated_at = now;
+            new_link.insert(tx)?;
+        }
+
+        // 7. Copy sync regimes (remap dataset_id, source_volume_id, target_volume_id)
+        for sr in &sync_regimes {
+            let new_id = Uuid::new_v4().to_string();
+            let mut new_sr = sr.clone();
+            new_sr.id = new_id;
+            new_sr.topology_id = new_topo_id.clone();
+            new_sr.dataset_id = dataset_map
+                .get(&sr.dataset_id)
+                .ok_or_else(|| {
+                    anyhow::anyhow!("Dataset ID {} not found in remap table", sr.dataset_id)
+                })?
+                .clone();
+            new_sr.source_volume_id = volume_map
+                .get(&sr.source_volume_id)
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "Source volume ID {} not found in remap table",
+                        sr.source_volume_id
+                    )
+                })?
+                .clone();
+            new_sr.target_volume_id = volume_map
+                .get(&sr.target_volume_id)
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "Target volume ID {} not found in remap table",
+                        sr.target_volume_id
+                    )
+                })?
+                .clone();
+            new_sr.created_at = now;
+            new_sr.updated_at = now;
+            new_sr.insert(tx)?;
+        }
+
+        // 8. Record single fork event
+        record_event(
+            tx,
+            "topology.created",
+            "topology",
+            &new_topo_id,
+            &format!(
+                "Forked topology '{}' from '{}'",
+                fork_name_clone, source_name_clone
+            ),
+            None,
+            None,
+            &EventSource::User,
+        )?;
+
+        Ok(())
+    })?;
+
+    // Output
+    let entity_count = nodes.len()
+        + volumes.len()
+        + datasets.len()
+        + placements.len()
+        + links.len()
+        + sync_regimes.len();
+    match format {
+        OutputFormat::Text => {
+            println!(
+                "Forked '{}' from '{}' ({} entities copied)",
+                name, source_name_clone, entity_count
+            );
+        }
+        OutputFormat::Json => {
+            let json = serde_json::json!({
+                "action": "forked",
+                "topology": name,
+                "source": source_name_clone,
+                "id": new_topo_id,
+                "entities_copied": entity_count,
             });
             println!("{}", serde_json::to_string_pretty(&json)?);
         }
