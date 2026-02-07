@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-05)
 
 **Core value:** Session continuity for AI-assisted purchase decisions
-**Current focus:** Phase 2 complete -- CLI scaffolding and basic commands
+**Current focus:** Phase 3 in progress -- topology versioning
 
 ## Current Position
 
-Phase: 2 of 6 (CLI Scaffolding and Basic Commands)
-Plan: 4 of 4 in current phase
-Status: Phase complete
-Last activity: 2026-02-07 - Completed 02-04-PLAN.md
+Phase: 3 of 6 (Topology Versioning)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-02-07 - Completed 03-01-PLAN.md
 
-Progress: [███████░░░] ~67%
+Progress: [███████░░░] ~78% (7/9 known plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 4m 2s
-- Total execution time: ~0.4 hours
+- Total plans completed: 7
+- Average duration: 3m 56s
+- Total execution time: ~0.5 hours
 
 **By Phase:**
 
@@ -29,10 +29,11 @@ Progress: [███████░░░] ~67%
 |-------|-------|-------|----------|
 | 01 | 2/2 | 10m 34s | 5m 17s |
 | 02 | 4/4 | 13m 27s | 3m 22s |
+| 03 | 1/3 | 3m 42s | 3m 42s |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (5m 5s), 02-01 (4m 57s), 02-02 (3m 15s), 02-03 (2m 42s), 02-04 (2m 33s)
-- Trend: improving
+- Last 5 plans: 02-01 (4m 57s), 02-02 (3m 15s), 02-03 (2m 42s), 02-04 (2m 33s), 03-01 (3m 42s)
+- Trend: stable ~3m
 
 *Updated after each plan completion*
 
@@ -61,6 +62,9 @@ Recent decisions affecting current work:
 - D016: Node show displays inline volumes with formatted capacity
 - D017: Volume name uniqueness scoped to (topology, node), not global
 - D018: Update commands build complete after-state before SQL for accurate event logging
+- D019: Tag column replaces is_active boolean (current/exploring/archived/null)
+- D020: Partial unique index WHERE tag='current' enforces single current at DB level
+- D021: set-active preserved as backward-compat alias with deprecation notice
 
 ### Pending Todos
 
@@ -72,6 +76,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-07T09:44Z
-Stopped at: Completed 02-04-PLAN.md (link and sync regime CRUD commands)
+Last session: 2026-02-07T10:29Z
+Stopped at: Completed 03-01-PLAN.md (tag-based lifecycle migration)
 Resume file: None
