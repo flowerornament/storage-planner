@@ -1,14 +1,18 @@
 //! sp topology -- Manage storage topologies (named configurations)
 //!
-//! Subcommands: create, list, show, set-active, delete
+//! Subcommands: create, list, show, update, set-active, delete
 //! All mutating commands log events for undo/redo support.
+//! All lookups support name-or-ID resolution via the entity resolver.
 
 use anyhow::{bail, Result};
 use clap::Subcommand;
+use rusqlite::params;
 
 use crate::core::db::Database;
 use crate::core::events::{record_event, EventSource};
-use crate::core::models::Topology;
+use crate::core::models::{Node, Topology, Volume};
+use crate::core::resolve::{resolve_topology, validate_slug};
+use crate::core::specs::Capacity;
 
 use super::OutputFormat;
 
@@ -16,7 +20,7 @@ use super::OutputFormat;
 pub enum TopologyCommands {
     /// Create a new topology
     Create {
-        /// Name for the topology (must be unique)
+        /// Name for the topology (must be unique, slug-like)
         name: String,
 
         /// Optional description
@@ -29,19 +33,37 @@ pub enum TopologyCommands {
 
     /// Show details of a topology
     Show {
-        /// Topology name
+        /// Topology name or ID prefix
         name: String,
+
+        /// Display hierarchical tree of nodes and volumes
+        #[arg(long)]
+        tree: bool,
+    },
+
+    /// Update a topology's name or description
+    Update {
+        /// Topology name or ID prefix
+        name: String,
+
+        /// New description
+        #[arg(long)]
+        description: Option<String>,
+
+        /// Rename the topology (must be a valid slug)
+        #[arg(long)]
+        rename: Option<String>,
     },
 
     /// Set a topology as the active topology
     SetActive {
-        /// Topology name to activate
+        /// Topology name or ID prefix to activate
         name: String,
     },
 
     /// Delete a topology and all its contents
     Delete {
-        /// Topology name to delete
+        /// Topology name or ID prefix to delete
         name: String,
     },
 }
@@ -50,13 +72,20 @@ pub fn run(cmd: TopologyCommands, db: &mut Database, format: OutputFormat) -> Re
     match cmd {
         TopologyCommands::Create { name, description } => create(db, &name, &description, format),
         TopologyCommands::List => list(db, format),
-        TopologyCommands::Show { name } => show(db, &name, format),
+        TopologyCommands::Show { name, tree } => show(db, &name, tree, format),
+        TopologyCommands::Update {
+            name,
+            description,
+            rename,
+        } => update(db, &name, description.as_deref(), rename.as_deref(), format),
         TopologyCommands::SetActive { name } => set_active(db, &name),
         TopologyCommands::Delete { name } => delete(db, &name),
     }
 }
 
 fn create(db: &mut Database, name: &str, description: &str, format: OutputFormat) -> Result<()> {
+    validate_slug(name)?;
+
     let topo = Topology::new(name, description);
     let after_json = topo.to_json()?;
     let topo_id = topo.id.clone();
@@ -64,8 +93,7 @@ fn create(db: &mut Database, name: &str, description: &str, format: OutputFormat
 
     db.transaction(|tx| {
         // Check if this is the first topology -- if so, make it active
-        let count: i64 =
-            tx.query_row("SELECT COUNT(*) FROM topologies", [], |row| row.get(0))?;
+        let count: i64 = tx.query_row("SELECT COUNT(*) FROM topologies", [], |row| row.get(0))?;
 
         let mut topo = topo;
         if count == 0 {
@@ -95,9 +123,10 @@ fn create(db: &mut Database, name: &str, description: &str, format: OutputFormat
         Ok(())
     })?;
 
+    let id_prefix = &topo_id[..8];
     match format {
         OutputFormat::Text => {
-            println!("Created topology '{}'", name);
+            println!("Created topology '{}' (id: {})", name, id_prefix);
         }
         OutputFormat::Json => {
             let json = serde_json::json!({
@@ -157,48 +186,269 @@ fn list(db: &mut Database, format: OutputFormat) -> Result<()> {
     Ok(())
 }
 
-fn show(db: &mut Database, name: &str, format: OutputFormat) -> Result<()> {
-    let topo: Topology = db
-        .conn()
-        .query_row(
-            "SELECT id, name, description, parent_id, is_active, created_at, updated_at FROM topologies WHERE name = ?1",
-            [name],
-            Topology::from_row,
-        )
-        .map_err(|_| anyhow::anyhow!("Topology '{}' not found", name))?;
+fn show(db: &mut Database, name: &str, tree: bool, format: OutputFormat) -> Result<()> {
+    let topo = resolve_topology(db, name)?;
+
+    // Count child entities
+    let node_count: i64 = db.conn().query_row(
+        "SELECT COUNT(*) FROM nodes WHERE topology_id = ?1",
+        [&topo.id],
+        |row| row.get(0),
+    )?;
+    let volume_count: i64 = db.conn().query_row(
+        "SELECT COUNT(*) FROM volumes WHERE topology_id = ?1",
+        [&topo.id],
+        |row| row.get(0),
+    )?;
+    let dataset_count: i64 = db.conn().query_row(
+        "SELECT COUNT(*) FROM datasets WHERE topology_id = ?1",
+        [&topo.id],
+        |row| row.get(0),
+    )?;
 
     match format {
         OutputFormat::Text => {
-            let active = if topo.is_active { "yes" } else { "no" };
-            println!("Topology: {}", topo.name);
-            println!("  ID:          {}", topo.id);
+            let active = if topo.is_active { " (active)" } else { "" };
+            println!("Topology: {}{}", topo.name, active);
             println!("  Description: {}", topo.description);
-            println!("  Active:      {}", active);
-            println!("  Created:     {}", topo.created_at.format("%Y-%m-%d %H:%M:%S"));
+            println!(
+                "  Nodes: {} | Volumes: {} | Datasets: {}",
+                node_count, volume_count, dataset_count
+            );
 
-            // Count child entities
-            let node_count: i64 = db.conn().query_row(
-                "SELECT COUNT(*) FROM nodes WHERE topology_id = ?1",
-                [&topo.id],
-                |row| row.get(0),
-            )?;
-            let volume_count: i64 = db.conn().query_row(
-                "SELECT COUNT(*) FROM volumes WHERE topology_id = ?1",
-                [&topo.id],
-                |row| row.get(0),
-            )?;
-            let dataset_count: i64 = db.conn().query_row(
-                "SELECT COUNT(*) FROM datasets WHERE topology_id = ?1",
-                [&topo.id],
-                |row| row.get(0),
-            )?;
-
-            println!("  Nodes:       {}", node_count);
-            println!("  Volumes:     {}", volume_count);
-            println!("  Datasets:    {}", dataset_count);
+            if tree {
+                println!();
+                show_tree_text(db, &topo.id)?;
+            } else {
+                println!("  ID:          {}", topo.id);
+                println!(
+                    "  Created:     {}",
+                    topo.created_at.format("%Y-%m-%d %H:%M:%S")
+                );
+            }
         }
         OutputFormat::Json => {
-            println!("{}", serde_json::to_string_pretty(&topo)?);
+            if tree {
+                let tree_json = build_tree_json(db, &topo)?;
+                println!("{}", serde_json::to_string_pretty(&tree_json)?);
+            } else {
+                println!("{}", serde_json::to_string_pretty(&topo)?);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Display the tree view of a topology in text mode.
+fn show_tree_text(db: &Database, topology_id: &str) -> Result<()> {
+    let mut node_stmt = db.conn().prepare(
+        "SELECT id, topology_id, name, role, location, available_bays, interface_types, \
+         power_draw_watts, created_at, updated_at \
+         FROM nodes WHERE topology_id = ?1 ORDER BY name",
+    )?;
+    let nodes: Vec<Node> = node_stmt
+        .query_map(params![topology_id], Node::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    if nodes.is_empty() {
+        println!("  (no nodes)");
+        return Ok(());
+    }
+
+    for node in &nodes {
+        let location = if node.location.is_empty() {
+            String::new()
+        } else {
+            format!(" ({})", node.location)
+        };
+        println!("  {} [{}]{}", node.name, node.role, location);
+
+        // Get volumes for this node
+        let mut vol_stmt = db.conn().prepare(
+            "SELECT id, topology_id, node_id, name, capacity_bytes, usable_bytes, \
+             filesystem, raid_level, pool_type, item_id, created_at, updated_at \
+             FROM volumes WHERE node_id = ?1 ORDER BY name",
+        )?;
+        let volumes: Vec<Volume> = vol_stmt
+            .query_map(params![node.id], Volume::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+
+        for vol in &volumes {
+            let cap = Capacity::from_bytes(vol.capacity_bytes as u64);
+            let fs = vol.filesystem.as_deref().unwrap_or("");
+            let raid = vol
+                .raid_level
+                .as_ref()
+                .map(|r| format!("/{}", r))
+                .unwrap_or_default();
+            println!("    {}: {} {}{}", vol.name, cap, fs, raid);
+        }
+    }
+
+    Ok(())
+}
+
+/// Build the tree JSON structure for a topology.
+fn build_tree_json(db: &Database, topo: &Topology) -> Result<serde_json::Value> {
+    let mut node_stmt = db.conn().prepare(
+        "SELECT id, topology_id, name, role, location, available_bays, interface_types, \
+         power_draw_watts, created_at, updated_at \
+         FROM nodes WHERE topology_id = ?1 ORDER BY name",
+    )?;
+    let nodes: Vec<Node> = node_stmt
+        .query_map(params![topo.id], Node::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let mut node_json_list = Vec::new();
+    for node in &nodes {
+        let mut vol_stmt = db.conn().prepare(
+            "SELECT id, topology_id, node_id, name, capacity_bytes, usable_bytes, \
+             filesystem, raid_level, pool_type, item_id, created_at, updated_at \
+             FROM volumes WHERE node_id = ?1 ORDER BY name",
+        )?;
+        let volumes: Vec<Volume> = vol_stmt
+            .query_map(params![node.id], Volume::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let vol_json: Vec<serde_json::Value> = volumes
+            .iter()
+            .map(|v| serde_json::to_value(v).unwrap_or_default())
+            .collect();
+
+        let mut node_val = serde_json::to_value(node)?;
+        if let serde_json::Value::Object(ref mut map) = node_val {
+            map.insert("volumes".to_string(), serde_json::Value::Array(vol_json));
+        }
+        node_json_list.push(node_val);
+    }
+
+    // Get datasets for this topology
+    let mut ds_stmt = db.conn().prepare(
+        "SELECT id, topology_id, name, size_bytes, growth_rate_bytes_month, criticality, \
+         min_copies, min_locations, max_rpo_hours, created_at, updated_at \
+         FROM datasets WHERE topology_id = ?1 ORDER BY name",
+    )?;
+    let datasets: Vec<crate::core::models::Dataset> = ds_stmt
+        .query_map(params![topo.id], crate::core::models::Dataset::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let ds_json: Vec<serde_json::Value> = datasets
+        .iter()
+        .map(|d| serde_json::to_value(d).unwrap_or_default())
+        .collect();
+
+    let mut topo_val = serde_json::to_value(topo)?;
+    if let serde_json::Value::Object(ref mut map) = topo_val {
+        map.insert("nodes".to_string(), serde_json::Value::Array(node_json_list));
+        map.insert("datasets".to_string(), serde_json::Value::Array(ds_json));
+    }
+
+    Ok(topo_val)
+}
+
+fn update(
+    db: &mut Database,
+    name: &str,
+    description: Option<&str>,
+    rename: Option<&str>,
+    format: OutputFormat,
+) -> Result<()> {
+    if description.is_none() && rename.is_none() {
+        bail!("Nothing to update. Provide --description or --rename.");
+    }
+
+    // Validate new name if renaming
+    if let Some(new_name) = rename {
+        validate_slug(new_name)?;
+    }
+
+    // Resolve outside transaction
+    let topo = resolve_topology(db, name)?;
+    let before_json = topo.to_json()?;
+    let topo_id = topo.id.clone();
+    let original_name = topo.name.clone();
+
+    // Check uniqueness of new name if renaming
+    if let Some(new_name) = rename {
+        if new_name != original_name {
+            let existing: i64 = db.conn().query_row(
+                "SELECT COUNT(*) FROM topologies WHERE name = ?1 AND id != ?2",
+                params![new_name, topo_id],
+                |row| row.get(0),
+            )?;
+            if existing > 0 {
+                bail!("Topology name '{}' is already taken", new_name);
+            }
+        }
+    }
+
+    let final_name = rename.unwrap_or(&original_name).to_string();
+    let final_desc = description
+        .map(|d| d.to_string())
+        .unwrap_or_else(|| topo.description.clone());
+
+    db.transaction(|tx| {
+        if let Some(new_name) = rename {
+            tx.execute(
+                "UPDATE topologies SET name = ?1, updated_at = datetime('now') WHERE id = ?2",
+                params![new_name, topo_id],
+            )?;
+        }
+
+        if let Some(desc) = description {
+            tx.execute(
+                "UPDATE topologies SET description = ?1, updated_at = datetime('now') WHERE id = ?2",
+                params![desc, topo_id],
+            )?;
+        }
+
+        // Build after state
+        let mut after = topo.clone();
+        after.name = final_name.clone();
+        after.description = final_desc.clone();
+        let after_json = after.to_json()?;
+
+        record_event(
+            tx,
+            "topology.updated",
+            "topology",
+            &topo_id,
+            &format!("Updated topology '{}'", original_name),
+            Some(&before_json),
+            Some(&after_json),
+            &EventSource::User,
+        )?;
+
+        Ok(())
+    })?;
+
+    match format {
+        OutputFormat::Text => {
+            if rename.is_some() && description.is_some() {
+                println!(
+                    "Updated topology '{}': renamed to '{}', description updated",
+                    original_name, final_name
+                );
+            } else if rename.is_some() {
+                println!(
+                    "Updated topology '{}': renamed to '{}'",
+                    original_name, final_name
+                );
+            } else {
+                println!(
+                    "Updated topology '{}': description updated",
+                    original_name
+                );
+            }
+        }
+        OutputFormat::Json => {
+            let json = serde_json::json!({
+                "action": "updated",
+                "topology": final_name,
+                "id": topo_id,
+            });
+            println!("{}", serde_json::to_string_pretty(&json)?);
         }
     }
 
@@ -206,29 +456,25 @@ fn show(db: &mut Database, name: &str, format: OutputFormat) -> Result<()> {
 }
 
 fn set_active(db: &mut Database, name: &str) -> Result<()> {
+    // Resolve outside transaction
+    let topo = resolve_topology(db, name)?;
+    let topo_name = topo.name.clone();
+
+    if topo.is_active {
+        bail!("Topology '{}' is already active", topo_name);
+    }
+
+    let before_json = topo.to_json()?;
+    let topo_id = topo.id.clone();
+
     db.transaction(|tx| {
-        // Find the topology
-        let topo: Topology = tx
-            .query_row(
-                "SELECT id, name, description, parent_id, is_active, created_at, updated_at FROM topologies WHERE name = ?1",
-                [name],
-                Topology::from_row,
-            )
-            .map_err(|_| anyhow::anyhow!("Topology '{}' not found", name))?;
-
-        if topo.is_active {
-            bail!("Topology '{}' is already active", name);
-        }
-
-        let before_json = topo.to_json()?;
-
         // Deactivate all topologies
         tx.execute("UPDATE topologies SET is_active = 0", [])?;
 
         // Activate the target
         tx.execute(
             "UPDATE topologies SET is_active = 1, updated_at = datetime('now') WHERE id = ?1",
-            [&topo.id],
+            [&topo_id],
         )?;
 
         // Build after state
@@ -240,8 +486,8 @@ fn set_active(db: &mut Database, name: &str) -> Result<()> {
             tx,
             "topology.updated",
             "topology",
-            &topo.id,
-            &format!("Set topology '{}' as active", name),
+            &topo_id,
+            &format!("Set topology '{}' as active", topo_name),
             Some(&before_json),
             Some(&after_json),
             &EventSource::User,
@@ -250,32 +496,27 @@ fn set_active(db: &mut Database, name: &str) -> Result<()> {
         Ok(())
     })?;
 
-    println!("Set topology '{}' as active", name);
+    println!("Set topology '{}' as active", topo_name);
     Ok(())
 }
 
 fn delete(db: &mut Database, name: &str) -> Result<()> {
+    // Resolve outside transaction
+    let topo = resolve_topology(db, name)?;
+    let topo_name = topo.name.clone();
+    let before_json = topo.to_json()?;
+    let topo_id = topo.id.clone();
+
     db.transaction(|tx| {
-        // Find the topology
-        let topo: Topology = tx
-            .query_row(
-                "SELECT id, name, description, parent_id, is_active, created_at, updated_at FROM topologies WHERE name = ?1",
-                [name],
-                Topology::from_row,
-            )
-            .map_err(|_| anyhow::anyhow!("Topology '{}' not found", name))?;
-
-        let before_json = topo.to_json()?;
-
         // Delete (cascades to nodes, volumes, etc.)
-        tx.execute("DELETE FROM topologies WHERE id = ?1", [&topo.id])?;
+        tx.execute("DELETE FROM topologies WHERE id = ?1", [&topo_id])?;
 
         record_event(
             tx,
             "topology.deleted",
             "topology",
-            &topo.id,
-            &format!("Deleted topology '{}'", name),
+            &topo_id,
+            &format!("Deleted topology '{}'", topo_name),
             Some(&before_json),
             None,
             &EventSource::User,
@@ -284,6 +525,6 @@ fn delete(db: &mut Database, name: &str) -> Result<()> {
         Ok(())
     })?;
 
-    println!("Deleted topology '{}'", name);
+    println!("Deleted topology '{}'", topo_name);
     Ok(())
 }
