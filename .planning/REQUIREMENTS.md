@@ -8,13 +8,13 @@
 ### Topologies (TOPO)
 
 - [x] **TOPO-01**: Create blank topology with name and description
-- [ ] **TOPO-02**: Fork topology from existing (copies content, sets parent_id)
+- [x] **TOPO-02**: Fork topology from existing (copies content, sets parent_id)
 - [x] **TOPO-03**: Show topology details (nodes, volumes, datasets, sync regimes)
 - [x] **TOPO-04**: List all topologies with status indicators
-- [ ] **TOPO-05**: Tag topology (current, exploring, archived)
-- [ ] **TOPO-06**: Untag topology
-- [ ] **TOPO-07**: Enforce single "current" tag via database constraint
-- [ ] **TOPO-08**: Diff two topologies showing changes
+- [x] **TOPO-05**: Tag topology (current, exploring, archived)
+- [x] **TOPO-06**: Untag topology
+- [x] **TOPO-07**: Enforce single "current" tag via database constraint
+- [x] **TOPO-08**: Diff two topologies showing changes
 - [ ] **TOPO-09**: Map topology as visual ASCII diagram
 - [ ] **TOPO-10**: Import topology from YAML file
 - [ ] **TOPO-11**: Export topology to YAML file
@@ -80,7 +80,7 @@
 
 - [x] **INFRA-01**: Database schema with all tables (topologies, nodes, volumes, datasets, etc.)
 - [x] **INFRA-02**: Schema migration tracking (PRAGMA user_version)
-- [ ] **INFRA-03**: Global --format flag (human, json) on all commands
+- [x] **INFRA-03**: Global --format flag (human, json) on all commands
 - [x] **INFRA-04**: Nested CLI structure (App + Command enum)
 - [x] **INFRA-05**: Event logging for significant actions
 
@@ -139,12 +139,12 @@
 | CONT-11 | Phase 2 | Complete |
 | CONT-12 | Phase 2 | Complete |
 | CONT-13 | Phase 2 | Complete |
-| TOPO-02 | Phase 3 | Pending |
-| TOPO-05 | Phase 3 | Pending |
-| TOPO-06 | Phase 3 | Pending |
-| TOPO-07 | Phase 3 | Pending |
-| TOPO-08 | Phase 3 | Pending |
-| INFRA-03 | Phase 3 | Pending |
+| TOPO-02 | Phase 3 | Complete |
+| TOPO-05 | Phase 3 | Complete |
+| TOPO-06 | Phase 3 | Complete |
+| TOPO-07 | Phase 3 | Complete |
+| TOPO-08 | Phase 3 | Complete |
+| INFRA-03 | Phase 3 | Complete |
 | ANLZ-01 | Phase 4 | Pending |
 | ANLZ-03 | Phase 4 | Pending |
 | ANLZ-04 | Phase 4 | Pending |

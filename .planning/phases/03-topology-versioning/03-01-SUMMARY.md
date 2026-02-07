@@ -74,7 +74,7 @@ Each task was committed atomically:
 1. **Task 1: Schema migration v2 and Topology model update** - `85ae355` (feat)
 2. **Task 2: Update resolve, existing commands, and add tag/untag** - `1de8d34` (feat)
 
-**Plan metadata:** TBD (docs: complete plan)
+**Plan metadata:** `01ad24c` (docs: complete plan)
 
 ## Files Created/Modified
 - `src/core/db.rs` - Added SCHEMA_V2 migration, bumped CURRENT_VERSION to 2, added migration test
