@@ -5,33 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-02-05)
 
 **Core value:** Session continuity for AI-assisted purchase decisions
-**Current focus:** Phase 1 - Schema and Core Types
+**Current focus:** Phase 1 complete -- ready for Phase 2
 
 ## Current Position
 
 Phase: 1 of 6 (Schema and Core Types)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-02-07 - Completed 01-01-PLAN.md
+Plan: 2 of 2 in current phase
+Status: Phase complete
+Last activity: 2026-02-07 - Completed 01-02-PLAN.md
 
-Progress: [█░░░░░░░░░] ~8%
+Progress: [██░░░░░░░░] ~17%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
-- Average duration: 5m 29s
-- Total execution time: ~0.1 hours
+- Total plans completed: 2
+- Average duration: 5m 17s
+- Total execution time: ~0.2 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 01 | 1/2 | 5m 29s | 5m 29s |
+| 01 | 2/2 | 10m 34s | 5m 17s |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (5m 29s)
-- Trend: n/a (first plan)
+- Last 5 plans: 01-01 (5m 29s), 01-02 (5m 5s)
+- Trend: stable
 
 *Updated after each plan completion*
 
@@ -47,6 +47,9 @@ Recent decisions affecting current work:
 - D003: volumes.item_id TEXT with no FK constraint (deferred to Phase 6)
 - D004: Single v1 migration creates all 9 tables
 - D005: Deleted old CLI/pricing modules entirely (clean rewrite)
+- D006: Generic undo handler using event_type suffix (.created/.deleted/.updated)
+- D007: set-active undo restores target topology but doesn't re-activate previous (Phase 1 limitation)
+- D008: Placeholder commands define full arg structure for Phase 2
 
 ### Pending Todos
 
@@ -59,5 +62,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-07
-Stopped at: Completed 01-01-PLAN.md (schema and core types data layer)
+Stopped at: Completed 01-02-PLAN.md (event system and CLI scaffold)
 Resume file: None
