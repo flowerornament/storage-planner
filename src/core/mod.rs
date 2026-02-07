@@ -1,8 +1,8 @@
 //! Core abstractions (domain-agnostic)
 //!
-//! - Database: SQLite connection and transactions
-//! - Models: Item, Price, Configuration, Event
-//! - Events: Append-only audit log
+//! - Database: SQLite connection, migrations, transactions
+//! - Models: Topology entity structs (Topology, Node, Volume, Dataset, Placement, Link, SyncRegime)
+//! - Events: Undo/redo event system with before/after state
 //! - Specs: Parsing typed attributes (capacity, speed, noise)
 
 pub mod db;
