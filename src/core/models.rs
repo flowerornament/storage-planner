@@ -285,11 +285,7 @@ pub struct Dataset {
 
 impl Dataset {
     /// Create a new dataset. Defaults: criticality="normal", min_copies=1, min_locations=1.
-    pub fn new(
-        topology_id: impl Into<String>,
-        name: impl Into<String>,
-        size_bytes: i64,
-    ) -> Self {
+    pub fn new(topology_id: impl Into<String>, name: impl Into<String>, size_bytes: i64) -> Self {
         let now = Utc::now();
         Self {
             id: uuid::Uuid::new_v4().to_string(),
@@ -635,6 +631,7 @@ pub struct Event {
 impl Event {
     /// Create a new event. Sequence must be provided by the caller
     /// (typically max(sequence)+1 from the events table).
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         sequence: i64,
         event_type: impl Into<String>,

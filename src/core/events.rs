@@ -11,9 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 use super::db::Database;
-use super::models::{
-    Dataset, Event, Link, Node, Placement, SyncRegime, Topology, Volume,
-};
+use super::models::{Dataset, Event, Link, Node, Placement, SyncRegime, Topology, Volume};
 
 // ---------------------------------------------------------------------------
 // EventSource
@@ -98,8 +96,8 @@ pub fn restore_entity_from_json(
             entity.insert(tx)?;
         }
         "node" => {
-            let entity: Node = serde_json::from_str(json_state)
-                .context("Failed to deserialize node from JSON")?;
+            let entity: Node =
+                serde_json::from_str(json_state).context("Failed to deserialize node from JSON")?;
             entity.insert(tx)?;
         }
         "volume" => {
@@ -118,8 +116,8 @@ pub fn restore_entity_from_json(
             entity.insert(tx)?;
         }
         "link" => {
-            let entity: Link = serde_json::from_str(json_state)
-                .context("Failed to deserialize link from JSON")?;
+            let entity: Link =
+                serde_json::from_str(json_state).context("Failed to deserialize link from JSON")?;
             entity.insert(tx)?;
         }
         "sync_regime" => {
@@ -161,11 +159,10 @@ pub fn record_event(
     )?;
 
     // Read max sequence in events
-    let max_seq: i64 = tx.query_row(
-        "SELECT COALESCE(MAX(sequence), 0) FROM events",
-        [],
-        |row| row.get(0),
-    )?;
+    let max_seq: i64 =
+        tx.query_row("SELECT COALESCE(MAX(sequence), 0) FROM events", [], |row| {
+            row.get(0)
+        })?;
 
     // If pointer is behind max, clear redo stack (events beyond pointer)
     if current_seq < max_seq {
@@ -187,8 +184,8 @@ pub fn record_event(
         summary,
         before_state.map(|s| s.to_string()),
         after_state.map(|s| s.to_string()),
-        &source.to_string(),
-        &current_actor(),
+        source.to_string(),
+        current_actor(),
     );
     event.insert(tx)?;
 
