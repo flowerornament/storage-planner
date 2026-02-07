@@ -3,11 +3,32 @@
 //! All user interactions go through these commands.
 //! Commands enforce workflow and invariants - agents can't bypass them.
 //!
-//! Stub module - full CLI implementation comes in Plan 02.
+//! Command hierarchy:
+//!   sp init              - Initialize database
+//!   sp topology ...      - Topology CRUD
+//!   sp node ...          - Node management (Phase 2)
+//!   sp volume ...        - Volume management (Phase 2)
+//!   sp dataset ...       - Dataset management (Phase 2)
+//!   sp link ...          - Link management (Phase 2)
+//!   sp sync ...          - Sync regime management (Phase 2)
+//!   sp undo              - Undo last action
+//!   sp redo              - Redo last undone action
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+use crate::core::db::Database;
+
+mod dataset;
+mod init;
+mod link;
+mod node;
+mod redo;
+mod sync_regime;
+mod topology;
+mod undo;
+mod volume;
 
 /// Storage Planner - Purchase decision support tool
 ///
@@ -31,8 +52,38 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Commands {
-    /// Initialize a new database
+    /// Initialize a new storage planner database
     Init,
+
+    /// Manage storage topologies (named configurations)
+    #[command(subcommand)]
+    Topology(topology::TopologyCommands),
+
+    /// Manage compute nodes within a topology
+    #[command(subcommand)]
+    Node(node::NodeCommands),
+
+    /// Manage storage volumes attached to nodes
+    #[command(subcommand)]
+    Volume(volume::VolumeCommands),
+
+    /// Manage logical datasets with replication requirements
+    #[command(subcommand)]
+    Dataset(dataset::DatasetCommands),
+
+    /// Manage network links between nodes
+    #[command(subcommand)]
+    Link(link::LinkCommands),
+
+    /// Manage data sync regimes between volumes
+    #[command(subcommand)]
+    Sync(sync_regime::SyncCommands),
+
+    /// Undo the last action
+    Undo,
+
+    /// Redo the last undone action
+    Redo,
 }
 
 /// Output format for commands
@@ -56,14 +107,39 @@ impl Cli {
 
     /// Run the CLI command
     pub fn run(self) -> Result<()> {
+        let db_path = self.db_path();
+        let format = self.format;
+
         match self.command {
-            Commands::Init => {
-                let db_path = self.db_path();
-                let mut db = crate::core::db::Database::open(&db_path)?;
-                db.migrate()?;
-                println!("Initialized database at {}", db_path.display());
-                Ok(())
+            Commands::Init => init::run(&db_path),
+            Commands::Topology(cmd) => {
+                let mut db = open_db(&db_path)?;
+                topology::run(cmd, &mut db, format)
+            }
+            Commands::Node(cmd) => node::run(cmd),
+            Commands::Volume(cmd) => volume::run(cmd),
+            Commands::Dataset(cmd) => dataset::run(cmd),
+            Commands::Link(cmd) => link::run(cmd),
+            Commands::Sync(cmd) => sync_regime::run(cmd),
+            Commands::Undo => {
+                let mut db = open_db(&db_path)?;
+                undo::run(&mut db)
+            }
+            Commands::Redo => {
+                let mut db = open_db(&db_path)?;
+                redo::run(&mut db)
             }
         }
     }
+}
+
+/// Open an existing database. Fails if the database doesn't exist.
+fn open_db(path: &Path) -> Result<Database> {
+    if !path.exists() {
+        anyhow::bail!(
+            "Database not found at {}. Run 'sp init' first.",
+            path.display()
+        );
+    }
+    Database::open(path).context("Failed to open database")
 }
