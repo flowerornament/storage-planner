@@ -12,26 +12,26 @@ See: .planning/PROJECT.md (updated 2026-02-05)
 Phase: 2 of 6 (CLI Scaffolding and Basic Commands)
 Plan: 3 of 4 in current phase
 Status: In progress
-Last activity: 2026-02-07 - Completed 02-03-PLAN.md
+Last activity: 2026-02-07 - Completed 02-02-PLAN.md, 02-03-PLAN.md
 
-Progress: [█████▓░░░░] ~50%
+Progress: [██████▓░░░] ~58%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 4m 34s
-- Total execution time: ~0.3 hours
+- Total plans completed: 5
+- Average duration: 4m 18s
+- Total execution time: ~0.4 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 2/2 | 10m 34s | 5m 17s |
-| 02 | 2/4 | 7m 39s | 3m 50s |
+| 02 | 3/4 | 10m 54s | 3m 38s |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (5m 29s), 01-02 (5m 5s), 02-01 (4m 57s), 02-03 (2m 42s)
+- Last 5 plans: 01-01 (5m 29s), 01-02 (5m 5s), 02-01 (4m 57s), 02-02 (3m 15s), 02-03 (2m 42s)
 - Trend: improving
 
 *Updated after each plan completion*
@@ -58,6 +58,9 @@ Recent decisions affecting current work:
 - D013: Criticality validation rejects non-standard values (only normal/important/critical)
 - D014: Placement role validation (only primary/replica/backup/archive)
 - D015: Dataset show displays inline placements via JOIN with volumes and nodes
+- D016: Node show displays inline volumes with formatted capacity
+- D017: Volume name uniqueness scoped to (topology, node), not global
+- D018: Update commands build complete after-state before SQL for accurate event logging
 
 ### Pending Todos
 
