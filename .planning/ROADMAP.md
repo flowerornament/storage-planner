@@ -30,10 +30,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Database file `.sp/decisions.db` contains topology-related tables (topologies, nodes, volumes, datasets, placements, links, sync_regimes)
   3. Database has proper migration tracking via PRAGMA user_version
   4. Significant actions (create topology, add node) are logged to events table
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: TBD
+- [ ] 01-01-PLAN.md -- Migration infrastructure + schema DDL + topology model structs
+- [ ] 01-02-PLAN.md -- Event system redesign with before/after state + undo/redo engine
+- [ ] 01-03-PLAN.md -- CLI scaffolding for all new commands + working undo/redo
 
 ### Phase 2: CLI Scaffolding and Basic Commands
 **Goal**: Users can create and populate topologies with nodes, volumes, datasets, and sync regimes
@@ -118,7 +120,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Schema and Core Types | 0/TBD | Not started | - |
+| 1. Schema and Core Types | 0/3 | Planning complete | - |
 | 2. CLI Scaffolding and Basic Commands | 0/TBD | Not started | - |
 | 3. Topology Versioning | 0/TBD | Not started | - |
 | 4. Analysis Functions | 0/TBD | Not started | - |
