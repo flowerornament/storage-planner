@@ -450,11 +450,11 @@ mod tests {
         assert_eq!(tag2, None);
 
         // Verify partial unique index prevents two 'current' tags
-        let result = conn.execute(
-            "UPDATE topologies SET tag = 'current' WHERE id = 't2'",
-            [],
+        let result = conn.execute("UPDATE topologies SET tag = 'current' WHERE id = 't2'", []);
+        assert!(
+            result.is_err(),
+            "Partial unique index should prevent two 'current' tags"
         );
-        assert!(result.is_err(), "Partial unique index should prevent two 'current' tags");
 
         // Verify version is 2
         let version: i32 = conn
