@@ -46,10 +46,13 @@ Plans:
   3. User can place datasets on volumes and define sync regimes between volumes
   4. User can list topologies and show topology details (nodes, volumes, datasets, links, sync)
   5. All commands support --format=json for agent consumption
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 02-01: TBD
+- [ ] 02-01-PLAN.md -- Entity resolver, CLI wiring, topology enhancements (update, --tree, --topology override)
+- [ ] 02-02-PLAN.md -- Node and volume CRUD (add, list, show, remove, update)
+- [ ] 02-03-PLAN.md -- Dataset and placement CRUD (add, list, show, remove, update/add/remove)
+- [ ] 02-04-PLAN.md -- Link and sync regime CRUD (add, list, show, remove)
 
 ### Phase 3: Topology Versioning
 **Goal**: Users can fork topologies to explore alternatives and compare versions
@@ -120,7 +123,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Schema and Core Types | 2/2 | Complete | 2026-02-07 |
-| 2. CLI Scaffolding and Basic Commands | 0/TBD | Not started | - |
+| 2. CLI Scaffolding and Basic Commands | 0/4 | Not started | - |
 | 3. Topology Versioning | 0/TBD | Not started | - |
 | 4. Analysis Functions | 0/TBD | Not started | - |
 | 5. Decision Integration | 0/TBD | Not started | - |
