@@ -13,7 +13,7 @@ Storage Planner transforms an existing purchase decision CLI into a topology-awa
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Schema and Core Types** - Database foundation for topology modeling (REWRITE)
-- [ ] **Phase 2: CLI Scaffolding and Basic Commands** - Usable topology management
+- [x] **Phase 2: CLI Scaffolding and Basic Commands** - Usable topology management
 - [ ] **Phase 3: Topology Versioning** - Fork, tag, and diff topologies
 - [ ] **Phase 4: Analysis Functions** - Redundancy, failure sim, RPO, capacity
 - [ ] **Phase 5: Decision Integration** - Link decisions to topologies
@@ -50,9 +50,9 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md -- Entity resolver, CLI wiring, topology enhancements (update, --tree, --topology override)
-- [ ] 02-02-PLAN.md -- Node and volume CRUD (add, list, show, remove, update)
-- [ ] 02-03-PLAN.md -- Dataset and placement CRUD (add, list, show, remove, update/add/remove)
-- [ ] 02-04-PLAN.md -- Link and sync regime CRUD (add, list, show, remove)
+- [x] 02-02-PLAN.md -- Node and volume CRUD (add, list, show, remove, update)
+- [x] 02-03-PLAN.md -- Dataset and placement CRUD (add, list, show, remove, update/add/remove)
+- [x] 02-04-PLAN.md -- Link and sync regime CRUD (add, list, show, remove)
 
 ### Phase 3: Topology Versioning
 **Goal**: Users can fork topologies to explore alternatives and compare versions
@@ -123,7 +123,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Schema and Core Types | 2/2 | Complete | 2026-02-07 |
-| 2. CLI Scaffolding and Basic Commands | 1/4 | In progress | - |
+| 2. CLI Scaffolding and Basic Commands | 4/4 | Complete | 2026-02-07 |
 | 3. Topology Versioning | 0/TBD | Not started | - |
 | 4. Analysis Functions | 0/TBD | Not started | - |
 | 5. Decision Integration | 0/TBD | Not started | - |

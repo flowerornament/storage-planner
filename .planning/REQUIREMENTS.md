@@ -7,10 +7,10 @@
 
 ### Topologies (TOPO)
 
-- [ ] **TOPO-01**: Create blank topology with name and description
+- [x] **TOPO-01**: Create blank topology with name and description
 - [ ] **TOPO-02**: Fork topology from existing (copies content, sets parent_id)
-- [ ] **TOPO-03**: Show topology details (nodes, volumes, datasets, sync regimes)
-- [ ] **TOPO-04**: List all topologies with status indicators
+- [x] **TOPO-03**: Show topology details (nodes, volumes, datasets, sync regimes)
+- [x] **TOPO-04**: List all topologies with status indicators
 - [ ] **TOPO-05**: Tag topology (current, exploring, archived)
 - [ ] **TOPO-06**: Untag topology
 - [ ] **TOPO-07**: Enforce single "current" tag via database constraint
@@ -21,19 +21,19 @@
 
 ### Topology Content (CONT)
 
-- [ ] **CONT-01**: Add node with name, location, optional product reference
-- [ ] **CONT-02**: Remove node from topology
-- [ ] **CONT-03**: List nodes in topology
-- [ ] **CONT-04**: Add volume to node with capacity, type, optional product
-- [ ] **CONT-05**: Remove volume from topology
-- [ ] **CONT-06**: Add dataset with size, criticality, requirements (min_copies, min_locations, max_rpo)
-- [ ] **CONT-07**: Remove dataset from topology
-- [ ] **CONT-08**: Place dataset on volume
-- [ ] **CONT-09**: Unplace dataset from volume
-- [ ] **CONT-10**: Add network link between nodes with bandwidth, latency, type
-- [ ] **CONT-11**: Remove network link
-- [ ] **CONT-12**: Add sync regime (source->target, method, schedule, direction)
-- [ ] **CONT-13**: Remove sync regime
+- [x] **CONT-01**: Add node with name, location, optional product reference
+- [x] **CONT-02**: Remove node from topology
+- [x] **CONT-03**: List nodes in topology
+- [x] **CONT-04**: Add volume to node with capacity, type, optional product
+- [x] **CONT-05**: Remove volume from topology
+- [x] **CONT-06**: Add dataset with size, criticality, requirements (min_copies, min_locations, max_rpo)
+- [x] **CONT-07**: Remove dataset from topology
+- [x] **CONT-08**: Place dataset on volume
+- [x] **CONT-09**: Unplace dataset from volume
+- [x] **CONT-10**: Add network link between nodes with bandwidth, latency, type
+- [x] **CONT-11**: Remove network link
+- [x] **CONT-12**: Add sync regime (source->target, method, schedule, direction)
+- [x] **CONT-13**: Remove sync regime
 
 ### Decisions (DEC)
 
@@ -123,22 +123,22 @@
 | INFRA-02 | Phase 1 | Complete |
 | INFRA-04 | Phase 1 | Complete |
 | INFRA-05 | Phase 1 | Complete |
-| TOPO-01 | Phase 2 | Pending |
-| TOPO-03 | Phase 2 | Pending |
-| TOPO-04 | Phase 2 | Pending |
-| CONT-01 | Phase 2 | Pending |
-| CONT-02 | Phase 2 | Pending |
-| CONT-03 | Phase 2 | Pending |
-| CONT-04 | Phase 2 | Pending |
-| CONT-05 | Phase 2 | Pending |
-| CONT-06 | Phase 2 | Pending |
-| CONT-07 | Phase 2 | Pending |
-| CONT-08 | Phase 2 | Pending |
-| CONT-09 | Phase 2 | Pending |
-| CONT-10 | Phase 2 | Pending |
-| CONT-11 | Phase 2 | Pending |
-| CONT-12 | Phase 2 | Pending |
-| CONT-13 | Phase 2 | Pending |
+| TOPO-01 | Phase 2 | Complete |
+| TOPO-03 | Phase 2 | Complete |
+| TOPO-04 | Phase 2 | Complete |
+| CONT-01 | Phase 2 | Complete |
+| CONT-02 | Phase 2 | Complete |
+| CONT-03 | Phase 2 | Complete |
+| CONT-04 | Phase 2 | Complete |
+| CONT-05 | Phase 2 | Complete |
+| CONT-06 | Phase 2 | Complete |
+| CONT-07 | Phase 2 | Complete |
+| CONT-08 | Phase 2 | Complete |
+| CONT-09 | Phase 2 | Complete |
+| CONT-10 | Phase 2 | Complete |
+| CONT-11 | Phase 2 | Complete |
+| CONT-12 | Phase 2 | Complete |
+| CONT-13 | Phase 2 | Complete |
 | TOPO-02 | Phase 3 | Pending |
 | TOPO-05 | Phase 3 | Pending |
 | TOPO-06 | Phase 3 | Pending |
