@@ -80,10 +80,11 @@ Plans:
   2. User can simulate a node failure and see which datasets lose copies
   3. User can check if sync schedules satisfy dataset max_rpo requirements
   4. User can project capacity growth and see months until volumes are full
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: TBD
+- [ ] 04-01-PLAN.md -- Analysis engine with redundancy and capacity commands (result types, pure functions, CLI wiring)
+- [ ] 04-02-PLAN.md -- RPO compliance, failure simulation, and combined dashboard command
 
 ### Phase 5: Decision Integration
 **Goal**: Users can track decisions with topology comparisons and constraint checking
@@ -127,7 +128,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 1. Schema and Core Types | 2/2 | Complete | 2026-02-07 |
 | 2. CLI Scaffolding and Basic Commands | 4/4 | Complete | 2026-02-07 |
 | 3. Topology Versioning | 3/3 | Complete | 2026-02-07 |
-| 4. Analysis Functions | 0/TBD | Not started | - |
+| 4. Analysis Functions | 0/2 | Planning complete | - |
 | 5. Decision Integration | 0/TBD | Not started | - |
 | 6. Cost and Context | 0/TBD | Not started | - |
 
