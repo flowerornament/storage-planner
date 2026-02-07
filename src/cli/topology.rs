@@ -1,6 +1,6 @@
 //! sp topology -- Manage storage topologies (named configurations)
 //!
-//! Subcommands: create, list, show, update, set-active, delete
+//! Subcommands: create, list, show, update, set-active, delete, diff, tree, log
 //! All mutating commands log events for undo/redo support.
 //! All lookups support name-or-ID resolution via the entity resolver.
 
@@ -8,13 +8,15 @@ use std::collections::HashMap;
 
 use anyhow::{bail, Result};
 use clap::Subcommand;
+use console::style;
 use rusqlite::params;
+use serde_json::Value;
 use uuid::Uuid;
 
 use crate::core::db::Database;
 use crate::core::events::{record_event, EventSource};
 use crate::core::models::{Dataset, Link, Node, Placement, SyncRegime, Topology, Volume};
-use crate::core::resolve::{resolve_topology, validate_slug};
+use crate::core::resolve::{resolve_active_topology, resolve_topology, validate_slug};
 use crate::core::specs::Capacity;
 
 use super::OutputFormat;
@@ -88,6 +90,41 @@ pub enum TopologyCommands {
         name: Option<String>,
     },
 
+    /// Compare two topologies showing entity-level and field-level changes
+    Diff {
+        /// Target topology to compare (shows what changed TO this topology)
+        target: String,
+        /// Base topology (defaults to current/active topology if omitted)
+        base: Option<String>,
+        /// Only diff nodes
+        #[arg(long)]
+        nodes: bool,
+        /// Only diff volumes
+        #[arg(long)]
+        volumes: bool,
+        /// Only diff datasets
+        #[arg(long)]
+        datasets: bool,
+        /// Only diff placements
+        #[arg(long)]
+        placements: bool,
+        /// Only diff links
+        #[arg(long)]
+        links: bool,
+        /// Only diff sync regimes
+        #[arg(long)]
+        syncs: bool,
+    },
+
+    /// Show fork tree of all topologies
+    Tree,
+
+    /// Show ancestry of a specific topology
+    Log {
+        /// Topology name or ID prefix
+        name: String,
+    },
+
     /// Delete a topology and all its contents
     Delete {
         /// Topology name or ID prefix to delete
@@ -112,6 +149,29 @@ pub fn run(cmd: TopologyCommands, db: &mut Database, format: OutputFormat) -> Re
         } => tag(db, &name, &tag_value, format),
         TopologyCommands::Untag { name } => untag(db, &name, format),
         TopologyCommands::Fork { source, name } => fork(db, &source, name.as_deref(), format),
+        TopologyCommands::Diff {
+            target,
+            base,
+            nodes,
+            volumes,
+            datasets,
+            placements,
+            links,
+            syncs,
+        } => diff(
+            db,
+            &target,
+            base.as_deref(),
+            nodes,
+            volumes,
+            datasets,
+            placements,
+            links,
+            syncs,
+            format,
+        ),
+        TopologyCommands::Tree => tree(db, format),
+        TopologyCommands::Log { name } => log(db, &name, format),
         TopologyCommands::Delete { name } => delete(db, &name),
     }
 }
@@ -1007,6 +1067,741 @@ fn fork(
                 "id": new_topo_id,
                 "entities_copied": entity_count,
             });
+            println!("{}", serde_json::to_string_pretty(&json)?);
+        }
+    }
+
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Diff engine
+// ---------------------------------------------------------------------------
+
+/// Skip metadata fields that differ between forks by definition
+const DIFF_SKIP_FIELDS: &[&str] = &[
+    "id",
+    "topology_id",
+    "node_id",
+    "dataset_id",
+    "volume_id",
+    "source_node_id",
+    "target_node_id",
+    "source_volume_id",
+    "target_volume_id",
+    "created_at",
+    "updated_at",
+];
+
+#[derive(Debug)]
+enum DiffEntry {
+    Added(String, Value),
+    Removed(String, Value),
+    Changed(String, Vec<FieldDiff>),
+}
+
+#[derive(Debug)]
+struct FieldDiff {
+    field: String,
+    old_value: Value,
+    new_value: Value,
+}
+
+/// Format a JSON value for human-readable diff output
+fn format_diff_value(v: &Value) -> String {
+    match v {
+        Value::Null => "(none)".to_string(),
+        Value::String(s) => s.clone(),
+        Value::Bool(b) => b.to_string(),
+        Value::Number(n) => n.to_string(),
+        _ => v.to_string(),
+    }
+}
+
+/// Compare two JSON objects field-by-field, skipping DIFF_SKIP_FIELDS
+fn diff_json_fields(left: &Value, right: &Value) -> Vec<FieldDiff> {
+    let mut diffs = Vec::new();
+
+    let left_obj = match left.as_object() {
+        Some(o) => o,
+        None => return diffs,
+    };
+    let right_obj = match right.as_object() {
+        Some(o) => o,
+        None => return diffs,
+    };
+
+    // Check all keys from both sides
+    let mut all_keys: Vec<&String> = left_obj.keys().collect();
+    for k in right_obj.keys() {
+        if !left_obj.contains_key(k) {
+            all_keys.push(k);
+        }
+    }
+    all_keys.sort();
+
+    for key in all_keys {
+        if DIFF_SKIP_FIELDS.contains(&key.as_str()) {
+            continue;
+        }
+        let left_val = left_obj.get(key).unwrap_or(&Value::Null);
+        let right_val = right_obj.get(key).unwrap_or(&Value::Null);
+        if left_val != right_val {
+            diffs.push(FieldDiff {
+                field: key.clone(),
+                old_value: left_val.clone(),
+                new_value: right_val.clone(),
+            });
+        }
+    }
+
+    diffs
+}
+
+/// Diff two sets of entities matched by display key
+fn diff_entities_by_name(
+    left_items: &[(String, Value)],
+    right_items: &[(String, Value)],
+) -> Vec<DiffEntry> {
+    let left_map: HashMap<&str, &Value> = left_items.iter().map(|(k, v)| (k.as_str(), v)).collect();
+    let right_map: HashMap<&str, &Value> =
+        right_items.iter().map(|(k, v)| (k.as_str(), v)).collect();
+
+    let mut entries = Vec::new();
+
+    // Removed: in left but not right
+    let mut left_keys: Vec<&&str> = left_map.keys().collect();
+    left_keys.sort();
+    for key in left_keys {
+        if !right_map.contains_key(*key) {
+            entries.push(DiffEntry::Removed(
+                key.to_string(),
+                (*left_map.get(*key).unwrap()).clone(),
+            ));
+        }
+    }
+
+    // Added: in right but not left
+    let mut right_keys: Vec<&&str> = right_map.keys().collect();
+    right_keys.sort();
+    for key in right_keys {
+        if !left_map.contains_key(*key) {
+            entries.push(DiffEntry::Added(
+                key.to_string(),
+                (*right_map.get(*key).unwrap()).clone(),
+            ));
+        }
+    }
+
+    // Changed: in both, check field differences
+    let mut common_keys: Vec<&&str> = left_map
+        .keys()
+        .filter(|k| right_map.contains_key(**k))
+        .collect();
+    common_keys.sort();
+    for key in common_keys {
+        let left_val = left_map.get(*key).unwrap();
+        let right_val = right_map.get(*key).unwrap();
+        let field_diffs = diff_json_fields(left_val, right_val);
+        if !field_diffs.is_empty() {
+            entries.push(DiffEntry::Changed(key.to_string(), field_diffs));
+        }
+    }
+
+    entries
+}
+
+// ---------------------------------------------------------------------------
+// Entity loading helpers for diff
+// ---------------------------------------------------------------------------
+
+fn load_nodes_for_diff(db: &Database, topology_id: &str) -> Result<Vec<(String, Value)>> {
+    let mut stmt = db.conn().prepare(
+        "SELECT id, topology_id, name, role, location, available_bays, interface_types, \
+         power_draw_watts, created_at, updated_at \
+         FROM nodes WHERE topology_id = ?1 ORDER BY name",
+    )?;
+    let nodes: Vec<Node> = stmt
+        .query_map(params![topology_id], Node::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    nodes
+        .into_iter()
+        .map(|n| {
+            let key = n.name.clone();
+            let val = serde_json::to_value(&n)?;
+            Ok((key, val))
+        })
+        .collect()
+}
+
+fn load_volumes_for_diff(db: &Database, topology_id: &str) -> Result<Vec<(String, Value)>> {
+    let mut stmt = db.conn().prepare(
+        "SELECT v.id, v.topology_id, v.node_id, v.name, v.capacity_bytes, v.usable_bytes, \
+         v.filesystem, v.raid_level, v.pool_type, v.item_id, v.created_at, v.updated_at, \
+         n.name as node_name \
+         FROM volumes v JOIN nodes n ON v.node_id = n.id \
+         WHERE v.topology_id = ?1 ORDER BY n.name, v.name",
+    )?;
+    let results: Vec<(String, Value)> = stmt
+        .query_map(params![topology_id], |row| {
+            let node_name: String = row.get("node_name")?;
+            let vol = Volume::from_row(row)?;
+            Ok((node_name, vol))
+        })?
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .map(|(node_name, vol)| {
+            let key = format!("{}/{}", node_name, vol.name);
+            let val = serde_json::to_value(&vol).unwrap_or_default();
+            (key, val)
+        })
+        .collect();
+    Ok(results)
+}
+
+fn load_datasets_for_diff(db: &Database, topology_id: &str) -> Result<Vec<(String, Value)>> {
+    let mut stmt = db.conn().prepare(
+        "SELECT id, topology_id, name, size_bytes, growth_rate_bytes_month, criticality, \
+         min_copies, min_locations, max_rpo_hours, created_at, updated_at \
+         FROM datasets WHERE topology_id = ?1 ORDER BY name",
+    )?;
+    let datasets: Vec<Dataset> = stmt
+        .query_map(params![topology_id], Dataset::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    datasets
+        .into_iter()
+        .map(|d| {
+            let key = d.name.clone();
+            let val = serde_json::to_value(&d)?;
+            Ok((key, val))
+        })
+        .collect()
+}
+
+fn load_placements_for_diff(db: &Database, topology_id: &str) -> Result<Vec<(String, Value)>> {
+    let mut stmt = db.conn().prepare(
+        "SELECT p.id, p.topology_id, p.dataset_id, p.volume_id, p.role, p.priority, p.created_at, \
+         d.name as dataset_name, n.name as node_name, v.name as volume_name \
+         FROM placements p \
+         JOIN datasets d ON p.dataset_id = d.id \
+         JOIN volumes v ON p.volume_id = v.id \
+         JOIN nodes n ON v.node_id = n.id \
+         WHERE p.topology_id = ?1 ORDER BY d.name, n.name, v.name",
+    )?;
+    let results: Vec<(String, Value)> = stmt
+        .query_map(params![topology_id], |row| {
+            let dataset_name: String = row.get("dataset_name")?;
+            let node_name: String = row.get("node_name")?;
+            let volume_name: String = row.get("volume_name")?;
+            let pl = Placement::from_row(row)?;
+            Ok((dataset_name, node_name, volume_name, pl))
+        })?
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .map(|(dataset_name, node_name, volume_name, pl)| {
+            let key = format!("{} on {}/{}", dataset_name, node_name, volume_name);
+            let val = serde_json::to_value(&pl).unwrap_or_default();
+            (key, val)
+        })
+        .collect();
+    Ok(results)
+}
+
+fn load_links_for_diff(db: &Database, topology_id: &str) -> Result<Vec<(String, Value)>> {
+    let mut stmt = db.conn().prepare(
+        "SELECT l.id, l.topology_id, l.source_node_id, l.target_node_id, l.bandwidth_bytes_sec, \
+         l.connection_type, l.latency_ms, l.is_metered, l.cost_per_gb_cents, l.created_at, l.updated_at, \
+         sn.name as source_name, tn.name as target_name \
+         FROM links l \
+         JOIN nodes sn ON l.source_node_id = sn.id \
+         JOIN nodes tn ON l.target_node_id = tn.id \
+         WHERE l.topology_id = ?1 ORDER BY sn.name, tn.name",
+    )?;
+    let results: Vec<(String, Value)> = stmt
+        .query_map(params![topology_id], |row| {
+            let source_name: String = row.get("source_name")?;
+            let target_name: String = row.get("target_name")?;
+            let link = Link::from_row(row)?;
+            Ok((source_name, target_name, link))
+        })?
+        .collect::<Result<Vec<_>, _>>()?
+        .into_iter()
+        .map(|(source_name, target_name, link)| {
+            let key = format!("{} -> {}", source_name, target_name);
+            let val = serde_json::to_value(&link).unwrap_or_default();
+            (key, val)
+        })
+        .collect();
+    Ok(results)
+}
+
+fn load_syncs_for_diff(db: &Database, topology_id: &str) -> Result<Vec<(String, Value)>> {
+    let mut stmt = db.conn().prepare(
+        "SELECT id, topology_id, name, dataset_id, source_volume_id, target_volume_id, \
+         sync_type, schedule, direction, created_at, updated_at \
+         FROM sync_regimes WHERE topology_id = ?1 ORDER BY name",
+    )?;
+    let syncs: Vec<SyncRegime> = stmt
+        .query_map(params![topology_id], SyncRegime::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    syncs
+        .into_iter()
+        .map(|s| {
+            let key = s.name.clone();
+            let val = serde_json::to_value(&s)?;
+            Ok((key, val))
+        })
+        .collect()
+}
+
+// ---------------------------------------------------------------------------
+// Diff output
+// ---------------------------------------------------------------------------
+
+/// Print a diff section in text mode and return counts (added, modified, removed)
+fn print_diff_section(section_name: &str, entries: &[DiffEntry]) -> (usize, usize, usize) {
+    let mut added = 0;
+    let mut modified = 0;
+    let mut removed = 0;
+
+    println!("{}:", section_name);
+
+    if entries.is_empty() {
+        println!("  (no changes)");
+        return (0, 0, 0);
+    }
+
+    for entry in entries {
+        match entry {
+            DiffEntry::Added(name, _) => {
+                added += 1;
+                println!(
+                    "  {} {} {}",
+                    style("+").green(),
+                    style(name).green(),
+                    style("[added]").green()
+                );
+            }
+            DiffEntry::Removed(name, _) => {
+                removed += 1;
+                println!(
+                    "  {} {} {}",
+                    style("-").red(),
+                    style(name).red(),
+                    style("[removed]").red()
+                );
+            }
+            DiffEntry::Changed(name, field_diffs) => {
+                modified += 1;
+                println!(
+                    "  {} {} {}",
+                    style("~").yellow(),
+                    name,
+                    style("[modified]").yellow()
+                );
+                for fd in field_diffs {
+                    println!(
+                        "      {}: {} -> {}",
+                        fd.field,
+                        style(format_diff_value(&fd.old_value)).red(),
+                        style(format_diff_value(&fd.new_value)).green(),
+                    );
+                }
+            }
+        }
+    }
+
+    (added, modified, removed)
+}
+
+/// Build a JSON representation of a diff section
+fn diff_section_to_json(entries: &[DiffEntry]) -> Value {
+    let mut added = Vec::new();
+    let mut removed = Vec::new();
+    let mut changed = Vec::new();
+
+    for entry in entries {
+        match entry {
+            DiffEntry::Added(name, val) => {
+                added.push(serde_json::json!({ "name": name, "entity": val }));
+            }
+            DiffEntry::Removed(name, val) => {
+                removed.push(serde_json::json!({ "name": name, "entity": val }));
+            }
+            DiffEntry::Changed(name, field_diffs) => {
+                let fields: Vec<Value> = field_diffs
+                    .iter()
+                    .map(|fd| {
+                        serde_json::json!({
+                            "field": fd.field,
+                            "old": fd.old_value,
+                            "new": fd.new_value,
+                        })
+                    })
+                    .collect();
+                changed.push(serde_json::json!({ "name": name, "changes": fields }));
+            }
+        }
+    }
+
+    serde_json::json!({
+        "added": added,
+        "removed": removed,
+        "changed": changed,
+    })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn diff(
+    db: &mut Database,
+    target_name: &str,
+    base_name: Option<&str>,
+    filter_nodes: bool,
+    filter_volumes: bool,
+    filter_datasets: bool,
+    filter_placements: bool,
+    filter_links: bool,
+    filter_syncs: bool,
+    format: OutputFormat,
+) -> Result<()> {
+    // Resolve topologies
+    let target = resolve_topology(db, target_name)?;
+    let base = match base_name {
+        Some(name) => resolve_topology(db, name)?,
+        None => resolve_active_topology(db, None).map_err(|_| {
+            anyhow::anyhow!(
+                "No base topology specified and no current topology set. \
+                 Provide a base topology or tag one as current."
+            )
+        })?,
+    };
+
+    // Determine which entity types to diff
+    let any_filter = filter_nodes
+        || filter_volumes
+        || filter_datasets
+        || filter_placements
+        || filter_links
+        || filter_syncs;
+    let diff_nodes = !any_filter || filter_nodes;
+    let diff_volumes = !any_filter || filter_volumes;
+    let diff_datasets = !any_filter || filter_datasets;
+    let diff_placements = !any_filter || filter_placements;
+    let diff_links = !any_filter || filter_links;
+    let diff_syncs = !any_filter || filter_syncs;
+
+    // Load and diff each entity type
+    let node_entries = if diff_nodes {
+        let base_nodes = load_nodes_for_diff(db, &base.id)?;
+        let target_nodes = load_nodes_for_diff(db, &target.id)?;
+        diff_entities_by_name(&base_nodes, &target_nodes)
+    } else {
+        Vec::new()
+    };
+
+    let volume_entries = if diff_volumes {
+        let base_vols = load_volumes_for_diff(db, &base.id)?;
+        let target_vols = load_volumes_for_diff(db, &target.id)?;
+        diff_entities_by_name(&base_vols, &target_vols)
+    } else {
+        Vec::new()
+    };
+
+    let dataset_entries = if diff_datasets {
+        let base_ds = load_datasets_for_diff(db, &base.id)?;
+        let target_ds = load_datasets_for_diff(db, &target.id)?;
+        diff_entities_by_name(&base_ds, &target_ds)
+    } else {
+        Vec::new()
+    };
+
+    let placement_entries = if diff_placements {
+        let base_pl = load_placements_for_diff(db, &base.id)?;
+        let target_pl = load_placements_for_diff(db, &target.id)?;
+        diff_entities_by_name(&base_pl, &target_pl)
+    } else {
+        Vec::new()
+    };
+
+    let link_entries = if diff_links {
+        let base_links = load_links_for_diff(db, &base.id)?;
+        let target_links = load_links_for_diff(db, &target.id)?;
+        diff_entities_by_name(&base_links, &target_links)
+    } else {
+        Vec::new()
+    };
+
+    let sync_entries = if diff_syncs {
+        let base_syncs = load_syncs_for_diff(db, &base.id)?;
+        let target_syncs = load_syncs_for_diff(db, &target.id)?;
+        diff_entities_by_name(&base_syncs, &target_syncs)
+    } else {
+        Vec::new()
+    };
+
+    match format {
+        OutputFormat::Text => {
+            println!("Diff: {} -> {}", base.name, target.name);
+            println!();
+
+            let mut total_added = 0;
+            let mut total_modified = 0;
+            let mut total_removed = 0;
+
+            if diff_nodes {
+                let (a, m, r) = print_diff_section("Nodes", &node_entries);
+                total_added += a;
+                total_modified += m;
+                total_removed += r;
+                println!();
+            }
+            if diff_volumes {
+                let (a, m, r) = print_diff_section("Volumes", &volume_entries);
+                total_added += a;
+                total_modified += m;
+                total_removed += r;
+                println!();
+            }
+            if diff_datasets {
+                let (a, m, r) = print_diff_section("Datasets", &dataset_entries);
+                total_added += a;
+                total_modified += m;
+                total_removed += r;
+                println!();
+            }
+            if diff_placements {
+                let (a, m, r) = print_diff_section("Placements", &placement_entries);
+                total_added += a;
+                total_modified += m;
+                total_removed += r;
+                println!();
+            }
+            if diff_links {
+                let (a, m, r) = print_diff_section("Links", &link_entries);
+                total_added += a;
+                total_modified += m;
+                total_removed += r;
+                println!();
+            }
+            if diff_syncs {
+                let (a, m, r) = print_diff_section("Sync Regimes", &sync_entries);
+                total_added += a;
+                total_modified += m;
+                total_removed += r;
+                println!();
+            }
+
+            // Summary
+            let mut parts = Vec::new();
+            if total_added > 0 {
+                parts.push(format!("{} added", total_added));
+            }
+            if total_modified > 0 {
+                parts.push(format!("{} modified", total_modified));
+            }
+            if total_removed > 0 {
+                parts.push(format!("{} removed", total_removed));
+            }
+            if parts.is_empty() {
+                println!("No differences found.");
+            } else {
+                println!("Summary: {}", parts.join(", "));
+            }
+        }
+        OutputFormat::Json => {
+            let mut json = serde_json::json!({
+                "base": base.name,
+                "target": target.name,
+            });
+            if let Value::Object(ref mut map) = json {
+                if diff_nodes {
+                    map.insert("nodes".to_string(), diff_section_to_json(&node_entries));
+                }
+                if diff_volumes {
+                    map.insert("volumes".to_string(), diff_section_to_json(&volume_entries));
+                }
+                if diff_datasets {
+                    map.insert(
+                        "datasets".to_string(),
+                        diff_section_to_json(&dataset_entries),
+                    );
+                }
+                if diff_placements {
+                    map.insert(
+                        "placements".to_string(),
+                        diff_section_to_json(&placement_entries),
+                    );
+                }
+                if diff_links {
+                    map.insert("links".to_string(), diff_section_to_json(&link_entries));
+                }
+                if diff_syncs {
+                    map.insert(
+                        "sync_regimes".to_string(),
+                        diff_section_to_json(&sync_entries),
+                    );
+                }
+            }
+            println!("{}", serde_json::to_string_pretty(&json)?);
+        }
+    }
+
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Tree and Log commands
+// ---------------------------------------------------------------------------
+
+fn tree(db: &mut Database, format: OutputFormat) -> Result<()> {
+    let topologies: Vec<Topology> = {
+        let mut stmt = db.conn().prepare(
+            "SELECT id, name, description, parent_id, tag, created_at, updated_at \
+             FROM topologies ORDER BY name",
+        )?;
+        let result = stmt
+            .query_map([], Topology::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+        result
+    };
+
+    if topologies.is_empty() {
+        println!("No topologies found.");
+        return Ok(());
+    }
+
+    match format {
+        OutputFormat::Text => {
+            // Build parent_id -> children map
+            let mut children: HashMap<Option<String>, Vec<&Topology>> = HashMap::new();
+            for topo in &topologies {
+                children
+                    .entry(topo.parent_id.clone())
+                    .or_default()
+                    .push(topo);
+            }
+
+            // Find roots (parent_id = None)
+            let roots = children.get(&None).cloned().unwrap_or_default();
+
+            println!("Topologies:");
+            for (i, root) in roots.iter().enumerate() {
+                let is_last = i == roots.len() - 1;
+                print_tree_node_lineage(root, &children, "", is_last, true);
+            }
+        }
+        OutputFormat::Json => {
+            // Build hierarchical JSON
+            let topo_json: Vec<Value> = topologies
+                .iter()
+                .map(|t| {
+                    serde_json::json!({
+                        "id": t.id,
+                        "name": t.name,
+                        "description": t.description,
+                        "parent_id": t.parent_id,
+                        "tag": t.tag,
+                        "created_at": t.created_at.to_rfc3339(),
+                    })
+                })
+                .collect();
+            println!("{}", serde_json::to_string_pretty(&topo_json)?);
+        }
+    }
+
+    Ok(())
+}
+
+fn print_tree_node_lineage(
+    topo: &Topology,
+    children: &HashMap<Option<String>, Vec<&Topology>>,
+    prefix: &str,
+    is_last: bool,
+    is_root: bool,
+) {
+    let connector = if is_root { "" } else { "+-- " };
+
+    let tag_str = topo
+        .tag
+        .as_ref()
+        .map(|t| format!(" [{}]", style(t).dim()))
+        .unwrap_or_default();
+
+    println!("{}{}{}{}", prefix, connector, topo.name, tag_str);
+
+    let child_prefix = if is_root {
+        String::new()
+    } else if is_last {
+        format!("{}    ", prefix)
+    } else {
+        format!("{}|   ", prefix)
+    };
+
+    if let Some(kids) = children.get(&Some(topo.id.clone())) {
+        for (i, kid) in kids.iter().enumerate() {
+            let is_last_kid = i == kids.len() - 1;
+            print_tree_node_lineage(kid, children, &child_prefix, is_last_kid, false);
+        }
+    }
+}
+
+fn log(db: &mut Database, name: &str, format: OutputFormat) -> Result<()> {
+    let topo = resolve_topology(db, name)?;
+    let target_id = topo.id.clone();
+
+    // Walk parent chain to build ancestry list
+    let mut ancestry: Vec<Topology> = vec![topo];
+
+    loop {
+        let current = ancestry.last().unwrap();
+        match current.parent_id {
+            Some(ref parent_id) => {
+                let parent = db.conn().query_row(
+                    "SELECT id, name, description, parent_id, tag, created_at, updated_at \
+                     FROM topologies WHERE id = ?1",
+                    params![parent_id],
+                    Topology::from_row,
+                )?;
+                ancestry.push(parent);
+            }
+            None => break,
+        }
+    }
+
+    // Reverse so root is first
+    ancestry.reverse();
+
+    match format {
+        OutputFormat::Text => {
+            println!("Ancestry of {}:", name);
+            for (i, ancestor) in ancestry.iter().enumerate() {
+                let indent = "    ".repeat(i);
+                let connector = if i == 0 { "" } else { "+-- " };
+                let tag_str = ancestor
+                    .tag
+                    .as_ref()
+                    .map(|t| format!(" [{}]", style(t).dim()))
+                    .unwrap_or_default();
+                let date = ancestor.created_at.format("%Y-%m-%d");
+                let marker = if ancestor.id == target_id {
+                    format!("  {}", style("<-- you are here").dim())
+                } else {
+                    String::new()
+                };
+                println!(
+                    "{}{}{}  ({}){}{}",
+                    indent, connector, ancestor.name, date, tag_str, marker
+                );
+            }
+        }
+        OutputFormat::Json => {
+            let json: Vec<Value> = ancestry
+                .iter()
+                .map(|t| serde_json::to_value(t).unwrap_or_default())
+                .collect();
             println!("{}", serde_json::to_string_pretty(&json)?);
         }
     }
