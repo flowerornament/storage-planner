@@ -32,7 +32,7 @@
 - [ ] **CONT-09**: Unplace dataset from volume
 - [ ] **CONT-10**: Add network link between nodes with bandwidth, latency, type
 - [ ] **CONT-11**: Remove network link
-- [ ] **CONT-12**: Add sync regime (source→target, method, schedule, direction)
+- [ ] **CONT-12**: Add sync regime (source->target, method, schedule, direction)
 - [ ] **CONT-13**: Remove sync regime
 
 ### Decisions (DEC)
@@ -162,7 +162,12 @@
 | DEC-11 | Phase 5 | Pending |
 | ANLZ-02 | Phase 5 | Pending |
 | ANLZ-08 | Phase 5 | Pending |
+| CAT-01 | Phase 6 | Pending (verify existing) |
+| CAT-02 | Phase 6 | Pending (verify existing) |
+| CAT-03 | Phase 6 | Pending (verify existing) |
+| CAT-04 | Phase 6 | Pending (verify existing) |
 | CAT-05 | Phase 6 | Pending |
+| CAT-06 | Phase 6 | Pending (verify existing) |
 | CAT-07 | Phase 6 | Pending |
 | ANLZ-06 | Phase 6 | Pending |
 | ANLZ-07 | Phase 6 | Pending |
@@ -174,10 +179,12 @@
 | TOPO-11 | Phase 6 | Pending |
 
 **Coverage:**
-- v1 requirements: 52 total
-- Mapped to phases: 52
-- Unmapped: 0 ✓
+- v1 requirements: 58 total
+- Mapped to phases: 58
+- Unmapped: 0
+
+**Note:** CAT-01 through CAT-04 and CAT-06 may already be implemented in the existing codebase. Phase 6 will verify and enhance as needed.
 
 ---
 *Requirements defined: 2026-02-05*
-*Last updated: 2026-02-05 after design exploration and research*
+*Last updated: 2026-02-06 after roadmap creation*
