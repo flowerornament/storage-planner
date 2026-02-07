@@ -111,9 +111,7 @@ impl Database {
             if migration.version > current {
                 self.conn
                     .execute_batch(migration.sql)
-                    .with_context(|| {
-                        format!("Failed to apply migration v{}", migration.version)
-                    })?;
+                    .with_context(|| format!("Failed to apply migration v{}", migration.version))?;
             }
         }
         Ok(())

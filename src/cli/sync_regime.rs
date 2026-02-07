@@ -12,7 +12,9 @@ use rusqlite::params;
 use crate::core::db::Database;
 use crate::core::events::{record_event, EventSource};
 use crate::core::models::SyncRegime;
-use crate::core::resolve::{resolve_active_topology, resolve_dataset, resolve_volume, validate_slug};
+use crate::core::resolve::{
+    resolve_active_topology, resolve_dataset, resolve_volume, validate_slug,
+};
 
 use super::OutputFormat;
 
@@ -117,9 +119,7 @@ pub fn run(cmd: SyncCommands, db: &mut Database, format: OutputFormat) -> Result
         ),
         SyncCommands::List { topology } => list(db, topology.as_deref(), format),
         SyncCommands::Show { name, topology } => show(db, &name, topology.as_deref(), format),
-        SyncCommands::Remove { name, topology } => {
-            remove(db, &name, topology.as_deref(), format)
-        }
+        SyncCommands::Remove { name, topology } => remove(db, &name, topology.as_deref(), format),
     }
 }
 
@@ -218,10 +218,7 @@ fn add(
         |row| row.get(0),
     )?;
     if existing > 0 {
-        bail!(
-            "Sync regime '{}' already exists in this topology",
-            name
-        );
+        bail!("Sync regime '{}' already exists in this topology", name);
     }
 
     let mut sr = SyncRegime::new(
@@ -329,12 +326,11 @@ fn list(db: &mut Database, topology_override: Option<&str>, format: OutputFormat
                 );
             } else {
                 for r in &regimes {
-                    let schedule_str = r
-                        .sr
-                        .schedule
-                        .as_deref()
-                        .map(|s| format!(" ({})", s))
-                        .unwrap_or_default();
+                    let schedule_str =
+                        r.sr.schedule
+                            .as_deref()
+                            .map(|s| format!(" ({})", s))
+                            .unwrap_or_default();
                     println!(
                         "  {} [{}] {}: {}:{} -> {}:{}{}",
                         r.sr.name,

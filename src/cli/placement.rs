@@ -163,10 +163,7 @@ fn add(
             "placement.created",
             "placement",
             &pl_id,
-            &format!(
-                "Placed dataset '{}' on volume '{}'",
-                ds_name, vol_name
-            ),
+            &format!("Placed dataset '{}' on volume '{}'", ds_name, vol_name),
             None,
             Some(&after_json),
             &EventSource::User,
@@ -324,10 +321,7 @@ fn remove(
             "placement.deleted",
             "placement",
             &pl_id,
-            &format!(
-                "Removed dataset '{}' from volume '{}'",
-                ds_name, vol_name
-            ),
+            &format!("Removed dataset '{}' from volume '{}'", ds_name, vol_name),
             Some(&before_json),
             None,
             &EventSource::User,
@@ -338,10 +332,7 @@ fn remove(
 
     match format {
         OutputFormat::Text => {
-            println!(
-                "Removed dataset '{}' from volume '{}'",
-                ds_name, vol_name
-            );
+            println!("Removed dataset '{}' from volume '{}'", ds_name, vol_name);
         }
         OutputFormat::Json => {
             let json = serde_json::json!({

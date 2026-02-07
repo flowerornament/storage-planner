@@ -107,9 +107,7 @@ pub fn run(cmd: LinkCommands, db: &mut Database, format: OutputFormat) -> Result
         ),
         LinkCommands::List { topology } => list(db, topology.as_deref(), format),
         LinkCommands::Show { name, topology } => show(db, &name, topology.as_deref(), format),
-        LinkCommands::Remove { name, topology } => {
-            remove(db, &name, topology.as_deref(), format)
-        }
+        LinkCommands::Remove { name, topology } => remove(db, &name, topology.as_deref(), format),
     }
 }
 
@@ -313,7 +311,12 @@ fn parse_link_name(name: &str) -> Result<(&str, &str)> {
 }
 
 /// Find a link by source and target node IDs within a topology.
-fn find_link(db: &Database, topology_id: &str, source_node_id: &str, target_node_id: &str) -> Result<Link> {
+fn find_link(
+    db: &Database,
+    topology_id: &str,
+    source_node_id: &str,
+    target_node_id: &str,
+) -> Result<Link> {
     db.conn()
         .query_row(
             "SELECT id, topology_id, source_node_id, target_node_id, bandwidth_bytes_sec, \
@@ -322,11 +325,7 @@ fn find_link(db: &Database, topology_id: &str, source_node_id: &str, target_node
             params![topology_id, source_node_id, target_node_id],
             Link::from_row,
         )
-        .map_err(|_| {
-            anyhow::anyhow!(
-                "Link not found between the specified nodes in this topology"
-            )
-        })
+        .map_err(|_| anyhow::anyhow!("Link not found between the specified nodes in this topology"))
 }
 
 fn show(

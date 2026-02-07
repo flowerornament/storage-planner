@@ -317,10 +317,7 @@ fn list(
                         .as_ref()
                         .map(|r| format!("/{}", r))
                         .unwrap_or_default();
-                    println!(
-                        "  {} on {} [{}{}{}]",
-                        vol.name, node_name, cap, fs, raid
-                    );
+                    println!("  {} on {} [{}{}{}]", vol.name, node_name, cap, fs, raid);
                 }
             }
         }
@@ -440,10 +437,7 @@ fn remove(
             "volume.deleted",
             "volume",
             &vol_id,
-            &format!(
-                "Deleted volume '{}' from node '{}'",
-                vol_name, node_name
-            ),
+            &format!("Deleted volume '{}' from node '{}'", vol_name, node_name),
             Some(&before_json),
             None,
             &EventSource::User,
@@ -520,10 +514,7 @@ fn update(
                 |row| row.get(0),
             )?;
             if existing > 0 {
-                bail!(
-                    "Volume name '{}' is already taken on this node",
-                    new_name
-                );
+                bail!("Volume name '{}' is already taken on this node", new_name);
             }
         }
     }

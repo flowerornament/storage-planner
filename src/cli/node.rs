@@ -461,10 +461,7 @@ fn update(
                 |row| row.get(0),
             )?;
             if existing > 0 {
-                bail!(
-                    "Node name '{}' is already taken in this topology",
-                    new_name
-                );
+                bail!("Node name '{}' is already taken in this topology", new_name);
             }
         }
     }

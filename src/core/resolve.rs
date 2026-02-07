@@ -36,10 +36,7 @@ pub fn validate_slug(name: &str) -> Result<()> {
 ///
 /// If `override_name` is Some, resolves that topology by name-or-ID.
 /// Otherwise, finds the topology where `is_active = 1`.
-pub fn resolve_active_topology(
-    db: &Database,
-    override_name: Option<&str>,
-) -> Result<Topology> {
+pub fn resolve_active_topology(db: &Database, override_name: Option<&str>) -> Result<Topology> {
     if let Some(name) = override_name {
         return resolve_topology(db, name);
     }
@@ -482,7 +479,10 @@ mod tests {
         let db = setup_db();
         let result = resolve_active_topology(&db, None);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("No active topology"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("No active topology"));
     }
 
     #[test]

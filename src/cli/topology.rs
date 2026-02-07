@@ -340,7 +340,10 @@ fn build_tree_json(db: &Database, topo: &Topology) -> Result<serde_json::Value> 
 
     let mut topo_val = serde_json::to_value(topo)?;
     if let serde_json::Value::Object(ref mut map) = topo_val {
-        map.insert("nodes".to_string(), serde_json::Value::Array(node_json_list));
+        map.insert(
+            "nodes".to_string(),
+            serde_json::Value::Array(node_json_list),
+        );
         map.insert("datasets".to_string(), serde_json::Value::Array(ds_json));
     }
 
@@ -436,10 +439,7 @@ fn update(
                     original_name, final_name
                 );
             } else {
-                println!(
-                    "Updated topology '{}': description updated",
-                    original_name
-                );
+                println!("Updated topology '{}': description updated", original_name);
             }
         }
         OutputFormat::Json => {
