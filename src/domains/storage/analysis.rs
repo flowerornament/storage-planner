@@ -1,20 +1,24 @@
 //! Storage analysis functions
 //!
-//! Pure functions that analyze topology data for redundancy and capacity issues.
-//! These functions take pre-loaded data and return scored reports -- no database
-//! access happens inside analysis functions themselves.
+//! Pure functions that analyze topology data for redundancy, capacity, RPO
+//! compliance, and failure simulation. These functions take pre-loaded data and
+//! return scored reports -- no database access happens inside analysis functions
+//! themselves.
 //!
-//! The `load_placements_with_context` loader JOINs across placements, datasets,
-//! volumes, and nodes to produce enriched placement data for analysis.
+//! The `load_placements_with_context` and `load_sync_regimes_with_context`
+//! loaders JOIN across tables to produce enriched data for analysis.
 
 use std::collections::{HashMap, HashSet};
+use std::str::FromStr;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
+use chrono::Utc;
+use croner::Cron;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 
 use crate::core::db::Database;
-use crate::core::models::{Dataset, Volume};
+use crate::core::models::{Dataset, Node, Volume};
 
 // ---------------------------------------------------------------------------
 // Enriched placement data
@@ -96,6 +100,74 @@ pub fn load_placements_with_context(
                 min_copies: row.get("min_copies")?,
                 min_locations: row.get("min_locations")?,
                 max_rpo_hours: row.get("max_rpo_hours")?,
+            })
+        })?;
+
+        rows.collect::<Result<Vec<_>, _>>()?
+    };
+
+    Ok(results)
+}
+
+// ---------------------------------------------------------------------------
+// Enriched sync regime data
+// ---------------------------------------------------------------------------
+
+/// A sync regime enriched with source/target volume names and dataset name.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncRegimeWithContext {
+    pub id: String,
+    pub dataset_id: String,
+    pub dataset_name: String,
+    pub source_volume_id: String,
+    pub source_volume_name: String,
+    pub target_volume_id: String,
+    pub target_volume_name: String,
+    pub sync_type: String,
+    pub schedule: Option<String>,
+    pub direction: String,
+    pub name: String,
+}
+
+/// Load all sync regimes for a topology with volume and dataset names via JOIN.
+pub fn load_sync_regimes_with_context(
+    db: &Database,
+    topology_id: &str,
+) -> Result<Vec<SyncRegimeWithContext>> {
+    let results = {
+        let mut stmt = db.conn().prepare(
+            "SELECT
+                sr.id,
+                sr.dataset_id,
+                d.name AS dataset_name,
+                sr.source_volume_id,
+                sv.name AS source_volume_name,
+                sr.target_volume_id,
+                tv.name AS target_volume_name,
+                sr.sync_type,
+                sr.schedule,
+                sr.direction,
+                sr.name
+            FROM sync_regimes sr
+            JOIN datasets d ON sr.dataset_id = d.id
+            JOIN volumes sv ON sr.source_volume_id = sv.id
+            JOIN volumes tv ON sr.target_volume_id = tv.id
+            WHERE sr.topology_id = ?1",
+        )?;
+
+        let rows = stmt.query_map(params![topology_id], |row| {
+            Ok(SyncRegimeWithContext {
+                id: row.get("id")?,
+                dataset_id: row.get("dataset_id")?,
+                dataset_name: row.get("dataset_name")?,
+                source_volume_id: row.get("source_volume_id")?,
+                source_volume_name: row.get("source_volume_name")?,
+                target_volume_id: row.get("target_volume_id")?,
+                target_volume_name: row.get("target_volume_name")?,
+                sync_type: row.get("sync_type")?,
+                schedule: row.get("schedule")?,
+                direction: row.get("direction")?,
+                name: row.get("name")?,
             })
         })?;
 
@@ -421,6 +493,388 @@ pub fn analyze_capacity(
 }
 
 // ---------------------------------------------------------------------------
+// RPO analysis
+// ---------------------------------------------------------------------------
+
+/// Scored report on RPO (Recovery Point Objective) compliance.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RpoReport {
+    pub score: f64,
+    pub issues: Vec<RpoIssue>,
+    pub datasets_analyzed: usize,
+    pub datasets_ok: usize,
+    pub datasets_skipped: Vec<String>,
+}
+
+/// A single dataset that fails RPO requirements.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RpoIssue {
+    pub dataset_name: String,
+    pub criticality: String,
+    pub max_rpo_hours: i32,
+    pub best_sync_interval_hours: Option<f64>,
+    pub problem: String,
+    pub suggestion: Option<String>,
+}
+
+/// Parse a cron expression and return the interval in hours between successive
+/// occurrences from the current time. Returns None if the expression is invalid
+/// or has no upcoming occurrences.
+pub fn cron_interval_hours(schedule: &str) -> Option<f64> {
+    let cron = Cron::from_str(schedule).ok()?;
+    let now = Utc::now();
+    let first = cron.find_next_occurrence(&now, false).ok()?;
+    let second = cron.find_next_occurrence(&first, false).ok()?;
+    let gap = second.signed_duration_since(first);
+    Some(gap.num_seconds() as f64 / 3600.0)
+}
+
+/// Analyze RPO compliance for datasets with max_rpo_hours set.
+///
+/// For each dataset with a max_rpo_hours value, finds the best (smallest)
+/// sync interval across all sync regimes for that dataset. Compares against
+/// the required max RPO to identify violations.
+///
+/// Score = (datasets_ok / datasets_analyzed) * 100. If no datasets have
+/// max_rpo_hours, score is 100.0.
+pub fn analyze_rpo(
+    datasets: &[Dataset],
+    placements: &[PlacementWithContext],
+    sync_regimes: &[SyncRegimeWithContext],
+) -> RpoReport {
+    let _ = placements; // Reserved for future use (e.g., checking placement coverage)
+
+    let mut issues = Vec::new();
+    let mut datasets_analyzed = 0usize;
+    let mut datasets_skipped = Vec::new();
+
+    for dataset in datasets {
+        let max_rpo = match dataset.max_rpo_hours {
+            Some(rpo) => rpo,
+            None => {
+                datasets_skipped.push(dataset.name.clone());
+                continue;
+            }
+        };
+
+        datasets_analyzed += 1;
+
+        // Find all sync regimes for this dataset
+        let ds_regimes: Vec<&SyncRegimeWithContext> = sync_regimes
+            .iter()
+            .filter(|sr| sr.dataset_id == dataset.id)
+            .collect();
+
+        if ds_regimes.is_empty() {
+            issues.push(RpoIssue {
+                dataset_name: dataset.name.clone(),
+                criticality: dataset.criticality.clone(),
+                max_rpo_hours: max_rpo,
+                best_sync_interval_hours: None,
+                problem: "no sync regime configured".to_string(),
+                suggestion: Some(format!(
+                    "add sync regime with schedule meeting {}h RPO",
+                    max_rpo
+                )),
+            });
+            continue;
+        }
+
+        // Find best (smallest) sync interval across all regimes
+        let mut best_interval: Option<f64> = None;
+        let mut has_schedule = false;
+
+        for regime in &ds_regimes {
+            if let Some(ref schedule) = regime.schedule {
+                has_schedule = true;
+                if let Some(interval) = cron_interval_hours(schedule) {
+                    best_interval = Some(match best_interval {
+                        Some(current) => current.min(interval),
+                        None => interval,
+                    });
+                }
+            }
+        }
+
+        if !has_schedule {
+            issues.push(RpoIssue {
+                dataset_name: dataset.name.clone(),
+                criticality: dataset.criticality.clone(),
+                max_rpo_hours: max_rpo,
+                best_sync_interval_hours: None,
+                problem: "no scheduled sync (manual only)".to_string(),
+                suggestion: Some(format!(
+                    "add sync regime with schedule meeting {}h RPO",
+                    max_rpo
+                )),
+            });
+            continue;
+        }
+
+        if let Some(interval) = best_interval {
+            if interval > max_rpo as f64 {
+                issues.push(RpoIssue {
+                    dataset_name: dataset.name.clone(),
+                    criticality: dataset.criticality.clone(),
+                    max_rpo_hours: max_rpo,
+                    best_sync_interval_hours: Some(interval),
+                    problem: format!(
+                        "sync interval ({:.1}h) exceeds max RPO ({}h)",
+                        interval, max_rpo
+                    ),
+                    suggestion: Some(format!(
+                        "increase sync frequency to at most every {}h",
+                        max_rpo
+                    )),
+                });
+            }
+        }
+    }
+
+    let datasets_ok = datasets_analyzed - issues.len();
+    let score = if datasets_analyzed == 0 {
+        100.0
+    } else {
+        (datasets_ok as f64 / datasets_analyzed as f64) * 100.0
+    };
+
+    RpoReport {
+        score,
+        issues,
+        datasets_analyzed,
+        datasets_ok,
+        datasets_skipped,
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Failure simulation
+// ---------------------------------------------------------------------------
+
+/// Severity tier for a dataset affected by node failure.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+pub enum FailureSeverity {
+    /// All copies lost -- dataset is gone
+    Lost,
+    /// Some copies lost but dataset still exists
+    Degraded,
+    /// Copies meet min_copies but location requirements broken
+    AtRisk,
+}
+
+/// Report on simulated node failure impact.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FailureReport {
+    pub failed_nodes: Vec<String>,
+    pub volume_impact: Vec<VolumeImpact>,
+    pub dataset_impact: Vec<DatasetImpact>,
+    pub summary: FailureSummary,
+}
+
+/// A volume on a failed node.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VolumeImpact {
+    pub volume_name: String,
+    pub node_name: String,
+    pub capacity_bytes: i64,
+    pub datasets_hosted: usize,
+}
+
+/// A dataset affected by node failure.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DatasetImpact {
+    pub dataset_name: String,
+    pub criticality: String,
+    pub severity: FailureSeverity,
+    pub total_copies: i32,
+    pub remaining_copies: i32,
+    pub total_locations: i32,
+    pub remaining_locations: i32,
+    pub lost_volumes: Vec<String>,
+}
+
+/// Summary counts for failure simulation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FailureSummary {
+    pub total_volumes_lost: usize,
+    pub datasets_lost: usize,
+    pub datasets_degraded: usize,
+    pub datasets_at_risk: usize,
+}
+
+impl std::fmt::Display for FailureSeverity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FailureSeverity::Lost => write!(f, "LOST"),
+            FailureSeverity::Degraded => write!(f, "DEGRADED"),
+            FailureSeverity::AtRisk => write!(f, "AT RISK"),
+        }
+    }
+}
+
+/// Simulate one or more node failures and compute impact on volumes and datasets.
+///
+/// Resolves node names to IDs, finds all volumes on failed nodes, and for each
+/// dataset determines how many copies and locations remain after the failure.
+/// Only datasets with at least one placement on a failed node are included.
+pub fn simulate_failure(
+    failed_node_names: &[String],
+    nodes: &[Node],
+    datasets: &[Dataset],
+    placements: &[PlacementWithContext],
+) -> Result<FailureReport> {
+    // Resolve node names to IDs
+    let mut failed_node_ids = HashSet::new();
+    for name in failed_node_names {
+        let node = nodes.iter().find(|n| n.name == *name);
+        match node {
+            Some(n) => {
+                failed_node_ids.insert(n.id.clone());
+            }
+            None => {
+                bail!("node '{}' not found", name);
+            }
+        }
+    }
+
+    // Find volumes on failed nodes (from placements)
+    let mut volume_info: HashMap<String, (&str, &str, i64)> = HashMap::new(); // volume_id -> (volume_name, node_name, capacity)
+    let mut volume_dataset_count: HashMap<String, HashSet<String>> = HashMap::new(); // volume_id -> dataset_ids
+
+    for p in placements {
+        if failed_node_ids.contains(&p.node_id) {
+            volume_info
+                .entry(p.volume_id.clone())
+                .or_insert((&p.volume_name, &p.node_name, p.capacity_bytes));
+            volume_dataset_count
+                .entry(p.volume_id.clone())
+                .or_default()
+                .insert(p.dataset_id.clone());
+        }
+    }
+
+    let mut volume_impact: Vec<VolumeImpact> = volume_info
+        .iter()
+        .map(|(vid, (vname, nname, cap))| VolumeImpact {
+            volume_name: vname.to_string(),
+            node_name: nname.to_string(),
+            capacity_bytes: *cap,
+            datasets_hosted: volume_dataset_count
+                .get(vid)
+                .map(|s| s.len())
+                .unwrap_or(0),
+        })
+        .collect();
+    volume_impact.sort_by(|a, b| a.volume_name.cmp(&b.volume_name));
+
+    // Dataset impact
+    let mut dataset_impact = Vec::new();
+
+    for dataset in datasets {
+        let ds_placements: Vec<&PlacementWithContext> = placements
+            .iter()
+            .filter(|p| p.dataset_id == dataset.id)
+            .collect();
+
+        if ds_placements.is_empty() {
+            continue;
+        }
+
+        // Check if any placements are on failed nodes
+        let lost_placements: Vec<&&PlacementWithContext> = ds_placements
+            .iter()
+            .filter(|p| failed_node_ids.contains(&p.node_id))
+            .collect();
+
+        if lost_placements.is_empty() {
+            continue; // Not affected
+        }
+
+        let total_copies = ds_placements.len() as i32;
+        let total_locations =
+            count_distinct_locations(&ds_placements.to_vec()) as i32;
+
+        let remaining_placements: Vec<&PlacementWithContext> = ds_placements
+            .iter()
+            .filter(|p| !failed_node_ids.contains(&p.node_id))
+            .copied()
+            .collect();
+
+        let remaining_copies = remaining_placements.len() as i32;
+        let remaining_locations = if remaining_placements.is_empty() {
+            0i32
+        } else {
+            count_distinct_locations(
+                &remaining_placements.to_vec(),
+            ) as i32
+        };
+
+        let lost_volumes: Vec<String> = lost_placements
+            .iter()
+            .map(|p| p.volume_name.clone())
+            .collect();
+
+        let severity = if remaining_copies == 0 {
+            FailureSeverity::Lost
+        } else if remaining_copies < dataset.min_copies
+            || remaining_locations < dataset.min_locations
+        {
+            // Check if this is "at risk" (copies still meet min but locations don't)
+            // vs "degraded" (copies dropped below minimum)
+            if remaining_copies >= dataset.min_copies
+                && remaining_locations < dataset.min_locations
+            {
+                FailureSeverity::AtRisk
+            } else {
+                FailureSeverity::Degraded
+            }
+        } else if remaining_copies < total_copies {
+            // Lost copies but still meeting all minimums -- still degraded
+            FailureSeverity::Degraded
+        } else {
+            continue; // Not meaningfully affected
+        };
+
+        dataset_impact.push(DatasetImpact {
+            dataset_name: dataset.name.clone(),
+            criticality: dataset.criticality.clone(),
+            severity,
+            total_copies,
+            remaining_copies,
+            total_locations,
+            remaining_locations,
+            lost_volumes,
+        });
+    }
+
+    // Sort by severity (Lost first)
+    dataset_impact.sort_by(|a, b| a.severity.cmp(&b.severity));
+
+    let summary = FailureSummary {
+        total_volumes_lost: volume_impact.len(),
+        datasets_lost: dataset_impact
+            .iter()
+            .filter(|d| d.severity == FailureSeverity::Lost)
+            .count(),
+        datasets_degraded: dataset_impact
+            .iter()
+            .filter(|d| d.severity == FailureSeverity::Degraded)
+            .count(),
+        datasets_at_risk: dataset_impact
+            .iter()
+            .filter(|d| d.severity == FailureSeverity::AtRisk)
+            .count(),
+    };
+
+    Ok(FailureReport {
+        failed_nodes: failed_node_names.to_vec(),
+        volume_impact,
+        dataset_impact,
+        summary,
+    })
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
@@ -472,6 +926,53 @@ mod tests {
             min_copies: dataset.min_copies,
             min_locations: dataset.min_locations,
             max_rpo_hours: dataset.max_rpo_hours,
+        }
+    }
+
+    /// Helper to create a PlacementWithContext with a specific node (for failure sim tests)
+    fn make_placement_on_node(
+        dataset: &Dataset,
+        volume: &Volume,
+        node: &Node,
+    ) -> PlacementWithContext {
+        PlacementWithContext {
+            placement_id: uuid::Uuid::new_v4().to_string(),
+            dataset_id: dataset.id.clone(),
+            dataset_name: dataset.name.clone(),
+            volume_id: volume.id.clone(),
+            volume_name: volume.name.clone(),
+            node_id: node.id.clone(),
+            node_name: node.name.clone(),
+            node_location: node.location.clone(),
+            role: "primary".to_string(),
+            capacity_bytes: volume.capacity_bytes,
+            usable_bytes: volume.usable_bytes,
+            size_bytes: dataset.size_bytes,
+            growth_rate_bytes_month: dataset.growth_rate_bytes_month,
+            criticality: dataset.criticality.clone(),
+            min_copies: dataset.min_copies,
+            min_locations: dataset.min_locations,
+            max_rpo_hours: dataset.max_rpo_hours,
+        }
+    }
+
+    /// Helper to create a SyncRegimeWithContext for testing
+    fn make_sync_regime(
+        dataset: &Dataset,
+        schedule: Option<&str>,
+    ) -> SyncRegimeWithContext {
+        SyncRegimeWithContext {
+            id: uuid::Uuid::new_v4().to_string(),
+            dataset_id: dataset.id.clone(),
+            dataset_name: dataset.name.clone(),
+            source_volume_id: "src-vol".to_string(),
+            source_volume_name: "pool-1".to_string(),
+            target_volume_id: "tgt-vol".to_string(),
+            target_volume_name: "pool-2".to_string(),
+            sync_type: "rsync".to_string(),
+            schedule: schedule.map(|s| s.to_string()),
+            direction: "push".to_string(),
+            name: format!("sync-{}", dataset.name),
         }
     }
 
@@ -726,5 +1227,246 @@ mod tests {
         assert_eq!(p.min_locations, 2);
         assert_eq!(p.size_bytes, 500_000_000_000);
         assert_eq!(p.growth_rate_bytes_month, Some(50_000_000_000.0));
+    }
+
+    // -----------------------------------------------------------------------
+    // Cron interval tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_cron_interval_hours() {
+        let interval = cron_interval_hours("0 */6 * * *").unwrap();
+        assert!(
+            (interval - 6.0).abs() < 0.1,
+            "expected ~6h, got {}",
+            interval
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // RPO tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_rpo_all_compliant() {
+        let mut ds = make_dataset("t1", "photos", 500_000_000_000, None, "critical", 2, 2);
+        ds.max_rpo_hours = Some(24);
+
+        let sync = make_sync_regime(&ds, Some("0 */4 * * *")); // every 4h
+
+        let report = analyze_rpo(&[ds], &[], &[sync]);
+        assert_eq!(report.score, 100.0);
+        assert!(report.issues.is_empty());
+        assert_eq!(report.datasets_analyzed, 1);
+        assert_eq!(report.datasets_ok, 1);
+    }
+
+    #[test]
+    fn test_rpo_violation() {
+        let mut ds = make_dataset("t1", "photos", 500_000_000_000, None, "critical", 2, 2);
+        ds.max_rpo_hours = Some(4);
+
+        // Daily at 2am -- ~24h gap, exceeds 4h RPO
+        let sync = make_sync_regime(&ds, Some("0 2 * * *"));
+
+        let report = analyze_rpo(&[ds], &[], &[sync]);
+        assert_eq!(report.score, 0.0);
+        assert_eq!(report.issues.len(), 1);
+        assert!(report.issues[0].problem.contains("exceeds max RPO"));
+        assert!(report.issues[0].best_sync_interval_hours.unwrap() > 4.0);
+    }
+
+    #[test]
+    fn test_rpo_no_sync() {
+        let mut ds = make_dataset("t1", "photos", 500_000_000_000, None, "critical", 2, 2);
+        ds.max_rpo_hours = Some(24);
+
+        // No sync regimes at all
+        let report = analyze_rpo(&[ds], &[], &[]);
+        assert_eq!(report.score, 0.0);
+        assert_eq!(report.issues.len(), 1);
+        assert!(report.issues[0]
+            .problem
+            .contains("no sync regime configured"));
+    }
+
+    #[test]
+    fn test_rpo_no_schedule() {
+        let mut ds = make_dataset("t1", "photos", 500_000_000_000, None, "critical", 2, 2);
+        ds.max_rpo_hours = Some(24);
+
+        let sync = make_sync_regime(&ds, None); // manual only
+
+        let report = analyze_rpo(&[ds], &[], &[sync]);
+        assert_eq!(report.score, 0.0);
+        assert_eq!(report.issues.len(), 1);
+        assert!(report.issues[0]
+            .problem
+            .contains("no scheduled sync (manual only)"));
+    }
+
+    #[test]
+    fn test_rpo_skip_no_max_rpo() {
+        let ds = make_dataset("t1", "photos", 500_000_000_000, None, "normal", 1, 1);
+        // No max_rpo_hours set
+
+        let report = analyze_rpo(std::slice::from_ref(&ds), &[], &[]);
+        assert_eq!(report.score, 100.0);
+        assert!(report.issues.is_empty());
+        assert_eq!(report.datasets_analyzed, 0);
+        assert_eq!(report.datasets_skipped.len(), 1);
+        assert_eq!(report.datasets_skipped[0], "photos");
+    }
+
+    // -----------------------------------------------------------------------
+    // Failure simulation tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_failure_single_node() {
+        let mut node1 = Node::new("t1", "nas-01", "nas");
+        node1.location = "office".to_string();
+        let mut node2 = Node::new("t1", "nas-02", "nas");
+        node2.location = "closet".to_string();
+
+        let ds = make_dataset("t1", "photos", 500_000_000_000, None, "critical", 2, 2);
+        let vol1 = Volume::new("t1", &node1.id, "pool-1", 4_000_000_000_000);
+        let vol2 = Volume::new("t1", &node2.id, "pool-2", 4_000_000_000_000);
+
+        let placements = vec![
+            make_placement_on_node(&ds, &vol1, &node1),
+            make_placement_on_node(&ds, &vol2, &node2),
+        ];
+
+        let report = simulate_failure(
+            &["nas-01".to_string()],
+            &[node1, node2],
+            &[ds],
+            &placements,
+        )
+        .unwrap();
+
+        assert_eq!(report.dataset_impact.len(), 1);
+        assert_eq!(report.dataset_impact[0].severity, FailureSeverity::Degraded);
+        assert_eq!(report.dataset_impact[0].remaining_copies, 1);
+        assert_eq!(report.summary.datasets_degraded, 1);
+    }
+
+    #[test]
+    fn test_failure_total_loss() {
+        let mut node1 = Node::new("t1", "nas-01", "nas");
+        node1.location = "office".to_string();
+
+        let ds = make_dataset("t1", "photos", 500_000_000_000, None, "critical", 1, 1);
+        let vol1 = Volume::new("t1", &node1.id, "pool-1", 4_000_000_000_000);
+
+        let placements = vec![make_placement_on_node(&ds, &vol1, &node1)];
+
+        let report = simulate_failure(
+            &["nas-01".to_string()],
+            &[node1],
+            &[ds],
+            &placements,
+        )
+        .unwrap();
+
+        assert_eq!(report.dataset_impact.len(), 1);
+        assert_eq!(report.dataset_impact[0].severity, FailureSeverity::Lost);
+        assert_eq!(report.dataset_impact[0].remaining_copies, 0);
+        assert_eq!(report.summary.datasets_lost, 1);
+    }
+
+    #[test]
+    fn test_failure_multi_node() {
+        let mut node1 = Node::new("t1", "nas-01", "nas");
+        node1.location = "office".to_string();
+        let mut node2 = Node::new("t1", "nas-02", "nas");
+        node2.location = "closet".to_string();
+
+        let ds = make_dataset("t1", "photos", 500_000_000_000, None, "critical", 2, 2);
+        let vol1 = Volume::new("t1", &node1.id, "pool-1", 4_000_000_000_000);
+        let vol2 = Volume::new("t1", &node2.id, "pool-2", 4_000_000_000_000);
+
+        let placements = vec![
+            make_placement_on_node(&ds, &vol1, &node1),
+            make_placement_on_node(&ds, &vol2, &node2),
+        ];
+
+        let report = simulate_failure(
+            &["nas-01".to_string(), "nas-02".to_string()],
+            &[node1, node2],
+            &[ds],
+            &placements,
+        )
+        .unwrap();
+
+        assert_eq!(report.dataset_impact.len(), 1);
+        assert_eq!(report.dataset_impact[0].severity, FailureSeverity::Lost);
+        assert_eq!(report.summary.datasets_lost, 1);
+    }
+
+    #[test]
+    fn test_failure_at_risk() {
+        // Dataset requires 2 locations, has copies on 3 nodes (2 in office, 1 in closet).
+        // Fail the closet node -> remaining copies still >= min_copies(2),
+        // but remaining locations drop to 1 (only office) < min_locations(2).
+        let mut node1 = Node::new("t1", "nas-01", "nas");
+        node1.location = "office".to_string();
+        let mut node2 = Node::new("t1", "nas-02", "nas");
+        node2.location = "office".to_string();
+        let mut node3 = Node::new("t1", "nas-03", "nas");
+        node3.location = "closet".to_string();
+
+        let ds = make_dataset("t1", "photos", 500_000_000_000, None, "critical", 2, 2);
+        let vol1 = Volume::new("t1", &node1.id, "pool-1", 4_000_000_000_000);
+        let vol2 = Volume::new("t1", &node2.id, "pool-2", 4_000_000_000_000);
+        let vol3 = Volume::new("t1", &node3.id, "pool-3", 4_000_000_000_000);
+
+        let placements = vec![
+            make_placement_on_node(&ds, &vol1, &node1),
+            make_placement_on_node(&ds, &vol2, &node2),
+            make_placement_on_node(&ds, &vol3, &node3),
+        ];
+
+        let report = simulate_failure(
+            &["nas-03".to_string()],
+            &[node1, node2, node3],
+            &[ds],
+            &placements,
+        )
+        .unwrap();
+
+        assert_eq!(report.dataset_impact.len(), 1);
+        assert_eq!(report.dataset_impact[0].severity, FailureSeverity::AtRisk);
+        assert_eq!(report.dataset_impact[0].remaining_copies, 2);
+        assert_eq!(report.dataset_impact[0].remaining_locations, 1);
+        assert_eq!(report.summary.datasets_at_risk, 1);
+    }
+
+    #[test]
+    fn test_failure_no_impact() {
+        let mut node1 = Node::new("t1", "nas-01", "nas");
+        node1.location = "office".to_string();
+        let mut node2 = Node::new("t1", "nas-02", "nas");
+        node2.location = "closet".to_string();
+
+        let ds = make_dataset("t1", "photos", 500_000_000_000, None, "normal", 1, 1);
+        let vol1 = Volume::new("t1", &node1.id, "pool-1", 4_000_000_000_000);
+
+        // Dataset is only on node1, fail node2 -> no impact
+        let placements = vec![make_placement_on_node(&ds, &vol1, &node1)];
+
+        let report = simulate_failure(
+            &["nas-02".to_string()],
+            &[node1, node2],
+            &[ds],
+            &placements,
+        )
+        .unwrap();
+
+        assert!(report.dataset_impact.is_empty());
+        assert_eq!(report.summary.datasets_lost, 0);
+        assert_eq!(report.summary.datasets_degraded, 0);
+        assert_eq!(report.summary.datasets_at_risk, 0);
     }
 }
