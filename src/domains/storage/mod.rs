@@ -1,12 +1,7 @@
-//! Storage domain models and analysis
+//! Storage domain
 //!
-//! Provides storage-specific concepts:
-//! - Nodes (compute devices)
-//! - Volumes (storage units)
-//! - Datasets (logical data groups)
-//! - Sync regimes (data movement)
+//! Storage-specific models and analysis.
+//! Topology entity types are defined in core::models.
+//! Storage-specific analysis types will be added in Phase 4.
 
-pub mod analysis;
 pub mod models;
-
-pub use models::{Dataset, Node, SyncRegime, Volume};

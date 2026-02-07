@@ -1,7 +1,7 @@
 //! Storage Planner CLI - Purchase decision support tool
 //!
-//! A bd-style CLI for evaluating storage (and other purchase) decisions.
-//! All mutations go through this CLI; YAML exports are read-only snapshots.
+//! A CLI for evaluating storage (and other purchase) decisions.
+//! All mutations go through this CLI; the database is the source of truth.
 
 use anyhow::Result;
 use clap::Parser;
@@ -9,7 +9,6 @@ use clap::Parser;
 mod cli;
 mod core;
 mod domains;
-mod pricing;
 
 use cli::Cli;
 

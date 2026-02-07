@@ -11,9 +11,8 @@ name = "sp"
 path = "src/main.rs"
 
 [dependencies]
-# Core (Fast & Light baseline)
+# Core
 anyhow = "1"
-xshell = "0.2"
 
 # CLI
 clap = { version = "4", features = ["derive", "env"] }
@@ -24,17 +23,9 @@ rusqlite = { version = "0.31", features = ["bundled", "serde_json"] }
 # Serialization
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_yaml = "0.9"
-
-# Filesystem
-fs-err = "3"
-camino = { version = "1", features = ["serde1"] }
 
 # Terminal output
 console = "0.15"
-
-# HTTP (for pricing APIs)
-ureq = { version = "2", features = ["json"] }
 
 # Time
 chrono = { version = "0.4", features = ["serde"] }
