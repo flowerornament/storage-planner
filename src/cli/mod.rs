@@ -88,8 +88,22 @@ pub enum Commands {
     Sync(sync_regime::SyncCommands),
 
     /// Run analysis reports against topology data
-    #[command(subcommand)]
-    Analyze(analyze::AnalyzeCommands),
+    Analyze {
+        #[command(subcommand)]
+        command: Option<analyze::AnalyzeCommands>,
+
+        /// Target topology (defaults to active) -- used when no subcommand
+        #[arg(long)]
+        topology: Option<String>,
+
+        /// Show full details -- used when no subcommand
+        #[arg(long)]
+        verbose: bool,
+
+        /// Warn when volume is projected full within N months -- used when no subcommand
+        #[arg(long, default_value = "12")]
+        warn_months: i32,
+    },
 
     /// Undo the last action
     Undo,
@@ -152,9 +166,14 @@ impl Cli {
                 let mut db = open_db(&db_path)?;
                 sync_regime::run(cmd, &mut db, format)
             }
-            Commands::Analyze(cmd) => {
+            Commands::Analyze {
+                command,
+                topology,
+                verbose,
+                warn_months,
+            } => {
                 let mut db = open_db(&db_path)?;
-                analyze::run(cmd, &mut db, format)
+                analyze::run(command, &mut db, format, topology, verbose, warn_months)
             }
             Commands::Undo => {
                 let mut db = open_db(&db_path)?;
