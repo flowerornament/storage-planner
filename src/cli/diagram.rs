@@ -67,7 +67,11 @@ fn print_tree(db: &Database, topology_id: &str, topology_name: &str) -> Result<(
 
     for (ni, node) in nodes.iter().enumerate() {
         let is_last_node = ni == nodes.len() - 1;
-        let node_connector = if is_last_node { "\u{2514}\u{2500}\u{2500}" } else { "\u{251c}\u{2500}\u{2500}" };
+        let node_connector = if is_last_node {
+            "\u{2514}\u{2500}\u{2500}"
+        } else {
+            "\u{251c}\u{2500}\u{2500}"
+        };
         let node_detail = format_node_detail(node);
         println!("{} {}", node_connector, node_detail);
 
@@ -88,7 +92,11 @@ fn print_tree(db: &Database, topology_id: &str, topology_name: &str) -> Result<(
 
         for (vi, vol) in volumes.iter().enumerate() {
             let is_last_vol = vi == volumes.len() - 1;
-            let vol_connector = if is_last_vol { "\u{2514}\u{2500}\u{2500}" } else { "\u{251c}\u{2500}\u{2500}" };
+            let vol_connector = if is_last_vol {
+                "\u{2514}\u{2500}\u{2500}"
+            } else {
+                "\u{251c}\u{2500}\u{2500}"
+            };
             let vol_detail = format_volume_detail(vol);
             println!("{}{} {}", node_prefix, vol_connector, vol_detail);
 
@@ -141,7 +149,11 @@ fn print_tree(db: &Database, topology_id: &str, topology_name: &str) -> Result<(
 
             for (di, (pl, ds)) in placements.iter().enumerate() {
                 let is_last_ds = di == placements.len() - 1;
-                let ds_connector = if is_last_ds { "\u{2514}\u{2500}\u{2500}" } else { "\u{251c}\u{2500}\u{2500}" };
+                let ds_connector = if is_last_ds {
+                    "\u{2514}\u{2500}\u{2500}"
+                } else {
+                    "\u{251c}\u{2500}\u{2500}"
+                };
                 let ds_detail = format_dataset_detail(ds, pl);
                 println!("{}{} {}", vol_prefix, ds_connector, ds_detail);
             }

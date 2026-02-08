@@ -394,10 +394,7 @@ mod tests {
             entity_table_name("decision_topology").unwrap(),
             "decision_topologies"
         );
-        assert_eq!(
-            entity_table_name("catalog_item").unwrap(),
-            "catalog_items"
-        );
+        assert_eq!(entity_table_name("catalog_item").unwrap(), "catalog_items");
         assert_eq!(entity_table_name("price").unwrap(), "prices");
         assert!(entity_table_name("unknown").is_err());
     }

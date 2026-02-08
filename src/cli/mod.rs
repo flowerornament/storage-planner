@@ -242,7 +242,13 @@ impl Cli {
                 output,
             } => {
                 let mut db = open_db(&db_path)?;
-                export::run_export(&mut db, &topology, template, only.as_deref(), output.as_ref())
+                export::run_export(
+                    &mut db,
+                    &topology,
+                    template,
+                    only.as_deref(),
+                    output.as_ref(),
+                )
             }
             Commands::Import { file, name } => {
                 let mut db = open_db(&db_path)?;
