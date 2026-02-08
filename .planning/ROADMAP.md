@@ -99,7 +99,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 05-01-PLAN.md -- Schema migration v3, decision model structs, event system registration, entity resolver, node field extensions
+- [x] 05-01-PLAN.md -- Schema migration v3, decision model structs, event system registration, entity resolver, node field extensions
 - [ ] 05-02-PLAN.md -- Decision CLI module with CRUD commands and constraint/topology management
 - [ ] 05-03-PLAN.md -- Decision lifecycle (choose/abandon/reopen), constraint checking, topology comparison
 
@@ -131,7 +131,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. CLI Scaffolding and Basic Commands | 4/4 | Complete | 2026-02-07 |
 | 3. Topology Versioning | 3/3 | Complete | 2026-02-07 |
 | 4. Analysis Functions | 2/2 | Complete | 2026-02-07 |
-| 5. Decision Integration | 0/3 | Not started | - |
+| 5. Decision Integration | 1/3 | In progress | - |
 | 6. Cost and Context | 0/TBD | Not started | - |
 
 ---

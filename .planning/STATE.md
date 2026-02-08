@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-05)
 
 **Core value:** Session continuity for AI-assisted purchase decisions
-**Current focus:** Phase 4 complete -- ready for Phase 5 (Decision Integration)
+**Current focus:** Phase 5 in progress -- Decision Integration (plan 1 of 3 complete)
 
 ## Current Position
 
-Phase: 4 of 6 (Analysis Functions)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-02-07 - Completed 04-02-PLAN.md
+Phase: 5 of 6 (Decision Integration)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-02-08 - Completed 05-01-PLAN.md
 
-Progress: [███████████░] ~100% (11/11 known plans)
+Progress: [████████████░░] ~86% (12/14 known plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
-- Average duration: 4m 24s
-- Total execution time: ~0.8 hours
+- Total plans completed: 12
+- Average duration: 4m 29s
+- Total execution time: ~0.9 hours
 
 **By Phase:**
 
@@ -31,10 +31,11 @@ Progress: [███████████░] ~100% (11/11 known plans)
 | 02 | 4/4 | 13m 27s | 3m 22s |
 | 03 | 3/3 | 11m 13s | 3m 44s |
 | 04 | 2/2 | 13m 41s | 6m 51s |
+| 05 | 1/3 | 5m 29s | 5m 29s |
 
 **Recent Trend:**
-- Last 5 plans: 03-01 (3m 42s), 03-02 (3m 27s), 03-03 (4m 04s), 04-01 (7m 00s), 04-02 (6m 41s)
-- Trend: Phase 4 plans longer due to analysis engine complexity
+- Last 5 plans: 03-03 (4m 04s), 04-01 (7m 00s), 04-02 (6m 41s), 05-01 (5m 29s)
+- Trend: Stabilizing around 5-7 min for moderate complexity plans
 
 *Updated after each plan completion*
 
@@ -75,6 +76,8 @@ Recent decisions affecting current work:
 - D028: Analysis exit code 1 on issues, 0 when clean (enables scripting)
 - D029: Failure severity checks min_copies/min_locations before general degraded to correctly classify AT RISK
 - D030: Optional clap subcommand with top-level args for combined dashboard mode
+- D031: Decision titles use free-text (not slugs) -- supports natural language naming
+- D032: No power_watts column added -- existing power_draw_watts covers same concept
 
 ### Pending Todos
 
@@ -86,6 +89,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-07T21:03Z
-Stopped at: Completed 04-02-PLAN.md (RPO, failure simulation, combined dashboard)
-Resume file: Phase 5 planning needed
+Last session: 2026-02-08T01:22Z
+Stopped at: Completed 05-01-PLAN.md (schema v3, decision models, events, resolver, node extensions)
+Resume file: .planning/phases/05-decision-integration/05-02-PLAN.md
