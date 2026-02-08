@@ -27,6 +27,7 @@ use std::path::{Path, PathBuf};
 use crate::core::db::Database;
 
 mod analyze;
+mod catalog;
 mod dataset;
 mod decision;
 mod diagram;
@@ -93,6 +94,10 @@ pub enum Commands {
     /// Manage data sync regimes between volumes
     #[command(subcommand)]
     Sync(sync_regime::SyncCommands),
+
+    /// Manage product catalog and price observations
+    #[command(subcommand)]
+    Catalog(catalog::CatalogCommands),
 
     /// Track purchase decisions with lifecycle management
     #[command(subcommand)]
@@ -213,6 +218,10 @@ impl Cli {
             Commands::Sync(cmd) => {
                 let mut db = open_db(&db_path)?;
                 sync_regime::run(cmd, &mut db, format)
+            }
+            Commands::Catalog(cmd) => {
+                let mut db = open_db(&db_path)?;
+                catalog::run(cmd, &mut db, format)
             }
             Commands::Decision(cmd) => {
                 let mut db = open_db(&db_path)?;
