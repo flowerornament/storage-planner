@@ -85,7 +85,7 @@ sp decision list
 
 ```
 sp catalog add "Samsung 870 EVO 4TB" --category=ssd --specs='{"capacity_gb":4000}'
-sp catalog price add "Samsung 870 EVO 4TB" --amount=28999 --source=amazon
+sp catalog price add "Samsung 870 EVO 4TB" --amount=289.99 --source=amazon
 sp catalog show "Samsung 870 EVO 4TB"
 sp catalog list
 sp catalog search "870 EVO"

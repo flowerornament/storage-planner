@@ -200,7 +200,20 @@ fn add(
     validate_criticality(criticality)?;
 
     let capacity = Capacity::parse(size)?;
+    if capacity.bytes == 0 {
+        bail!("Dataset size must be greater than zero");
+    }
     let size_bytes = capacity.bytes as i64;
+
+    if min_copies < 1 {
+        bail!("Minimum copies must be at least 1 (got {})", min_copies);
+    }
+    if min_locations < 1 {
+        bail!(
+            "Minimum locations must be at least 1 (got {})",
+            min_locations
+        );
+    }
 
     let growth_bytes: Option<f64> = growth_rate
         .map(|g| Capacity::parse(g).map(|c| c.bytes as f64))
@@ -529,8 +542,26 @@ fn update(
 
     // Parse size/growth if provided
     let new_size_bytes: Option<i64> = size
-        .map(|s| Capacity::parse(s).map(|c| c.bytes as i64))
+        .map(|s| {
+            let c = Capacity::parse(s)?;
+            if c.bytes == 0 {
+                bail!("Dataset size must be greater than zero");
+            }
+            Ok(c.bytes as i64)
+        })
         .transpose()?;
+
+    if let Some(copies) = min_copies {
+        if copies < 1 {
+            bail!("Minimum copies must be at least 1 (got {})", copies);
+        }
+    }
+    if let Some(locations) = min_locations {
+        if locations < 1 {
+            bail!("Minimum locations must be at least 1 (got {})", locations);
+        }
+    }
+
     let new_growth: Option<f64> = growth_rate
         .map(|g| Capacity::parse(g).map(|c| c.bytes as f64))
         .transpose()?;

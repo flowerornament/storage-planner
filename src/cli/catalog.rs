@@ -70,9 +70,9 @@ pub enum PriceCommands {
         /// Item name or UUID prefix
         item: String,
 
-        /// Price amount in cents (e.g., 28999 for $289.99). Use whole numbers only.
-        #[arg(long, value_name = "CENTS")]
-        amount: i64,
+        /// Price amount in dollars (e.g., 289.99)
+        #[arg(long, value_name = "DOLLARS")]
+        amount: f64,
 
         /// Price source (e.g., amazon, bestbuy, ebay)
         #[arg(long, default_value = "manual")]
@@ -126,9 +126,22 @@ pub fn run(cmd: CatalogCommands, db: &mut Database, format: OutputFormat) -> Res
                 condition,
                 r#type,
                 currency,
-            } => price_add(
-                db, &item, amount, &source, &condition, &r#type, &currency, format,
-            ),
+            } => {
+                if amount < 0.0 {
+                    anyhow::bail!("Price amount cannot be negative (got ${:.2})", amount);
+                }
+                let amount_cents = (amount * 100.0).round() as i64;
+                price_add(
+                    db,
+                    &item,
+                    amount_cents,
+                    &source,
+                    &condition,
+                    &r#type,
+                    &currency,
+                    format,
+                )
+            }
             PriceCommands::List { item } => price_list(db, &item, format),
         },
     }
@@ -442,11 +455,6 @@ fn price_add(
     currency: &str,
     format: OutputFormat,
 ) -> Result<()> {
-    // Validate amount
-    if amount_cents < 0 {
-        bail!("Price amount cannot be negative (got {})", amount_cents);
-    }
-
     // Validate price_type
     match price_type {
         "one-time" | "monthly" | "annual" => {}
