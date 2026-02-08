@@ -96,10 +96,12 @@ Plans:
   3. User can mark topologies as "under consideration" for a decision
   4. User can compare two topologies side-by-side including constraint analysis
   5. User can close a decision with chosen topology and rationale (or abandon)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: TBD
+- [ ] 05-01-PLAN.md -- Schema migration v3, decision model structs, event system registration, entity resolver, node field extensions
+- [ ] 05-02-PLAN.md -- Decision CLI module with CRUD commands and constraint/topology management
+- [ ] 05-03-PLAN.md -- Decision lifecycle (choose/abandon/reopen), constraint checking, topology comparison
 
 ### Phase 6: Cost and Context
 **Goal**: Users can analyze costs and agents can get full context via sp prime
@@ -129,7 +131,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. CLI Scaffolding and Basic Commands | 4/4 | Complete | 2026-02-07 |
 | 3. Topology Versioning | 3/3 | Complete | 2026-02-07 |
 | 4. Analysis Functions | 2/2 | Complete | 2026-02-07 |
-| 5. Decision Integration | 0/TBD | Not started | - |
+| 5. Decision Integration | 0/3 | Not started | - |
 | 6. Cost and Context | 0/TBD | Not started | - |
 
 ---
