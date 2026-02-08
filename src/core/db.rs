@@ -8,7 +8,7 @@ use rusqlite::{Connection, Transaction};
 use std::path::{Path, PathBuf};
 
 /// Current schema version. Bump this when adding new migrations.
-pub const CURRENT_VERSION: i32 = 2;
+pub const CURRENT_VERSION: i32 = 3;
 
 /// A single schema migration step.
 struct Migration {
@@ -26,6 +26,10 @@ const MIGRATIONS: &[Migration] = &[
     Migration {
         version: 2,
         sql: SCHEMA_V2,
+    },
+    Migration {
+        version: 3,
+        sql: SCHEMA_V3,
     },
 ];
 
@@ -292,6 +296,55 @@ CREATE UNIQUE INDEX idx_topologies_current ON topologies(tag) WHERE tag = 'curre
 PRAGMA user_version = 2;
 "#;
 
+/// Phase 5 schema (version 3): Decision integration tables and node field extensions
+///
+/// Adds cost_estimate, noise_db, rack_units columns to nodes.
+/// Creates decisions, decision_constraints, decision_topologies tables.
+const SCHEMA_V3: &str = r#"
+ALTER TABLE nodes ADD COLUMN cost_estimate REAL;
+ALTER TABLE nodes ADD COLUMN noise_db REAL;
+ALTER TABLE nodes ADD COLUMN rack_units REAL;
+
+CREATE TABLE decisions (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL UNIQUE,
+    description TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'draft',
+    parent_id TEXT REFERENCES decisions(id) ON DELETE SET NULL,
+    chosen_topology_id TEXT REFERENCES topologies(id) ON DELETE SET NULL,
+    rationale TEXT,
+    snapshot TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    closed_at TEXT
+);
+
+CREATE TABLE decision_constraints (
+    id TEXT PRIMARY KEY,
+    decision_id TEXT NOT NULL REFERENCES decisions(id) ON DELETE CASCADE,
+    constraint_type TEXT NOT NULL,
+    max_value REAL NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(decision_id, constraint_type)
+);
+
+CREATE TABLE decision_topologies (
+    id TEXT PRIMARY KEY,
+    decision_id TEXT NOT NULL REFERENCES decisions(id) ON DELETE CASCADE,
+    topology_id TEXT NOT NULL REFERENCES topologies(id) ON DELETE CASCADE,
+    added_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(decision_id, topology_id)
+);
+
+CREATE INDEX idx_decisions_status ON decisions(status);
+CREATE INDEX idx_decisions_parent ON decisions(parent_id);
+CREATE INDEX idx_decision_constraints_decision ON decision_constraints(decision_id);
+CREATE INDEX idx_decision_topologies_decision ON decision_topologies(decision_id);
+CREATE INDEX idx_decision_topologies_topology ON decision_topologies(topology_id);
+
+PRAGMA user_version = 3;
+"#;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -329,6 +382,9 @@ mod tests {
 
         let expected = vec![
             "datasets",
+            "decision_constraints",
+            "decision_topologies",
+            "decisions",
             "events",
             "links",
             "nodes",
@@ -461,6 +517,131 @@ mod tests {
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .unwrap();
         assert_eq!(version, 2);
+    }
+
+    #[test]
+    fn test_migration_v3() {
+        // Create a v2 database manually
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        conn.execute_batch(SCHEMA_V1).unwrap();
+        conn.execute_batch(SCHEMA_V2).unwrap();
+
+        // Apply migration v3
+        conn.execute_batch(SCHEMA_V3).unwrap();
+
+        // Verify new node columns exist by inserting a topology + node with new fields
+        conn.execute(
+            "INSERT INTO topologies (id, name) VALUES ('t1', 'test-topo')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO nodes (id, topology_id, name, role, cost_estimate, noise_db, rack_units) \
+             VALUES ('n1', 't1', 'node1', 'server', 599.99, 35.0, 2.0)",
+            [],
+        )
+        .unwrap();
+
+        let (cost, noise, rack): (Option<f64>, Option<f64>, Option<f64>) = conn
+            .query_row(
+                "SELECT cost_estimate, noise_db, rack_units FROM nodes WHERE id = 'n1'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!(cost, Some(599.99));
+        assert_eq!(noise, Some(35.0));
+        assert_eq!(rack, Some(2.0));
+
+        // Verify all 3 new tables exist
+        let tables: Vec<String> = {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'decision%' ORDER BY name",
+                )
+                .unwrap();
+            stmt.query_map([], |row| row.get(0))
+                .unwrap()
+                .collect::<Result<Vec<_>, _>>()
+                .unwrap()
+        };
+        assert_eq!(
+            tables,
+            vec!["decision_constraints", "decision_topologies", "decisions"]
+        );
+
+        // Verify UNIQUE constraint on decision title
+        conn.execute(
+            "INSERT INTO decisions (id, title) VALUES ('d1', 'My Decision')",
+            [],
+        )
+        .unwrap();
+        let dup_title = conn.execute(
+            "INSERT INTO decisions (id, title) VALUES ('d2', 'My Decision')",
+            [],
+        );
+        assert!(dup_title.is_err(), "UNIQUE title constraint should prevent duplicate titles");
+
+        // Verify UNIQUE constraint on (decision_id, constraint_type)
+        conn.execute(
+            "INSERT INTO decision_constraints (id, decision_id, constraint_type, max_value) \
+             VALUES ('c1', 'd1', 'budget', 1000.0)",
+            [],
+        )
+        .unwrap();
+        let dup_constraint = conn.execute(
+            "INSERT INTO decision_constraints (id, decision_id, constraint_type, max_value) \
+             VALUES ('c2', 'd1', 'budget', 2000.0)",
+            [],
+        );
+        assert!(
+            dup_constraint.is_err(),
+            "UNIQUE (decision_id, constraint_type) should prevent duplicates"
+        );
+
+        // Verify UNIQUE constraint on (decision_id, topology_id)
+        conn.execute(
+            "INSERT INTO decision_topologies (id, decision_id, topology_id) \
+             VALUES ('dt1', 'd1', 't1')",
+            [],
+        )
+        .unwrap();
+        let dup_topo = conn.execute(
+            "INSERT INTO decision_topologies (id, decision_id, topology_id) \
+             VALUES ('dt2', 'd1', 't1')",
+            [],
+        );
+        assert!(
+            dup_topo.is_err(),
+            "UNIQUE (decision_id, topology_id) should prevent duplicates"
+        );
+
+        // Verify CASCADE: deleting a decision cascades to constraints and topologies
+        conn.execute("DELETE FROM decisions WHERE id = 'd1'", []).unwrap();
+        let constraint_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM decision_constraints WHERE decision_id = 'd1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(constraint_count, 0, "CASCADE should delete decision_constraints");
+
+        let topo_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM decision_topologies WHERE decision_id = 'd1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(topo_count, 0, "CASCADE should delete decision_topologies");
+
+        // Verify version is 3
+        let version: i32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 3);
     }
 
     #[test]

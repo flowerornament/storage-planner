@@ -365,7 +365,7 @@ fn show(db: &mut Database, name: &str, tree: bool, format: OutputFormat) -> Resu
 fn show_tree_text(db: &Database, topology_id: &str) -> Result<()> {
     let mut node_stmt = db.conn().prepare(
         "SELECT id, topology_id, name, role, location, available_bays, interface_types, \
-         power_draw_watts, created_at, updated_at \
+         power_draw_watts, cost_estimate, noise_db, rack_units, created_at, updated_at \
          FROM nodes WHERE topology_id = ?1 ORDER BY name",
     )?;
     let nodes: Vec<Node> = node_stmt
@@ -414,7 +414,7 @@ fn show_tree_text(db: &Database, topology_id: &str) -> Result<()> {
 fn build_tree_json(db: &Database, topo: &Topology) -> Result<serde_json::Value> {
     let mut node_stmt = db.conn().prepare(
         "SELECT id, topology_id, name, role, location, available_bays, interface_types, \
-         power_draw_watts, created_at, updated_at \
+         power_draw_watts, cost_estimate, noise_db, rack_units, created_at, updated_at \
          FROM nodes WHERE topology_id = ?1 ORDER BY name",
     )?;
     let nodes: Vec<Node> = node_stmt
@@ -815,7 +815,7 @@ fn fork(
     let nodes: Vec<Node> = {
         let mut stmt = db.conn().prepare(
             "SELECT id, topology_id, name, role, location, available_bays, interface_types, \
-             power_draw_watts, created_at, updated_at FROM nodes WHERE topology_id = ?1",
+             power_draw_watts, cost_estimate, noise_db, rack_units, created_at, updated_at FROM nodes WHERE topology_id = ?1",
         )?;
         let result = stmt
             .query_map(params![source_id], Node::from_row)?
@@ -1218,7 +1218,7 @@ fn diff_entities_by_name(
 fn load_nodes_for_diff(db: &Database, topology_id: &str) -> Result<Vec<(String, Value)>> {
     let mut stmt = db.conn().prepare(
         "SELECT id, topology_id, name, role, location, available_bays, interface_types, \
-         power_draw_watts, created_at, updated_at \
+         power_draw_watts, cost_estimate, noise_db, rack_units, created_at, updated_at \
          FROM nodes WHERE topology_id = ?1 ORDER BY name",
     )?;
     let nodes: Vec<Node> = stmt

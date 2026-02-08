@@ -229,7 +229,7 @@ fn list(db: &mut Database, topology_override: Option<&str>, format: OutputFormat
 
     let mut stmt = db.conn().prepare(
         "SELECT id, topology_id, name, role, location, available_bays, interface_types, \
-         power_draw_watts, created_at, updated_at \
+         power_draw_watts, cost_estimate, noise_db, rack_units, created_at, updated_at \
          FROM nodes WHERE topology_id = ?1 ORDER BY name",
     )?;
 

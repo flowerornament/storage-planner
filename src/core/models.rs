@@ -95,6 +95,9 @@ pub struct Node {
     pub available_bays: Option<i32>,
     pub interface_types: String,
     pub power_draw_watts: Option<f64>,
+    pub cost_estimate: Option<f64>,
+    pub noise_db: Option<f64>,
+    pub rack_units: Option<f64>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -116,6 +119,9 @@ impl Node {
             available_bays: None,
             interface_types: String::new(),
             power_draw_watts: None,
+            cost_estimate: None,
+            noise_db: None,
+            rack_units: None,
             created_at: now,
             updated_at: now,
         }
@@ -123,8 +129,8 @@ impl Node {
 
     pub fn insert(&self, tx: &Transaction) -> rusqlite::Result<()> {
         tx.execute(
-            "INSERT INTO nodes (id, topology_id, name, role, location, available_bays, interface_types, power_draw_watts, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            "INSERT INTO nodes (id, topology_id, name, role, location, available_bays, interface_types, power_draw_watts, cost_estimate, noise_db, rack_units, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
             params![
                 self.id,
                 self.topology_id,
@@ -134,6 +140,9 @@ impl Node {
                 self.available_bays,
                 self.interface_types,
                 self.power_draw_watts,
+                self.cost_estimate,
+                self.noise_db,
+                self.rack_units,
                 self.created_at.to_rfc3339(),
                 self.updated_at.to_rfc3339(),
             ],
@@ -153,6 +162,9 @@ impl Node {
             available_bays: row.get("available_bays")?,
             interface_types: row.get("interface_types")?,
             power_draw_watts: row.get("power_draw_watts")?,
+            cost_estimate: row.get("cost_estimate")?,
+            noise_db: row.get("noise_db")?,
+            rack_units: row.get("rack_units")?,
             created_at: DateTime::parse_from_rfc3339(&created_str)
                 .map(|dt| dt.with_timezone(&Utc))
                 .unwrap_or_else(|_| Utc::now()),
@@ -609,6 +621,216 @@ impl SyncRegime {
 }
 
 // ---------------------------------------------------------------------------
+// Decision
+// ---------------------------------------------------------------------------
+
+/// A purchase/configuration decision tracking entity
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Decision {
+    pub id: String,
+    pub title: String,
+    pub description: String,
+    pub status: String,
+    pub parent_id: Option<String>,
+    pub chosen_topology_id: Option<String>,
+    pub rationale: Option<String>,
+    pub snapshot: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub closed_at: Option<DateTime<Utc>>,
+}
+
+impl Decision {
+    /// Create a new decision with status "draft".
+    pub fn new(title: impl Into<String>) -> Self {
+        let now = Utc::now();
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            title: title.into(),
+            description: String::new(),
+            status: "draft".to_string(),
+            parent_id: None,
+            chosen_topology_id: None,
+            rationale: None,
+            snapshot: None,
+            created_at: now,
+            updated_at: now,
+            closed_at: None,
+        }
+    }
+
+    pub fn insert(&self, tx: &Transaction) -> rusqlite::Result<()> {
+        tx.execute(
+            "INSERT INTO decisions (id, title, description, status, parent_id, chosen_topology_id, rationale, snapshot, created_at, updated_at, closed_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![
+                self.id,
+                self.title,
+                self.description,
+                self.status,
+                self.parent_id,
+                self.chosen_topology_id,
+                self.rationale,
+                self.snapshot,
+                self.created_at.to_rfc3339(),
+                self.updated_at.to_rfc3339(),
+                self.closed_at.map(|dt| dt.to_rfc3339()),
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn from_row(row: &Row) -> rusqlite::Result<Self> {
+        let created_str: String = row.get("created_at")?;
+        let updated_str: String = row.get("updated_at")?;
+        let closed_str: Option<String> = row.get("closed_at")?;
+        Ok(Self {
+            id: row.get("id")?,
+            title: row.get("title")?,
+            description: row.get("description")?,
+            status: row.get("status")?,
+            parent_id: row.get("parent_id")?,
+            chosen_topology_id: row.get("chosen_topology_id")?,
+            rationale: row.get("rationale")?,
+            snapshot: row.get("snapshot")?,
+            created_at: DateTime::parse_from_rfc3339(&created_str)
+                .map(|dt| dt.with_timezone(&Utc))
+                .unwrap_or_else(|_| Utc::now()),
+            updated_at: DateTime::parse_from_rfc3339(&updated_str)
+                .map(|dt| dt.with_timezone(&Utc))
+                .unwrap_or_else(|_| Utc::now()),
+            closed_at: closed_str.and_then(|s| {
+                DateTime::parse_from_rfc3339(&s)
+                    .map(|dt| dt.with_timezone(&Utc))
+                    .ok()
+            }),
+        })
+    }
+
+    pub fn to_json(&self) -> anyhow::Result<String> {
+        Ok(serde_json::to_string(self)?)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// DecisionConstraint
+// ---------------------------------------------------------------------------
+
+/// A constraint on a decision (e.g., budget, noise, power, rack units)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DecisionConstraint {
+    pub id: String,
+    pub decision_id: String,
+    pub constraint_type: String,
+    pub max_value: f64,
+    pub created_at: DateTime<Utc>,
+}
+
+impl DecisionConstraint {
+    /// Create a new decision constraint.
+    pub fn new(
+        decision_id: impl Into<String>,
+        constraint_type: impl Into<String>,
+        max_value: f64,
+    ) -> Self {
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            decision_id: decision_id.into(),
+            constraint_type: constraint_type.into(),
+            max_value,
+            created_at: Utc::now(),
+        }
+    }
+
+    pub fn insert(&self, tx: &Transaction) -> rusqlite::Result<()> {
+        tx.execute(
+            "INSERT INTO decision_constraints (id, decision_id, constraint_type, max_value, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                self.id,
+                self.decision_id,
+                self.constraint_type,
+                self.max_value,
+                self.created_at.to_rfc3339(),
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn from_row(row: &Row) -> rusqlite::Result<Self> {
+        let created_str: String = row.get("created_at")?;
+        Ok(Self {
+            id: row.get("id")?,
+            decision_id: row.get("decision_id")?,
+            constraint_type: row.get("constraint_type")?,
+            max_value: row.get("max_value")?,
+            created_at: DateTime::parse_from_rfc3339(&created_str)
+                .map(|dt| dt.with_timezone(&Utc))
+                .unwrap_or_else(|_| Utc::now()),
+        })
+    }
+
+    pub fn to_json(&self) -> anyhow::Result<String> {
+        Ok(serde_json::to_string(self)?)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// DecisionTopology
+// ---------------------------------------------------------------------------
+
+/// A junction linking a decision to a topology under consideration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DecisionTopology {
+    pub id: String,
+    pub decision_id: String,
+    pub topology_id: String,
+    pub added_at: DateTime<Utc>,
+}
+
+impl DecisionTopology {
+    /// Create a new decision-topology link.
+    pub fn new(decision_id: impl Into<String>, topology_id: impl Into<String>) -> Self {
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            decision_id: decision_id.into(),
+            topology_id: topology_id.into(),
+            added_at: Utc::now(),
+        }
+    }
+
+    pub fn insert(&self, tx: &Transaction) -> rusqlite::Result<()> {
+        tx.execute(
+            "INSERT INTO decision_topologies (id, decision_id, topology_id, added_at)
+             VALUES (?1, ?2, ?3, ?4)",
+            params![
+                self.id,
+                self.decision_id,
+                self.topology_id,
+                self.added_at.to_rfc3339(),
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn from_row(row: &Row) -> rusqlite::Result<Self> {
+        let added_str: String = row.get("added_at")?;
+        Ok(Self {
+            id: row.get("id")?,
+            decision_id: row.get("decision_id")?,
+            topology_id: row.get("topology_id")?,
+            added_at: DateTime::parse_from_rfc3339(&added_str)
+                .map(|dt| dt.with_timezone(&Utc))
+                .unwrap_or_else(|_| Utc::now()),
+        })
+    }
+
+    pub fn to_json(&self) -> anyhow::Result<String> {
+        Ok(serde_json::to_string(self)?)
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Event
 // ---------------------------------------------------------------------------
 
@@ -762,6 +984,9 @@ mod tests {
         node.available_bays = Some(0);
         node.interface_types = "usb3,thunderbolt4".to_string();
         node.power_draw_watts = Some(39.0);
+        node.cost_estimate = Some(599.99);
+        node.noise_db = Some(20.5);
+        node.rack_units = Some(1.0);
 
         db.transaction(|tx| {
             node.insert(tx)?;
@@ -772,7 +997,7 @@ mod tests {
         let loaded: Node = db
             .conn()
             .query_row(
-                "SELECT id, topology_id, name, role, location, available_bays, interface_types, power_draw_watts, created_at, updated_at FROM nodes WHERE id = ?1",
+                "SELECT id, topology_id, name, role, location, available_bays, interface_types, power_draw_watts, cost_estimate, noise_db, rack_units, created_at, updated_at FROM nodes WHERE id = ?1",
                 [&node.id],
                 Node::from_row,
             )
@@ -785,6 +1010,9 @@ mod tests {
         assert_eq!(loaded.available_bays, Some(0));
         assert_eq!(loaded.interface_types, "usb3,thunderbolt4");
         assert_eq!(loaded.power_draw_watts, Some(39.0));
+        assert_eq!(loaded.cost_estimate, Some(599.99));
+        assert_eq!(loaded.noise_db, Some(20.5));
+        assert_eq!(loaded.rack_units, Some(1.0));
     }
 
     #[test]
@@ -1049,5 +1277,95 @@ mod tests {
         assert!(loaded.after_state.is_some());
         assert_eq!(loaded.source, "user");
         assert_eq!(loaded.actor, "morgan");
+    }
+
+    #[test]
+    fn test_decision_roundtrip() {
+        let mut db = Database::open_memory().unwrap();
+        let mut decision = Decision::new("NAS Upgrade 2026");
+        decision.description = "Deciding between Synology and custom build".to_string();
+        decision.status = "open".to_string();
+
+        db.transaction(|tx| {
+            decision.insert(tx)?;
+            Ok(())
+        })
+        .unwrap();
+
+        let loaded: Decision = db
+            .conn()
+            .query_row(
+                "SELECT id, title, description, status, parent_id, chosen_topology_id, rationale, snapshot, created_at, updated_at, closed_at FROM decisions WHERE id = ?1",
+                [&decision.id],
+                Decision::from_row,
+            )
+            .unwrap();
+
+        assert_eq!(loaded.id, decision.id);
+        assert_eq!(loaded.title, "NAS Upgrade 2026");
+        assert_eq!(loaded.description, "Deciding between Synology and custom build");
+        assert_eq!(loaded.status, "open");
+        assert!(loaded.parent_id.is_none());
+        assert!(loaded.chosen_topology_id.is_none());
+        assert!(loaded.rationale.is_none());
+        assert!(loaded.snapshot.is_none());
+        assert!(loaded.closed_at.is_none());
+    }
+
+    #[test]
+    fn test_decision_constraint_roundtrip() {
+        let mut db = Database::open_memory().unwrap();
+        let decision = Decision::new("Budget Test");
+        let constraint = DecisionConstraint::new(&decision.id, "budget", 1500.0);
+
+        db.transaction(|tx| {
+            decision.insert(tx)?;
+            constraint.insert(tx)?;
+            Ok(())
+        })
+        .unwrap();
+
+        let loaded: DecisionConstraint = db
+            .conn()
+            .query_row(
+                "SELECT id, decision_id, constraint_type, max_value, created_at FROM decision_constraints WHERE id = ?1",
+                [&constraint.id],
+                DecisionConstraint::from_row,
+            )
+            .unwrap();
+
+        assert_eq!(loaded.id, constraint.id);
+        assert_eq!(loaded.decision_id, decision.id);
+        assert_eq!(loaded.constraint_type, "budget");
+        assert_eq!(loaded.max_value, 1500.0);
+    }
+
+    #[test]
+    fn test_decision_topology_roundtrip() {
+        let mut db = Database::open_memory().unwrap();
+        let topo = Topology::new("option-a", "First option");
+        let decision = Decision::new("Which Setup?");
+        let dt = DecisionTopology::new(&decision.id, &topo.id);
+
+        db.transaction(|tx| {
+            topo.insert(tx)?;
+            decision.insert(tx)?;
+            dt.insert(tx)?;
+            Ok(())
+        })
+        .unwrap();
+
+        let loaded: DecisionTopology = db
+            .conn()
+            .query_row(
+                "SELECT id, decision_id, topology_id, added_at FROM decision_topologies WHERE id = ?1",
+                [&dt.id],
+                DecisionTopology::from_row,
+            )
+            .unwrap();
+
+        assert_eq!(loaded.id, dt.id);
+        assert_eq!(loaded.decision_id, decision.id);
+        assert_eq!(loaded.topology_id, topo.id);
     }
 }

@@ -690,7 +690,7 @@ fn load_nodes(db: &Database, topology_id: &str) -> Result<Vec<Node>> {
     let results = {
         let mut stmt = db.conn().prepare(
             "SELECT id, topology_id, name, role, location, available_bays, \
-             interface_types, power_draw_watts, created_at, updated_at \
+             interface_types, power_draw_watts, cost_estimate, noise_db, rack_units, created_at, updated_at \
              FROM nodes WHERE topology_id = ?1 ORDER BY name",
         )?;
         let rows = stmt.query_map(params![topology_id], Node::from_row)?;
