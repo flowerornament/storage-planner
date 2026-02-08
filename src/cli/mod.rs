@@ -26,6 +26,7 @@ use crate::core::db::Database;
 mod analyze;
 mod dataset;
 mod decision;
+mod export;
 mod init;
 mod link;
 mod node;
@@ -111,6 +112,30 @@ pub enum Commands {
         warn_months: i32,
     },
 
+    /// Export topology to YAML file
+    Export {
+        /// Topology name or ID prefix
+        topology: String,
+        /// Export as template (strip all IDs for reuse)
+        #[arg(long)]
+        template: bool,
+        /// Only export specific entity types (comma-separated: nodes,volumes,datasets,placements,links,sync_regimes)
+        #[arg(long)]
+        only: Option<String>,
+        /// Write to file instead of stdout
+        #[arg(long, short)]
+        output: Option<PathBuf>,
+    },
+
+    /// Import topology from YAML file
+    Import {
+        /// Path to YAML file
+        file: PathBuf,
+        /// Name for the imported topology (auto-detected from YAML if omitted)
+        #[arg(long)]
+        name: Option<String>,
+    },
+
     /// Undo the last action
     Undo,
 
@@ -184,6 +209,19 @@ impl Cli {
             } => {
                 let mut db = open_db(&db_path)?;
                 analyze::run(command, &mut db, format, topology, verbose, warn_months)
+            }
+            Commands::Export {
+                topology,
+                template,
+                only,
+                output,
+            } => {
+                let mut db = open_db(&db_path)?;
+                export::run_export(&mut db, &topology, template, only.as_deref(), output.as_ref())
+            }
+            Commands::Import { file, name } => {
+                let mut db = open_db(&db_path)?;
+                export::run_import(&mut db, &file, name.as_deref())
             }
             Commands::Undo => {
                 let mut db = open_db(&db_path)?;
