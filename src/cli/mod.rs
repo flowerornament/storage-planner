@@ -14,6 +14,9 @@
 //!   sp sync ...          - Sync regime management (Phase 2)
 //!   sp analyze ...       - Run analysis reports (Phase 4)
 //!   sp decision ...      - Decision lifecycle management (Phase 5)
+//!   sp diagram           - ASCII topology visualization (Phase 6)
+//!   sp export            - YAML topology export (Phase 6)
+//!   sp import            - YAML topology import (Phase 6)
 //!   sp undo              - Undo last action
 //!   sp redo              - Redo last undone action
 
@@ -26,6 +29,7 @@ use crate::core::db::Database;
 mod analyze;
 mod dataset;
 mod decision;
+mod diagram;
 mod export;
 mod init;
 mod link;
@@ -110,6 +114,19 @@ pub enum Commands {
         /// Warn when volume is projected full within N months -- used when no subcommand
         #[arg(long, default_value = "12")]
         warn_months: i32,
+    },
+
+    /// Show ASCII diagram of topology structure
+    Diagram {
+        /// Target topology (defaults to current)
+        #[arg(long)]
+        topology: Option<String>,
+        /// Show node-volume-dataset hierarchy
+        #[arg(long)]
+        tree: bool,
+        /// Show network link topology between nodes
+        #[arg(long)]
+        network: bool,
     },
 
     /// Export topology to YAML file
@@ -209,6 +226,14 @@ impl Cli {
             } => {
                 let mut db = open_db(&db_path)?;
                 analyze::run(command, &mut db, format, topology, verbose, warn_months)
+            }
+            Commands::Diagram {
+                topology,
+                tree,
+                network,
+            } => {
+                let mut db = open_db(&db_path)?;
+                diagram::run(&mut db, topology.as_deref(), tree, network)
             }
             Commands::Export {
                 topology,
