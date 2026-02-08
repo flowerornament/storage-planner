@@ -312,6 +312,11 @@ fn list(db: &mut Database, category: Option<&str>, format: OutputFormat) -> Resu
                     "No catalog items found. Add one with 'sp catalog add <name> --category=<cat>'"
                 );
             } else {
+                println!(
+                    "  {:<30} {:<12} {:<42} {}",
+                    "Name", "Category", "URL", "Latest Price"
+                );
+                println!("  {}", "-".repeat(90));
                 for item in &items {
                     // Query latest price for this item
                     let latest_price: Option<i64> = db
