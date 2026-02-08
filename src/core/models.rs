@@ -98,6 +98,7 @@ pub struct Node {
     pub cost_estimate: Option<f64>,
     pub noise_db: Option<f64>,
     pub rack_units: Option<f64>,
+    pub item_id: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -122,6 +123,7 @@ impl Node {
             cost_estimate: None,
             noise_db: None,
             rack_units: None,
+            item_id: None,
             created_at: now,
             updated_at: now,
         }
@@ -129,8 +131,8 @@ impl Node {
 
     pub fn insert(&self, tx: &Transaction) -> rusqlite::Result<()> {
         tx.execute(
-            "INSERT INTO nodes (id, topology_id, name, role, location, available_bays, interface_types, power_draw_watts, cost_estimate, noise_db, rack_units, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+            "INSERT INTO nodes (id, topology_id, name, role, location, available_bays, interface_types, power_draw_watts, cost_estimate, noise_db, rack_units, item_id, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
             params![
                 self.id,
                 self.topology_id,
@@ -143,6 +145,7 @@ impl Node {
                 self.cost_estimate,
                 self.noise_db,
                 self.rack_units,
+                self.item_id,
                 self.created_at.to_rfc3339(),
                 self.updated_at.to_rfc3339(),
             ],
@@ -165,6 +168,7 @@ impl Node {
             cost_estimate: row.get("cost_estimate")?,
             noise_db: row.get("noise_db")?,
             rack_units: row.get("rack_units")?,
+            item_id: row.get("item_id")?,
             created_at: DateTime::parse_from_rfc3339(&created_str)
                 .map(|dt| dt.with_timezone(&Utc))
                 .unwrap_or_else(|_| Utc::now()),
@@ -925,6 +929,158 @@ impl Event {
     }
 }
 
+// ---------------------------------------------------------------------------
+// CatalogItem
+// ---------------------------------------------------------------------------
+
+/// A product in the catalog that the user is considering for purchase
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CatalogItem {
+    pub id: String,
+    pub name: String,
+    pub category: String,
+    pub specs: serde_json::Value,
+    pub url: Option<String>,
+    pub notes: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl CatalogItem {
+    /// Create a new catalog item. Defaults: empty specs {}, no url, empty notes.
+    pub fn new(name: impl Into<String>, category: impl Into<String>) -> Self {
+        let now = Utc::now();
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            name: name.into(),
+            category: category.into(),
+            specs: serde_json::json!({}),
+            url: None,
+            notes: String::new(),
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    pub fn insert(&self, tx: &Transaction) -> rusqlite::Result<()> {
+        tx.execute(
+            "INSERT INTO catalog_items (id, name, category, specs, url, notes, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            params![
+                self.id,
+                self.name,
+                self.category,
+                self.specs.to_string(),
+                self.url,
+                self.notes,
+                self.created_at.to_rfc3339(),
+                self.updated_at.to_rfc3339(),
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn from_row(row: &Row) -> rusqlite::Result<Self> {
+        let created_str: String = row.get("created_at")?;
+        let updated_str: String = row.get("updated_at")?;
+        let specs_str: String = row.get("specs")?;
+        Ok(Self {
+            id: row.get("id")?,
+            name: row.get("name")?,
+            category: row.get("category")?,
+            specs: serde_json::from_str(&specs_str).unwrap_or_default(),
+            url: row.get("url")?,
+            notes: row.get("notes")?,
+            created_at: DateTime::parse_from_rfc3339(&created_str)
+                .map(|dt| dt.with_timezone(&Utc))
+                .unwrap_or_else(|_| Utc::now()),
+            updated_at: DateTime::parse_from_rfc3339(&updated_str)
+                .map(|dt| dt.with_timezone(&Utc))
+                .unwrap_or_else(|_| Utc::now()),
+        })
+    }
+
+    pub fn to_json(&self) -> anyhow::Result<String> {
+        Ok(serde_json::to_string(self)?)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Price
+// ---------------------------------------------------------------------------
+
+/// A price observation for a catalog item at a point in time
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Price {
+    pub id: String,
+    pub item_id: String,
+    pub amount_cents: i64,
+    pub currency: String,
+    pub source: String,
+    pub condition: String,
+    pub price_type: String,
+    pub observed_at: DateTime<Utc>,
+}
+
+impl Price {
+    /// Create a new price. Defaults: USD, manual, new, one-time, now.
+    pub fn new(item_id: impl Into<String>, amount_cents: i64) -> Self {
+        Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            item_id: item_id.into(),
+            amount_cents,
+            currency: "USD".to_string(),
+            source: "manual".to_string(),
+            condition: "new".to_string(),
+            price_type: "one-time".to_string(),
+            observed_at: Utc::now(),
+        }
+    }
+
+    pub fn insert(&self, tx: &Transaction) -> rusqlite::Result<()> {
+        tx.execute(
+            "INSERT INTO prices (id, item_id, amount_cents, currency, source, condition, price_type, observed_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            params![
+                self.id,
+                self.item_id,
+                self.amount_cents,
+                self.currency,
+                self.source,
+                self.condition,
+                self.price_type,
+                self.observed_at.to_rfc3339(),
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn from_row(row: &Row) -> rusqlite::Result<Self> {
+        let observed_str: String = row.get("observed_at")?;
+        Ok(Self {
+            id: row.get("id")?,
+            item_id: row.get("item_id")?,
+            amount_cents: row.get("amount_cents")?,
+            currency: row.get("currency")?,
+            source: row.get("source")?,
+            condition: row.get("condition")?,
+            price_type: row.get("price_type")?,
+            observed_at: DateTime::parse_from_rfc3339(&observed_str)
+                .map(|dt| dt.with_timezone(&Utc))
+                .unwrap_or_else(|_| Utc::now()),
+        })
+    }
+
+    pub fn to_json(&self) -> anyhow::Result<String> {
+        Ok(serde_json::to_string(self)?)
+    }
+
+    /// Return the price amount in dollars (amount_cents / 100).
+    pub fn amount_dollars(&self) -> f64 {
+        self.amount_cents as f64 / 100.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -997,7 +1153,7 @@ mod tests {
         let loaded: Node = db
             .conn()
             .query_row(
-                "SELECT id, topology_id, name, role, location, available_bays, interface_types, power_draw_watts, cost_estimate, noise_db, rack_units, created_at, updated_at FROM nodes WHERE id = ?1",
+                "SELECT id, topology_id, name, role, location, available_bays, interface_types, power_draw_watts, cost_estimate, noise_db, rack_units, item_id, created_at, updated_at FROM nodes WHERE id = ?1",
                 [&node.id],
                 Node::from_row,
             )
@@ -1303,7 +1459,10 @@ mod tests {
 
         assert_eq!(loaded.id, decision.id);
         assert_eq!(loaded.title, "NAS Upgrade 2026");
-        assert_eq!(loaded.description, "Deciding between Synology and custom build");
+        assert_eq!(
+            loaded.description,
+            "Deciding between Synology and custom build"
+        );
         assert_eq!(loaded.status, "open");
         assert!(loaded.parent_id.is_none());
         assert!(loaded.chosen_topology_id.is_none());
@@ -1367,5 +1526,124 @@ mod tests {
         assert_eq!(loaded.id, dt.id);
         assert_eq!(loaded.decision_id, decision.id);
         assert_eq!(loaded.topology_id, topo.id);
+    }
+
+    #[test]
+    fn test_catalog_item_new() {
+        let item = CatalogItem::new("Samsung 870 EVO 4TB", "ssd");
+        assert_eq!(item.name, "Samsung 870 EVO 4TB");
+        assert_eq!(item.category, "ssd");
+        assert_eq!(item.specs, serde_json::json!({}));
+        assert!(item.url.is_none());
+        assert_eq!(item.notes, "");
+        assert_eq!(item.id.len(), 36);
+    }
+
+    #[test]
+    fn test_catalog_item_roundtrip() {
+        let mut db = Database::open_memory().unwrap();
+        let mut item = CatalogItem::new("Samsung 870 EVO 4TB", "ssd");
+        item.specs = serde_json::json!({"capacity_gb": 4000, "interface": "SATA"});
+        item.url = Some("https://example.com/samsung-870-evo".to_string());
+        item.notes = "Good reviews on NAS usage".to_string();
+
+        db.transaction(|tx| {
+            item.insert(tx)?;
+            Ok(())
+        })
+        .unwrap();
+
+        let loaded: CatalogItem = db
+            .conn()
+            .query_row(
+                "SELECT id, name, category, specs, url, notes, created_at, updated_at FROM catalog_items WHERE id = ?1",
+                [&item.id],
+                CatalogItem::from_row,
+            )
+            .unwrap();
+
+        assert_eq!(loaded.id, item.id);
+        assert_eq!(loaded.name, "Samsung 870 EVO 4TB");
+        assert_eq!(loaded.category, "ssd");
+        assert_eq!(loaded.specs["capacity_gb"], 4000);
+        assert_eq!(loaded.specs["interface"], "SATA");
+        assert_eq!(
+            loaded.url,
+            Some("https://example.com/samsung-870-evo".to_string())
+        );
+        assert_eq!(loaded.notes, "Good reviews on NAS usage");
+    }
+
+    #[test]
+    fn test_catalog_item_to_json() {
+        let item = CatalogItem::new("Test Drive", "hdd");
+        let json_str = item.to_json().unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(parsed["name"], "Test Drive");
+        assert_eq!(parsed["category"], "hdd");
+    }
+
+    #[test]
+    fn test_price_new() {
+        let price = Price::new("item-123", 29999);
+        assert_eq!(price.item_id, "item-123");
+        assert_eq!(price.amount_cents, 29999);
+        assert_eq!(price.currency, "USD");
+        assert_eq!(price.source, "manual");
+        assert_eq!(price.condition, "new");
+        assert_eq!(price.price_type, "one-time");
+        assert_eq!(price.id.len(), 36);
+    }
+
+    #[test]
+    fn test_price_amount_dollars() {
+        let price = Price::new("item-123", 29999);
+        assert!((price.amount_dollars() - 299.99).abs() < f64::EPSILON);
+
+        let price_zero = Price::new("item-123", 0);
+        assert!((price_zero.amount_dollars() - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_price_roundtrip() {
+        let mut db = Database::open_memory().unwrap();
+        let item = CatalogItem::new("Samsung 870 EVO 4TB", "ssd");
+        let mut price = Price::new(&item.id, 29999);
+        price.source = "bestbuy".to_string();
+        price.condition = "new".to_string();
+        price.price_type = "one-time".to_string();
+
+        db.transaction(|tx| {
+            item.insert(tx)?;
+            price.insert(tx)?;
+            Ok(())
+        })
+        .unwrap();
+
+        let loaded: Price = db
+            .conn()
+            .query_row(
+                "SELECT id, item_id, amount_cents, currency, source, condition, price_type, observed_at FROM prices WHERE id = ?1",
+                [&price.id],
+                Price::from_row,
+            )
+            .unwrap();
+
+        assert_eq!(loaded.id, price.id);
+        assert_eq!(loaded.item_id, item.id);
+        assert_eq!(loaded.amount_cents, 29999);
+        assert_eq!(loaded.currency, "USD");
+        assert_eq!(loaded.source, "bestbuy");
+        assert_eq!(loaded.condition, "new");
+        assert_eq!(loaded.price_type, "one-time");
+    }
+
+    #[test]
+    fn test_price_to_json() {
+        let price = Price::new("item-123", 15000);
+        let json_str = price.to_json().unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(parsed["amount_cents"], 15000);
+        assert_eq!(parsed["currency"], "USD");
     }
 }

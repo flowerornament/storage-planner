@@ -8,7 +8,7 @@ use rusqlite::{Connection, Transaction};
 use std::path::{Path, PathBuf};
 
 /// Current schema version. Bump this when adding new migrations.
-pub const CURRENT_VERSION: i32 = 3;
+pub const CURRENT_VERSION: i32 = 4;
 
 /// A single schema migration step.
 struct Migration {
@@ -30,6 +30,10 @@ const MIGRATIONS: &[Migration] = &[
     Migration {
         version: 3,
         sql: SCHEMA_V3,
+    },
+    Migration {
+        version: 4,
+        sql: SCHEMA_V4,
     },
 ];
 
@@ -345,6 +349,43 @@ CREATE INDEX idx_decision_topologies_topology ON decision_topologies(topology_id
 PRAGMA user_version = 3;
 "#;
 
+/// Phase 6 schema (version 4): Catalog items and prices tables
+///
+/// Adds catalog_items table for tracking products under consideration.
+/// Adds prices table for recording price observations over time.
+/// Adds item_id column to nodes for direct catalog association.
+const SCHEMA_V4: &str = r#"
+CREATE TABLE catalog_items (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    category TEXT NOT NULL DEFAULT '',
+    specs TEXT NOT NULL DEFAULT '{}',
+    url TEXT,
+    notes TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE prices (
+    id TEXT PRIMARY KEY,
+    item_id TEXT NOT NULL REFERENCES catalog_items(id) ON DELETE CASCADE,
+    amount_cents INTEGER NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'USD',
+    source TEXT NOT NULL DEFAULT 'manual',
+    condition TEXT NOT NULL DEFAULT 'new',
+    price_type TEXT NOT NULL DEFAULT 'one-time',
+    observed_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX idx_prices_item ON prices(item_id);
+CREATE INDEX idx_prices_observed ON prices(observed_at);
+CREATE INDEX idx_catalog_items_category ON catalog_items(category);
+
+ALTER TABLE nodes ADD COLUMN item_id TEXT;
+
+PRAGMA user_version = 4;
+"#;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -381,6 +422,7 @@ mod tests {
             .unwrap();
 
         let expected = vec![
+            "catalog_items",
             "datasets",
             "decision_constraints",
             "decision_topologies",
@@ -389,6 +431,7 @@ mod tests {
             "links",
             "nodes",
             "placements",
+            "prices",
             "sync_regimes",
             "topologies",
             "undo_pointer",
@@ -581,7 +624,10 @@ mod tests {
             "INSERT INTO decisions (id, title) VALUES ('d2', 'My Decision')",
             [],
         );
-        assert!(dup_title.is_err(), "UNIQUE title constraint should prevent duplicate titles");
+        assert!(
+            dup_title.is_err(),
+            "UNIQUE title constraint should prevent duplicate titles"
+        );
 
         // Verify UNIQUE constraint on (decision_id, constraint_type)
         conn.execute(
@@ -618,7 +664,8 @@ mod tests {
         );
 
         // Verify CASCADE: deleting a decision cascades to constraints and topologies
-        conn.execute("DELETE FROM decisions WHERE id = 'd1'", []).unwrap();
+        conn.execute("DELETE FROM decisions WHERE id = 'd1'", [])
+            .unwrap();
         let constraint_count: i64 = conn
             .query_row(
                 "SELECT COUNT(*) FROM decision_constraints WHERE decision_id = 'd1'",
@@ -626,7 +673,10 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(constraint_count, 0, "CASCADE should delete decision_constraints");
+        assert_eq!(
+            constraint_count, 0,
+            "CASCADE should delete decision_constraints"
+        );
 
         let topo_count: i64 = conn
             .query_row(
@@ -642,6 +692,100 @@ mod tests {
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .unwrap();
         assert_eq!(version, 3);
+    }
+
+    #[test]
+    fn test_migration_v4() {
+        // Create a v3 database manually
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        conn.execute_batch(SCHEMA_V1).unwrap();
+        conn.execute_batch(SCHEMA_V2).unwrap();
+        conn.execute_batch(SCHEMA_V3).unwrap();
+
+        // Apply migration v4
+        conn.execute_batch(SCHEMA_V4).unwrap();
+
+        // Verify catalog_items table exists
+        let catalog_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='catalog_items'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(catalog_count, 1, "catalog_items table should exist");
+
+        // Verify prices table exists
+        let prices_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='prices'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(prices_count, 1, "prices table should exist");
+
+        // Verify nodes.item_id column works
+        conn.execute(
+            "INSERT INTO topologies (id, name) VALUES ('t1', 'test-topo')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO nodes (id, topology_id, name, role, item_id) VALUES ('n1', 't1', 'node1', 'server', 'some-item-id')",
+            [],
+        )
+        .unwrap();
+        let item_id: Option<String> = conn
+            .query_row("SELECT item_id FROM nodes WHERE id = 'n1'", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(item_id, Some("some-item-id".to_string()));
+
+        // Verify prices.item_id FK cascades on catalog_item delete
+        conn.execute(
+            "INSERT INTO catalog_items (id, name, category) VALUES ('ci1', 'Test SSD', 'ssd')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO prices (id, item_id, amount_cents) VALUES ('p1', 'ci1', 29999)",
+            [],
+        )
+        .unwrap();
+
+        // Verify price exists
+        let price_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM prices WHERE item_id = 'ci1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(price_count, 1);
+
+        // Delete catalog item -- price should cascade
+        conn.execute("DELETE FROM catalog_items WHERE id = 'ci1'", [])
+            .unwrap();
+        let price_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM prices WHERE item_id = 'ci1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            price_count, 0,
+            "CASCADE should delete prices when catalog_item is deleted"
+        );
+
+        // Verify version is 4
+        let version: i32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 4);
     }
 
     #[test]

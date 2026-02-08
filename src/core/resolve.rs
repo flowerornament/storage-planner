@@ -109,7 +109,7 @@ pub fn resolve_node(db: &Database, topology_id: &str, name_or_id: &str) -> Resul
     // Try exact name match within topology
     let name_result = db.conn().query_row(
         "SELECT id, topology_id, name, role, location, available_bays, interface_types, \
-         power_draw_watts, cost_estimate, noise_db, rack_units, created_at, updated_at \
+         power_draw_watts, cost_estimate, noise_db, rack_units, item_id, created_at, updated_at \
          FROM nodes WHERE topology_id = ?1 AND name = ?2",
         params![topology_id, name_or_id],
         Node::from_row,
@@ -130,7 +130,7 @@ pub fn resolve_node(db: &Database, topology_id: &str, name_or_id: &str) -> Resul
     let pattern = format!("{}%", name_or_id);
     let mut stmt = db.conn().prepare(
         "SELECT id, topology_id, name, role, location, available_bays, interface_types, \
-         power_draw_watts, cost_estimate, noise_db, rack_units, created_at, updated_at \
+         power_draw_watts, cost_estimate, noise_db, rack_units, item_id, created_at, updated_at \
          FROM nodes WHERE topology_id = ?1 AND id LIKE ?2",
     )?;
 

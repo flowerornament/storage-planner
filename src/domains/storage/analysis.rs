@@ -918,10 +918,7 @@ pub struct ConstraintReport {
 /// - else => Pass
 ///
 /// Score = (passing_count / total_count) * 100.0 (100.0 if no constraints).
-pub fn check_constraints(
-    constraints: &[DecisionConstraint],
-    nodes: &[Node],
-) -> ConstraintReport {
+pub fn check_constraints(constraints: &[DecisionConstraint], nodes: &[Node]) -> ConstraintReport {
     if constraints.is_empty() {
         return ConstraintReport {
             score: 100.0,
@@ -976,9 +973,7 @@ pub fn check_constraints(
         .filter(|r| r.status != ConstraintStatus::Fail)
         .count();
     let score = (passing_count as f64 / results.len() as f64) * 100.0;
-    let has_failures = results
-        .iter()
-        .any(|r| r.status == ConstraintStatus::Fail);
+    let has_failures = results.iter().any(|r| r.status == ConstraintStatus::Fail);
 
     ConstraintReport {
         score,
