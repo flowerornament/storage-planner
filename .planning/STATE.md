@@ -5,14 +5,15 @@
 See: .planning/PROJECT.md (updated 2026-02-05)
 
 **Core value:** Session continuity for AI-assisted purchase decisions
-**Current focus:** Phase 6 COMPLETE -- all plans executed
+**Current focus:** Phase 7 added -- CLI polish and correctness (not yet planned)
 
 ## Current Position
 
-Phase: 6 of 6 (Cost and Context)
-Plan: 5 of 5 in current phase
-Status: Phase complete
-Last activity: 2026-02-08 - Completed 06-04-PLAN.md (status dashboard and prime)
+Phase: 7 of 7 (CLI Polish and Correctness)
+Plan: 0 of 0 in current phase
+Status: Not planned yet
+**Next Phase:** Phase 7 - CLI Polish and Correctness
+Last activity: 2026-02-08 - Added Phase 7 for post-v1 polish
 
 Progress: [███████████████████] 100% (19/19 plans complete)
 
@@ -94,12 +95,16 @@ Recent decisions affecting current work:
 
 None.
 
+### Roadmap Evolution
+
+- Phase 7 added: CLI Polish and Correctness (post-v1 testing identified 4 priority issues)
+
 ### Blockers/Concerns
 
 None.
 
 ## Session Continuity
 
-Last session: 2026-02-08T05:50Z
-Stopped at: Completed 06-04-PLAN.md (status dashboard and prime) -- ALL PLANS COMPLETE
-Resume file: All 6 phases (19 plans) executed successfully.
+Last session: 2026-02-08
+Stopped at: Added Phase 7 for post-v1 polish
+Resume file: Phase 7 needs planning (/gsd:plan-phase 7)

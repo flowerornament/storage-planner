@@ -18,6 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Analysis Functions** - Redundancy, failure sim, RPO, capacity
 - [x] **Phase 5: Decision Integration** - Link decisions to topologies
 - [x] **Phase 6: Cost and Context** - Cost analysis and AI context features
+- [ ] **Phase 7: CLI Polish and Correctness** - Fix prime examples, expose --item-id, friendly errors, catalog headers
 
 ## Phase Details
 
@@ -124,10 +125,25 @@ Plans:
 - [x] 06-04-PLAN.md -- Status dashboard, prime agent bootstrap, and current topology shortcut
 - [x] 06-05-PLAN.md -- YAML topology export/import and ASCII diagram command
 
+### Phase 7: CLI Polish and Correctness
+**Goal**: Fix command correctness issues discovered in post-v1 testing. See `.planning/phases/07-cli-polish-and-correctness/ASSESSMENT.md` for full assessment with reproduction steps.
+**Depends on**: Phase 6
+**Plans**: 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 7 to break down)
+
+**Details:**
+Priority fixes:
+1. Fix 6 wrong command examples in `sp prime` (~20% of examples have wrong syntax)
+2. Add `--item-id` flag to node/volume update (unblocks cost analysis workflow)
+3. Catch SQLite constraint violations and return friendly duplicate name errors
+4. Add column headers to `sp catalog list` output
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -137,6 +153,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 4. Analysis Functions | 2/2 | Complete | 2026-02-07 |
 | 5. Decision Integration | 3/3 | Complete | 2026-02-08 |
 | 6. Cost and Context | 5/5 | Complete | 2026-02-08 |
+| 7. CLI Polish and Correctness | 0/0 | Not planned | - |
 
 ---
 *Roadmap created: 2026-02-06*
