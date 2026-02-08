@@ -11,7 +11,7 @@ use anyhow::{bail, Result};
 use rusqlite::params;
 
 use super::db::Database;
-use super::models::{Dataset, Decision, Node, Topology, Volume};
+use super::models::{CatalogItem, Dataset, Decision, Node, Topology, Volume};
 
 /// Validate that a name is a valid slug: alphanumeric, hyphens, and underscores only.
 ///
@@ -383,6 +383,55 @@ pub fn resolve_decision(db: &Database, title_or_id: &str) -> Result<Decision> {
     }
 }
 
+/// Resolve a catalog item by exact name or UUID prefix (minimum 4 chars).
+///
+/// Catalog items are global (not scoped to a topology), similar to decisions.
+/// Exact name match is tried first, then UUID prefix match.
+pub fn resolve_catalog_item(db: &Database, name_or_id: &str) -> Result<CatalogItem> {
+    // Try exact name match
+    let name_result = db.conn().query_row(
+        "SELECT id, name, category, specs, url, notes, created_at, updated_at \
+         FROM catalog_items WHERE name = ?1",
+        params![name_or_id],
+        CatalogItem::from_row,
+    );
+
+    if let Ok(item) = name_result {
+        return Ok(item);
+    }
+
+    // Try UUID prefix match
+    if name_or_id.len() < 4 {
+        bail!(
+            "Catalog item '{}' not found. UUID prefix must be at least 4 characters.",
+            name_or_id
+        );
+    }
+
+    let pattern = format!("{}%", name_or_id);
+    let mut stmt = db.conn().prepare(
+        "SELECT id, name, category, specs, url, notes, created_at, updated_at \
+         FROM catalog_items WHERE id LIKE ?1",
+    )?;
+
+    let matches: Vec<CatalogItem> = stmt
+        .query_map(params![pattern], CatalogItem::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    match matches.len() {
+        0 => bail!("Catalog item '{}' not found", name_or_id),
+        1 => Ok(matches.into_iter().next().unwrap()),
+        _ => {
+            let names: Vec<String> = matches.iter().map(|i| i.name.clone()).collect();
+            bail!(
+                "Ambiguous catalog item prefix '{}': matches {}",
+                name_or_id,
+                names.join(", ")
+            )
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -390,7 +439,7 @@ pub fn resolve_decision(db: &Database, title_or_id: &str) -> Result<Decision> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::models::{Decision, Node, Volume};
+    use crate::core::models::{CatalogItem, Decision, Node, Volume};
 
     fn setup_db() -> Database {
         Database::open_memory().unwrap()
@@ -607,5 +656,66 @@ mod tests {
         let result = resolve_decision(&db, "nonexistent");
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("not found"));
+    }
+
+    #[test]
+    fn test_resolve_catalog_item_by_name() {
+        let mut db = setup_db();
+        let item = CatalogItem::new("Samsung 870 EVO 4TB", "ssd");
+        db.transaction(|tx| {
+            item.insert(tx)?;
+            Ok(())
+        })
+        .unwrap();
+
+        let resolved = resolve_catalog_item(&db, "Samsung 870 EVO 4TB").unwrap();
+        assert_eq!(resolved.id, item.id);
+        assert_eq!(resolved.name, "Samsung 870 EVO 4TB");
+    }
+
+    #[test]
+    fn test_resolve_catalog_item_by_id_prefix() {
+        let mut db = setup_db();
+        let item = CatalogItem::new("WD Red Plus 8TB", "hdd");
+        let id_prefix = item.id[..8].to_string();
+
+        db.transaction(|tx| {
+            item.insert(tx)?;
+            Ok(())
+        })
+        .unwrap();
+
+        let resolved = resolve_catalog_item(&db, &id_prefix).unwrap();
+        assert_eq!(resolved.id, item.id);
+    }
+
+    #[test]
+    fn test_resolve_catalog_item_not_found() {
+        let db = setup_db();
+        let result = resolve_catalog_item(&db, "nonexistent");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("not found"));
+    }
+
+    #[test]
+    fn test_resolve_catalog_item_prefix_too_short() {
+        let mut db = setup_db();
+        let item = CatalogItem::new("Test Item", "misc");
+        let short_prefix = item.id[..3].to_string();
+
+        db.transaction(|tx| {
+            item.insert(tx)?;
+            Ok(())
+        })
+        .unwrap();
+
+        let result = resolve_catalog_item(&db, &short_prefix);
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("not found"),
+            "Expected 'not found' error, got: {}",
+            err_msg
+        );
     }
 }

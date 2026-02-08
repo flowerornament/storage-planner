@@ -12,8 +12,8 @@ use std::fmt;
 
 use super::db::Database;
 use super::models::{
-    Dataset, Decision, DecisionConstraint, DecisionTopology, Event, Link, Node, Placement,
-    SyncRegime, Topology, Volume,
+    CatalogItem, Dataset, Decision, DecisionConstraint, DecisionTopology, Event, Link, Node,
+    Placement, Price, SyncRegime, Topology, Volume,
 };
 
 // ---------------------------------------------------------------------------
@@ -77,6 +77,8 @@ pub fn entity_table_name(entity_type: &str) -> Result<&'static str> {
         "decision" => Ok("decisions"),
         "decision_constraint" => Ok("decision_constraints"),
         "decision_topology" => Ok("decision_topologies"),
+        "catalog_item" => Ok("catalog_items"),
+        "price" => Ok("prices"),
         _ => bail!("Unknown entity type: {}", entity_type),
     }
 }
@@ -144,6 +146,16 @@ pub fn restore_entity_from_json(
         "decision_topology" => {
             let entity: DecisionTopology = serde_json::from_str(json_state)
                 .context("Failed to deserialize decision_topology from JSON")?;
+            entity.insert(tx)?;
+        }
+        "catalog_item" => {
+            let entity: CatalogItem = serde_json::from_str(json_state)
+                .context("Failed to deserialize catalog_item from JSON")?;
+            entity.insert(tx)?;
+        }
+        "price" => {
+            let entity: Price = serde_json::from_str(json_state)
+                .context("Failed to deserialize price from JSON")?;
             entity.insert(tx)?;
         }
         _ => bail!("Unknown entity type for restore: {}", entity_type),
@@ -382,6 +394,11 @@ mod tests {
             entity_table_name("decision_topology").unwrap(),
             "decision_topologies"
         );
+        assert_eq!(
+            entity_table_name("catalog_item").unwrap(),
+            "catalog_items"
+        );
+        assert_eq!(entity_table_name("price").unwrap(), "prices");
         assert!(entity_table_name("unknown").is_err());
     }
 
