@@ -13,6 +13,7 @@
 //!   sp link ...          - Link management (Phase 2)
 //!   sp sync ...          - Sync regime management (Phase 2)
 //!   sp analyze ...       - Run analysis reports (Phase 4)
+//!   sp decision ...      - Decision lifecycle management (Phase 5)
 //!   sp undo              - Undo last action
 //!   sp redo              - Redo last undone action
 
@@ -24,6 +25,7 @@ use crate::core::db::Database;
 
 mod analyze;
 mod dataset;
+mod decision;
 mod init;
 mod link;
 mod node;
@@ -86,6 +88,10 @@ pub enum Commands {
     /// Manage data sync regimes between volumes
     #[command(subcommand)]
     Sync(sync_regime::SyncCommands),
+
+    /// Track purchase decisions with lifecycle management
+    #[command(subcommand)]
+    Decision(decision::DecisionCommands),
 
     /// Run analysis reports against topology data
     Analyze {
@@ -165,6 +171,10 @@ impl Cli {
             Commands::Sync(cmd) => {
                 let mut db = open_db(&db_path)?;
                 sync_regime::run(cmd, &mut db, format)
+            }
+            Commands::Decision(cmd) => {
+                let mut db = open_db(&db_path)?;
+                decision::run(cmd, &mut db, format)
             }
             Commands::Analyze {
                 command,
