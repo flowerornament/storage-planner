@@ -11,7 +11,9 @@ use rusqlite::params;
 use crate::core::db::Database;
 use crate::core::events::{record_event, EventSource};
 use crate::core::models::{Node, Volume};
-use crate::core::resolve::{resolve_active_topology, resolve_node, validate_slug};
+use crate::core::resolve::{
+    resolve_active_topology, resolve_catalog_item, resolve_node, validate_slug,
+};
 use crate::core::specs::Capacity;
 
 use super::OutputFormat;
@@ -54,6 +56,10 @@ pub enum NodeCommands {
         /// Rack units consumed
         #[arg(long)]
         rack_units: Option<f64>,
+
+        /// Link to a catalog item (name or ID prefix)
+        #[arg(long)]
+        item_id: Option<String>,
 
         /// Target topology (defaults to active)
         #[arg(long)]
@@ -128,6 +134,10 @@ pub enum NodeCommands {
         #[arg(long)]
         rack_units: Option<f64>,
 
+        /// Link to a catalog item (name or ID prefix)
+        #[arg(long)]
+        item_id: Option<String>,
+
         /// Target topology (defaults to active)
         #[arg(long)]
         topology: Option<String>,
@@ -146,6 +156,7 @@ pub fn run(cmd: NodeCommands, db: &mut Database, format: OutputFormat) -> Result
             cost,
             noise,
             rack_units,
+            item_id,
             topology,
         } => add(
             db,
@@ -158,6 +169,7 @@ pub fn run(cmd: NodeCommands, db: &mut Database, format: OutputFormat) -> Result
             cost,
             noise,
             rack_units,
+            item_id.as_deref(),
             topology.as_deref(),
             format,
         ),
@@ -175,6 +187,7 @@ pub fn run(cmd: NodeCommands, db: &mut Database, format: OutputFormat) -> Result
             cost,
             noise,
             rack_units,
+            item_id,
             topology,
         } => update(
             db,
@@ -188,6 +201,7 @@ pub fn run(cmd: NodeCommands, db: &mut Database, format: OutputFormat) -> Result
             cost,
             noise,
             rack_units,
+            item_id.as_deref(),
             topology.as_deref(),
             format,
         ),
@@ -206,6 +220,7 @@ fn add(
     cost: Option<f64>,
     noise: Option<f64>,
     rack_units: Option<f64>,
+    item_id: Option<&str>,
     topology_override: Option<&str>,
     format: OutputFormat,
 ) -> Result<()> {
@@ -213,6 +228,14 @@ fn add(
 
     // Resolve active topology
     let topo = resolve_active_topology(db, topology_override)?;
+
+    // Resolve catalog item before transaction (D009 pattern)
+    let resolved_item_id = if let Some(iid) = item_id {
+        let item = resolve_catalog_item(db, iid)?;
+        Some(item.id)
+    } else {
+        None
+    };
 
     let mut node = Node::new(&topo.id, name, role);
     if let Some(loc) = location {
@@ -226,6 +249,7 @@ fn add(
     node.cost_estimate = cost;
     node.noise_db = noise;
     node.rack_units = rack_units;
+    node.item_id = resolved_item_id;
 
     let after_json = node.to_json()?;
     let node_id = node.id.clone();
@@ -481,6 +505,7 @@ fn update(
     cost: Option<f64>,
     noise: Option<f64>,
     rack_units: Option<f64>,
+    item_id: Option<&str>,
     topology_override: Option<&str>,
     format: OutputFormat,
 ) -> Result<()> {
@@ -493,8 +518,9 @@ fn update(
         && cost.is_none()
         && noise.is_none()
         && rack_units.is_none()
+        && item_id.is_none()
     {
-        bail!("Nothing to update. Provide --rename, --role, --location, --bays, --interface-types, --power-draw, --cost, --noise, or --rack-units.");
+        bail!("Nothing to update. Provide --rename, --role, --location, --bays, --interface-types, --power-draw, --cost, --noise, --rack-units, or --item-id.");
     }
 
     // Validate new name if renaming
@@ -522,6 +548,14 @@ fn update(
             }
         }
     }
+
+    // Resolve catalog item before transaction (D009 pattern)
+    let resolved_item_id = if let Some(iid) = item_id {
+        let item = resolve_catalog_item(db, iid)?;
+        Some(item.id)
+    } else {
+        None
+    };
 
     // Build after state for event
     let mut after = node.clone();
@@ -551,6 +585,9 @@ fn update(
     }
     if let Some(ru) = rack_units {
         after.rack_units = Some(ru);
+    }
+    if let Some(ref iid) = resolved_item_id {
+        after.item_id = Some(iid.clone());
     }
     let after_json = after.to_json()?;
     let final_name = after.name.clone();
@@ -608,6 +645,12 @@ fn update(
             tx.execute(
                 "UPDATE nodes SET rack_units = ?1, updated_at = datetime('now') WHERE id = ?2",
                 params![ru, node_id],
+            )?;
+        }
+        if let Some(ref iid) = resolved_item_id {
+            tx.execute(
+                "UPDATE nodes SET item_id = ?1, updated_at = datetime('now') WHERE id = ?2",
+                params![iid, node_id],
             )?;
         }
 

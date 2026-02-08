@@ -12,7 +12,9 @@ use rusqlite::params;
 use crate::core::db::Database;
 use crate::core::events::{record_event, EventSource};
 use crate::core::models::Volume;
-use crate::core::resolve::{resolve_active_topology, resolve_node, resolve_volume, validate_slug};
+use crate::core::resolve::{
+    resolve_active_topology, resolve_catalog_item, resolve_node, resolve_volume, validate_slug,
+};
 use crate::core::specs::Capacity;
 
 use super::OutputFormat;
@@ -47,6 +49,10 @@ pub enum VolumeCommands {
         /// Pool type (e.g., stripe, mirror, raidz)
         #[arg(long)]
         pool_type: Option<String>,
+
+        /// Link to a catalog item (name or ID prefix)
+        #[arg(long)]
+        item_id: Option<String>,
 
         /// Target topology (defaults to active)
         #[arg(long)]
@@ -125,6 +131,10 @@ pub enum VolumeCommands {
         #[arg(long)]
         pool_type: Option<String>,
 
+        /// Link to a catalog item (name or ID prefix)
+        #[arg(long)]
+        item_id: Option<String>,
+
         /// Target topology (defaults to active)
         #[arg(long)]
         topology: Option<String>,
@@ -141,6 +151,7 @@ pub fn run(cmd: VolumeCommands, db: &mut Database, format: OutputFormat) -> Resu
             filesystem,
             raid,
             pool_type,
+            item_id,
             topology,
         } => add(
             db,
@@ -151,6 +162,7 @@ pub fn run(cmd: VolumeCommands, db: &mut Database, format: OutputFormat) -> Resu
             filesystem.as_deref(),
             raid.as_deref(),
             pool_type.as_deref(),
+            item_id.as_deref(),
             topology.as_deref(),
             format,
         ),
@@ -176,6 +188,7 @@ pub fn run(cmd: VolumeCommands, db: &mut Database, format: OutputFormat) -> Resu
             filesystem,
             raid,
             pool_type,
+            item_id,
             topology,
         } => update(
             db,
@@ -187,6 +200,7 @@ pub fn run(cmd: VolumeCommands, db: &mut Database, format: OutputFormat) -> Resu
             filesystem.as_deref(),
             raid.as_deref(),
             pool_type.as_deref(),
+            item_id.as_deref(),
             topology.as_deref(),
             format,
         ),
@@ -203,6 +217,7 @@ fn add(
     filesystem: Option<&str>,
     raid: Option<&str>,
     pool_type: Option<&str>,
+    item_id: Option<&str>,
     topology_override: Option<&str>,
     format: OutputFormat,
 ) -> Result<()> {
@@ -216,11 +231,20 @@ fn add(
     let topo = resolve_active_topology(db, topology_override)?;
     let node = resolve_node(db, &topo.id, node_name)?;
 
+    // Resolve catalog item before transaction (D009 pattern)
+    let resolved_item_id = if let Some(iid) = item_id {
+        let item = resolve_catalog_item(db, iid)?;
+        Some(item.id)
+    } else {
+        None
+    };
+
     let mut vol = Volume::new(&topo.id, &node.id, name, capacity.bytes as i64);
     vol.usable_bytes = usable_bytes.map(|u| u.bytes as i64);
     vol.filesystem = filesystem.map(|s| s.to_string());
     vol.raid_level = raid.map(|s| s.to_string());
     vol.pool_type = pool_type.map(|s| s.to_string());
+    vol.item_id = resolved_item_id;
 
     let after_json = vol.to_json()?;
     let vol_id = vol.id.clone();
@@ -476,6 +500,7 @@ fn update(
     filesystem: Option<&str>,
     raid: Option<&str>,
     pool_type: Option<&str>,
+    item_id: Option<&str>,
     topology_override: Option<&str>,
     format: OutputFormat,
 ) -> Result<()> {
@@ -485,8 +510,9 @@ fn update(
         && filesystem.is_none()
         && raid.is_none()
         && pool_type.is_none()
+        && item_id.is_none()
     {
-        bail!("Nothing to update. Provide --rename, --capacity, --usable, --filesystem, --raid, or --pool-type.");
+        bail!("Nothing to update. Provide --rename, --capacity, --usable, --filesystem, --raid, --pool-type, or --item-id.");
     }
 
     // Validate new name if renaming
@@ -519,6 +545,14 @@ fn update(
         }
     }
 
+    // Resolve catalog item before transaction (D009 pattern)
+    let resolved_item_id = if let Some(iid) = item_id {
+        let item = resolve_catalog_item(db, iid)?;
+        Some(item.id)
+    } else {
+        None
+    };
+
     // Build after state for event
     let mut after = vol.clone();
     if let Some(new_name) = rename {
@@ -538,6 +572,9 @@ fn update(
     }
     if let Some(pt) = pool_type {
         after.pool_type = Some(pt.to_string());
+    }
+    if let Some(ref iid) = resolved_item_id {
+        after.item_id = Some(iid.clone());
     }
     let after_json = after.to_json()?;
     let final_name = after.name.clone();
@@ -577,6 +614,12 @@ fn update(
             tx.execute(
                 "UPDATE volumes SET pool_type = ?1, updated_at = datetime('now') WHERE id = ?2",
                 params![pt, vol_id],
+            )?;
+        }
+        if let Some(ref iid) = resolved_item_id {
+            tx.execute(
+                "UPDATE volumes SET item_id = ?1, updated_at = datetime('now') WHERE id = ?2",
+                params![iid, vol_id],
             )?;
         }
 
