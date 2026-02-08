@@ -54,6 +54,7 @@ Cost analysis for topology purchase decisions, AI agent bootstrap via `sp prime`
 - `sp prime` should be modeled on `bd prime` — agent instructions for how to use the tool, not a data dump
 - Include concrete command examples in prime output so agents can copy/adapt
 - Status dashboard should feel like a health check — highlight what needs attention, quiet when everything's fine
+- **CLI UX guidelines:** See `~/.nix-config/.agents/CLI_DESIGN_PRINCIPLES.md` — covers progressive disclosure, color semantics, error philosophy, output modes, box drawing, and DRY styling. Principles are Python-illustrated but the design intent applies to Rust output formatting (status dashboard, diagrams, cost reports)
 
 </specifics>
 
