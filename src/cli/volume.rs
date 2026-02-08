@@ -225,6 +225,9 @@ fn add(
 
     // Parse capacity
     let capacity = Capacity::parse(capacity_str)?;
+    if capacity.bytes == 0 {
+        bail!("Capacity must be greater than zero");
+    }
     let usable_bytes = usable_str.map(Capacity::parse).transpose()?;
 
     // Resolve active topology and node
@@ -532,6 +535,11 @@ fn update(
 
     // Parse capacity values if provided
     let new_capacity = capacity_str.map(Capacity::parse).transpose()?;
+    if let Some(ref cap) = new_capacity {
+        if cap.bytes == 0 {
+            bail!("Capacity must be greater than zero");
+        }
+    }
     let new_usable = usable_str.map(Capacity::parse).transpose()?;
 
     // Resolve outside transaction

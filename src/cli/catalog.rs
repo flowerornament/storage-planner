@@ -70,8 +70,8 @@ pub enum PriceCommands {
         /// Item name or UUID prefix
         item: String,
 
-        /// Price amount in cents (e.g., 28999 for $289.99)
-        #[arg(long)]
+        /// Price amount in cents (e.g., 28999 for $289.99). Use whole numbers only.
+        #[arg(long, value_name = "CENTS")]
         amount: i64,
 
         /// Price source (e.g., amazon, bestbuy, ebay)
@@ -313,8 +313,8 @@ fn list(db: &mut Database, category: Option<&str>, format: OutputFormat) -> Resu
                 );
             } else {
                 println!(
-                    "  {:<30} {:<12} {:<42} {}",
-                    "Name", "Category", "URL", "Latest Price"
+                    "  {:<30} {:<12} {:<42} Latest Price",
+                    "Name", "Category", "URL"
                 );
                 println!("  {}", "-".repeat(90));
                 for item in &items {
@@ -442,6 +442,11 @@ fn price_add(
     currency: &str,
     format: OutputFormat,
 ) -> Result<()> {
+    // Validate amount
+    if amount_cents < 0 {
+        bail!("Price amount cannot be negative (got {})", amount_cents);
+    }
+
     // Validate price_type
     match price_type {
         "one-time" | "monthly" | "annual" => {}
@@ -532,8 +537,8 @@ fn price_list(db: &mut Database, item_name_or_id: &str, format: OutputFormat) ->
             } else {
                 println!("Prices for {}:", item.name);
                 println!(
-                    "  {:<12} {:>10} {:<12} {:<12} {}",
-                    "Date", "Amount", "Source", "Condition", "Type"
+                    "  {:<12} {:>10} {:<12} {:<12} Type",
+                    "Date", "Amount", "Source", "Condition"
                 );
                 for price in &prices {
                     println!(

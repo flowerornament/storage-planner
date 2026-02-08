@@ -104,8 +104,8 @@ fn run_status_text(db: &mut Database) -> Result<()> {
         println!("  No open decisions");
     } else {
         println!(
-            "  {:<30} {:<10} {:<14} {:<12} {}",
-            "Title", "Status", "Constraints", "Topologies", "Age"
+            "  {:<30} {:<10} {:<14} {:<12} Age",
+            "Title", "Status", "Constraints", "Topologies"
         );
         for d in &decisions {
             println!(

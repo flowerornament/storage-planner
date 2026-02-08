@@ -8,7 +8,8 @@ use rusqlite::{Connection, Transaction};
 use std::path::{Path, PathBuf};
 
 /// Current schema version. Bump this when adding new migrations.
-pub const CURRENT_VERSION: i32 = 4;
+#[cfg(test)]
+pub const CURRENT_VERSION: i32 = 5;
 
 /// A single schema migration step.
 struct Migration {
@@ -35,10 +36,15 @@ const MIGRATIONS: &[Migration] = &[
         version: 4,
         sql: SCHEMA_V4,
     },
+    Migration {
+        version: 5,
+        sql: SCHEMA_V5,
+    },
 ];
 
 /// Database wrapper providing atomic transactions and migrations
 pub struct Database {
+    #[allow(dead_code)]
     path: PathBuf,
     conn: Connection,
 }
@@ -73,6 +79,7 @@ impl Database {
     /// Open an in-memory database (for testing).
     ///
     /// Sets foreign_keys ON and runs migrations.
+    #[cfg(test)]
     pub fn open_memory() -> Result<Self> {
         let conn = Connection::open_in_memory()?;
         conn.execute_batch("PRAGMA foreign_keys = ON;")?;
@@ -86,6 +93,7 @@ impl Database {
     }
 
     /// Get the database file path.
+    #[allow(dead_code)]
     pub fn path(&self) -> &Path {
         &self.path
     }
@@ -108,6 +116,7 @@ impl Database {
     }
 
     /// Get a mutable reference to the underlying connection.
+    #[allow(dead_code)]
     pub fn conn_mut(&mut self) -> &mut Connection {
         &mut self.conn
     }
@@ -132,6 +141,7 @@ impl Database {
     }
 
     /// Check if database has been initialized (topologies table exists).
+    #[allow(dead_code)]
     pub fn is_initialized(&self) -> Result<bool> {
         let count: i64 = self.conn.query_row(
             "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='topologies'",
@@ -384,6 +394,37 @@ CREATE INDEX idx_catalog_items_category ON catalog_items(category);
 ALTER TABLE nodes ADD COLUMN item_id TEXT;
 
 PRAGMA user_version = 4;
+"#;
+
+/// Phase 8 schema (version 5): Fix topologies.parent_id FK to ON DELETE SET NULL
+///
+/// The original FK `parent_id TEXT REFERENCES topologies(id)` has no ON DELETE action,
+/// which blocks deleting a parent topology if forks exist. This migration recreates
+/// the topologies table with `ON DELETE SET NULL` using SQLite's rename-recreate pattern.
+const SCHEMA_V5: &str = r#"
+PRAGMA foreign_keys = OFF;
+
+CREATE TABLE topologies_new (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT NOT NULL DEFAULT '',
+    parent_id TEXT REFERENCES topologies(id) ON DELETE SET NULL,
+    tag TEXT DEFAULT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+INSERT INTO topologies_new SELECT id, name, description, parent_id, tag, created_at, updated_at FROM topologies;
+
+DROP TABLE topologies;
+
+ALTER TABLE topologies_new RENAME TO topologies;
+
+CREATE UNIQUE INDEX idx_topologies_current ON topologies(tag) WHERE tag = 'current';
+
+PRAGMA foreign_keys = ON;
+
+PRAGMA user_version = 5;
 "#;
 
 #[cfg(test)]
@@ -814,5 +855,127 @@ mod tests {
             Ok(())
         });
         assert!(result.is_ok(), "item_id should have no FK constraint");
+    }
+
+    #[test]
+    fn test_migration_v5_parent_id_on_delete_set_null() {
+        // Create a v4 database manually
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        conn.execute_batch(SCHEMA_V1).unwrap();
+        conn.execute_batch(SCHEMA_V2).unwrap();
+        conn.execute_batch(SCHEMA_V3).unwrap();
+        conn.execute_batch(SCHEMA_V4).unwrap();
+
+        // Insert a parent topology and a fork (child with parent_id)
+        conn.execute(
+            "INSERT INTO topologies (id, name) VALUES ('parent', 'parent-topo')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO topologies (id, name, parent_id) VALUES ('child', 'child-topo', 'parent')",
+            [],
+        )
+        .unwrap();
+
+        // Before V5: deleting parent should fail (no ON DELETE action)
+        let result = conn.execute("DELETE FROM topologies WHERE id = 'parent'", []);
+        assert!(
+            result.is_err(),
+            "Before V5, deleting parent with child should fail"
+        );
+
+        // Apply migration v5
+        conn.execute_batch(SCHEMA_V5).unwrap();
+
+        // After V5: deleting parent should set child.parent_id to NULL
+        conn.execute("DELETE FROM topologies WHERE id = 'parent'", [])
+            .unwrap();
+
+        let child_parent: Option<String> = conn
+            .query_row(
+                "SELECT parent_id FROM topologies WHERE id = 'child'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            child_parent, None,
+            "ON DELETE SET NULL should nullify child's parent_id"
+        );
+
+        // Verify child still exists
+        let child_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM topologies WHERE id = 'child'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(child_count, 1, "Child topology should still exist");
+
+        // Verify version is 5
+        let version: i32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 5);
+    }
+
+    #[test]
+    fn test_migration_v5_preserves_data() {
+        // Test that V5 migration preserves topology data including nodes (FK children)
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        conn.execute_batch(SCHEMA_V1).unwrap();
+        conn.execute_batch(SCHEMA_V2).unwrap();
+        conn.execute_batch(SCHEMA_V3).unwrap();
+        conn.execute_batch(SCHEMA_V4).unwrap();
+
+        // Insert topology with tag and a node
+        conn.execute(
+            "INSERT INTO topologies (id, name, tag) VALUES ('t1', 'test-topo', 'current')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO nodes (id, topology_id, name, role) VALUES ('n1', 't1', 'server', 'nas')",
+            [],
+        )
+        .unwrap();
+
+        // Apply migration v5
+        conn.execute_batch(SCHEMA_V5).unwrap();
+
+        // Verify topology data preserved
+        let (name, tag): (String, Option<String>) = conn
+            .query_row(
+                "SELECT name, tag FROM topologies WHERE id = 't1'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(name, "test-topo");
+        assert_eq!(tag, Some("current".to_string()));
+
+        // Verify node still exists (FK from nodes to topologies still valid)
+        let node_count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM nodes WHERE topology_id = 't1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(node_count, 1, "Node should survive V5 migration");
+
+        // Verify partial unique index still works
+        let result = conn.execute(
+            "INSERT INTO topologies (id, name, tag) VALUES ('t2', 'topo2', 'current')",
+            [],
+        );
+        assert!(
+            result.is_err(),
+            "Partial unique index should prevent two 'current' tags"
+        );
     }
 }

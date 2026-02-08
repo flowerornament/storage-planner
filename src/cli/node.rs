@@ -226,6 +226,28 @@ fn add(
 ) -> Result<()> {
     validate_slug(name)?;
 
+    // Validate non-negative values
+    if let Some(pw) = power_draw {
+        if pw < 0.0 {
+            bail!("Power draw cannot be negative (got {}W)", pw);
+        }
+    }
+    if let Some(c) = cost {
+        if c < 0.0 {
+            bail!("Cost cannot be negative (got ${})", c);
+        }
+    }
+    if let Some(n) = noise {
+        if n < 0.0 {
+            bail!("Noise cannot be negative (got {}dB)", n);
+        }
+    }
+    if let Some(ru) = rack_units {
+        if ru < 0.0 {
+            bail!("Rack units cannot be negative (got {}U)", ru);
+        }
+    }
+
     // Resolve active topology
     let topo = resolve_active_topology(db, topology_override)?;
 
@@ -536,6 +558,28 @@ fn update(
     // Validate new name if renaming
     if let Some(new_name) = rename {
         validate_slug(new_name)?;
+    }
+
+    // Validate non-negative values
+    if let Some(pw) = power_draw {
+        if pw < 0.0 {
+            bail!("Power draw cannot be negative (got {}W)", pw);
+        }
+    }
+    if let Some(c) = cost {
+        if c < 0.0 {
+            bail!("Cost cannot be negative (got ${})", c);
+        }
+    }
+    if let Some(n) = noise {
+        if n < 0.0 {
+            bail!("Noise cannot be negative (got {}dB)", n);
+        }
+    }
+    if let Some(ru) = rack_units {
+        if ru < 0.0 {
+            bail!("Rack units cannot be negative (got {}U)", ru);
+        }
     }
 
     // Resolve outside transaction

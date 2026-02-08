@@ -125,11 +125,13 @@ impl fmt::Display for Speed {
 }
 
 /// A noise level in decibels
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct NoiseLevel {
     pub db: f64,
 }
 
+#[allow(dead_code)]
 impl NoiseLevel {
     pub fn parse(s: &str) -> Result<Self> {
         let s = s.trim().to_uppercase();
@@ -153,6 +155,7 @@ impl fmt::Display for NoiseLevel {
 }
 
 /// Parse a spec value from JSON based on expected type
+#[allow(dead_code)]
 pub fn parse_spec<T>(specs: &serde_json::Value, key: &str) -> Option<T>
 where
     T: std::str::FromStr,
@@ -161,6 +164,7 @@ where
 }
 
 /// Get capacity from specs
+#[allow(dead_code)]
 pub fn get_capacity(specs: &serde_json::Value) -> Option<Capacity> {
     specs
         .get("capacity")
@@ -169,6 +173,7 @@ pub fn get_capacity(specs: &serde_json::Value) -> Option<Capacity> {
 }
 
 /// Get read speed from specs
+#[allow(dead_code)]
 pub fn get_read_speed(specs: &serde_json::Value) -> Option<Speed> {
     specs
         .get("read_speed")
@@ -177,6 +182,7 @@ pub fn get_read_speed(specs: &serde_json::Value) -> Option<Speed> {
 }
 
 /// Get write speed from specs
+#[allow(dead_code)]
 pub fn get_write_speed(specs: &serde_json::Value) -> Option<Speed> {
     specs
         .get("write_speed")
@@ -185,6 +191,7 @@ pub fn get_write_speed(specs: &serde_json::Value) -> Option<Speed> {
 }
 
 /// Get noise level from specs
+#[allow(dead_code)]
 pub fn get_noise(specs: &serde_json::Value) -> Option<NoiseLevel> {
     specs
         .get("noise_db")

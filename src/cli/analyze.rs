@@ -1183,28 +1183,28 @@ fn print_cost_summary_text(report: &CostReport, tco_years: Option<u32>) {
     }
 
     println!(
-        "  {:<14}{:<8}{:<14}{:<14}{}",
-        "Category", "Count", "One-Time", "Monthly", "Annual"
+        "  {:<14}{:<8}{:<14}{:<14}Annual",
+        "Category", "Count", "One-Time", "Monthly"
     );
     println!(
-        "  {:<14}{:<8}{:<14}{:<14}{}",
-        "--------", "-----", "--------", "-------", "------"
+        "  {:<14}{:<8}{:<14}{:<14}------",
+        "--------", "-----", "--------", "-------"
     );
     println!(
-        "  {:<14}{:<8}{:<14}{:<14}{}",
+        "  {:<14}{:<8}${:<13.2}${:<13.2}${:.2}",
         "Nodes",
         node_count,
-        format!("${:.2}", node_one_time as f64 / 100.0),
-        format!("${:.2}", node_monthly as f64 / 100.0),
-        format!("${:.2}", node_annual as f64 / 100.0),
+        node_one_time as f64 / 100.0,
+        node_monthly as f64 / 100.0,
+        node_annual as f64 / 100.0,
     );
     println!(
-        "  {:<14}{:<8}{:<14}{:<14}{}",
+        "  {:<14}{:<8}${:<13.2}${:<13.2}${:.2}",
         "Volumes",
         vol_count,
-        format!("${:.2}", vol_one_time as f64 / 100.0),
-        format!("${:.2}", vol_monthly as f64 / 100.0),
-        format!("${:.2}", vol_annual as f64 / 100.0),
+        vol_one_time as f64 / 100.0,
+        vol_monthly as f64 / 100.0,
+        vol_annual as f64 / 100.0,
     );
     println!(
         "  {:<14}{:<8}{:<14}{:<14}{}",
@@ -1553,7 +1553,12 @@ fn print_compare_text(report: &crate::domains::storage::analysis::ComparisonRepo
 
 fn format_metric_values(metric: &str, a: f64, b: f64, unit: &str) -> (String, String) {
     match metric {
-        "total_cost" => (format!("${:.2}", a), format!("${:.2}", b)),
+        "total_cost" => {
+            // Normalize negative zero to positive zero
+            let a = if a == 0.0 { 0.0 } else { a };
+            let b = if b == 0.0 { 0.0 } else { b };
+            (format!("${:.2}", a), format!("${:.2}", b))
+        }
         "total_noise" => (format!("{:.1} dB", a), format!("{:.1} dB", b)),
         "total_power" => (format!("{:.1} W", a), format!("{:.1} W", b)),
         "total_rack_units" => (format!("{:.1} U", a), format!("{:.1} U", b)),

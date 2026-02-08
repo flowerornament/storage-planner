@@ -163,6 +163,117 @@ pub fn restore_entity_from_json(
     Ok(())
 }
 
+/// Update an entity in-place from JSON state using UPDATE (not delete+insert).
+///
+/// This avoids triggering ON DELETE CASCADE which would destroy child entities.
+/// Used by undo/redo of `.updated` events.
+pub fn update_entity_from_json(
+    tx: &Transaction,
+    entity_type: &str,
+    json_state: &str,
+) -> Result<()> {
+    match entity_type {
+        "topology" => {
+            let e: Topology = serde_json::from_str(json_state)
+                .context("Failed to deserialize topology from JSON")?;
+            tx.execute(
+                "UPDATE topologies SET name=?1, description=?2, parent_id=?3, tag=?4, created_at=?5, updated_at=?6 WHERE id=?7",
+                params![e.name, e.description, e.parent_id, e.tag, e.created_at.to_rfc3339(), e.updated_at.to_rfc3339(), e.id],
+            )?;
+        }
+        "node" => {
+            let e: Node =
+                serde_json::from_str(json_state).context("Failed to deserialize node from JSON")?;
+            tx.execute(
+                "UPDATE nodes SET topology_id=?1, name=?2, role=?3, location=?4, available_bays=?5, interface_types=?6, power_draw_watts=?7, cost_estimate=?8, noise_db=?9, rack_units=?10, item_id=?11, created_at=?12, updated_at=?13 WHERE id=?14",
+                params![e.topology_id, e.name, e.role, e.location, e.available_bays, e.interface_types, e.power_draw_watts, e.cost_estimate, e.noise_db, e.rack_units, e.item_id, e.created_at.to_rfc3339(), e.updated_at.to_rfc3339(), e.id],
+            )?;
+        }
+        "volume" => {
+            let e: Volume = serde_json::from_str(json_state)
+                .context("Failed to deserialize volume from JSON")?;
+            tx.execute(
+                "UPDATE volumes SET topology_id=?1, node_id=?2, name=?3, capacity_bytes=?4, usable_bytes=?5, filesystem=?6, raid_level=?7, pool_type=?8, item_id=?9, created_at=?10, updated_at=?11 WHERE id=?12",
+                params![e.topology_id, e.node_id, e.name, e.capacity_bytes, e.usable_bytes, e.filesystem, e.raid_level, e.pool_type, e.item_id, e.created_at.to_rfc3339(), e.updated_at.to_rfc3339(), e.id],
+            )?;
+        }
+        "dataset" => {
+            let e: Dataset = serde_json::from_str(json_state)
+                .context("Failed to deserialize dataset from JSON")?;
+            tx.execute(
+                "UPDATE datasets SET topology_id=?1, name=?2, size_bytes=?3, growth_rate_bytes_month=?4, criticality=?5, min_copies=?6, min_locations=?7, max_rpo_hours=?8, created_at=?9, updated_at=?10 WHERE id=?11",
+                params![e.topology_id, e.name, e.size_bytes, e.growth_rate_bytes_month, e.criticality, e.min_copies, e.min_locations, e.max_rpo_hours, e.created_at.to_rfc3339(), e.updated_at.to_rfc3339(), e.id],
+            )?;
+        }
+        "placement" => {
+            let e: Placement = serde_json::from_str(json_state)
+                .context("Failed to deserialize placement from JSON")?;
+            tx.execute(
+                "UPDATE placements SET topology_id=?1, dataset_id=?2, volume_id=?3, role=?4, priority=?5, created_at=?6 WHERE id=?7",
+                params![e.topology_id, e.dataset_id, e.volume_id, e.role, e.priority, e.created_at.to_rfc3339(), e.id],
+            )?;
+        }
+        "link" => {
+            let e: Link =
+                serde_json::from_str(json_state).context("Failed to deserialize link from JSON")?;
+            tx.execute(
+                "UPDATE links SET topology_id=?1, source_node_id=?2, target_node_id=?3, bandwidth_bytes_sec=?4, connection_type=?5, latency_ms=?6, is_metered=?7, cost_per_gb_cents=?8, created_at=?9, updated_at=?10 WHERE id=?11",
+                params![e.topology_id, e.source_node_id, e.target_node_id, e.bandwidth_bytes_sec, e.connection_type, e.latency_ms, e.is_metered as i32, e.cost_per_gb_cents, e.created_at.to_rfc3339(), e.updated_at.to_rfc3339(), e.id],
+            )?;
+        }
+        "sync_regime" => {
+            let e: SyncRegime = serde_json::from_str(json_state)
+                .context("Failed to deserialize sync_regime from JSON")?;
+            tx.execute(
+                "UPDATE sync_regimes SET topology_id=?1, name=?2, dataset_id=?3, source_volume_id=?4, target_volume_id=?5, sync_type=?6, schedule=?7, direction=?8, created_at=?9, updated_at=?10 WHERE id=?11",
+                params![e.topology_id, e.name, e.dataset_id, e.source_volume_id, e.target_volume_id, e.sync_type, e.schedule, e.direction, e.created_at.to_rfc3339(), e.updated_at.to_rfc3339(), e.id],
+            )?;
+        }
+        "decision" => {
+            let e: Decision = serde_json::from_str(json_state)
+                .context("Failed to deserialize decision from JSON")?;
+            tx.execute(
+                "UPDATE decisions SET title=?1, description=?2, status=?3, parent_id=?4, chosen_topology_id=?5, rationale=?6, snapshot=?7, created_at=?8, updated_at=?9, closed_at=?10 WHERE id=?11",
+                params![e.title, e.description, e.status, e.parent_id, e.chosen_topology_id, e.rationale, e.snapshot, e.created_at.to_rfc3339(), e.updated_at.to_rfc3339(), e.closed_at.map(|dt| dt.to_rfc3339()), e.id],
+            )?;
+        }
+        "decision_constraint" => {
+            let e: DecisionConstraint = serde_json::from_str(json_state)
+                .context("Failed to deserialize decision_constraint from JSON")?;
+            tx.execute(
+                "UPDATE decision_constraints SET decision_id=?1, constraint_type=?2, max_value=?3, created_at=?4 WHERE id=?5",
+                params![e.decision_id, e.constraint_type, e.max_value, e.created_at.to_rfc3339(), e.id],
+            )?;
+        }
+        "decision_topology" => {
+            let e: DecisionTopology = serde_json::from_str(json_state)
+                .context("Failed to deserialize decision_topology from JSON")?;
+            tx.execute(
+                "UPDATE decision_topologies SET decision_id=?1, topology_id=?2, added_at=?3 WHERE id=?4",
+                params![e.decision_id, e.topology_id, e.added_at.to_rfc3339(), e.id],
+            )?;
+        }
+        "catalog_item" => {
+            let e: CatalogItem = serde_json::from_str(json_state)
+                .context("Failed to deserialize catalog_item from JSON")?;
+            tx.execute(
+                "UPDATE catalog_items SET name=?1, category=?2, specs=?3, url=?4, notes=?5, created_at=?6, updated_at=?7 WHERE id=?8",
+                params![e.name, e.category, e.specs.to_string(), e.url, e.notes, e.created_at.to_rfc3339(), e.updated_at.to_rfc3339(), e.id],
+            )?;
+        }
+        "price" => {
+            let e: Price = serde_json::from_str(json_state)
+                .context("Failed to deserialize price from JSON")?;
+            tx.execute(
+                "UPDATE prices SET item_id=?1, amount_cents=?2, currency=?3, source=?4, condition=?5, price_type=?6, observed_at=?7 WHERE id=?8",
+                params![e.item_id, e.amount_cents, e.currency, e.source, e.condition, e.price_type, e.observed_at.to_rfc3339(), e.id],
+            )?;
+        }
+        _ => bail!("Unknown entity type for update: {}", entity_type),
+    }
+    Ok(())
+}
+
 // ---------------------------------------------------------------------------
 // Core event functions
 // ---------------------------------------------------------------------------
@@ -267,13 +378,12 @@ pub fn undo(db: &mut Database) -> Result<String> {
                 .ok_or_else(|| anyhow::anyhow!("No before_state for deleted event"))?;
             restore_entity_from_json(tx, &event.entity_type, before)?;
         } else if event.event_type.ends_with(".updated") {
-            // Undo update = restore before_state (delete current, insert before)
+            // Undo update = restore before_state via UPDATE (preserves FK children)
             let before = event
                 .before_state
                 .as_deref()
                 .ok_or_else(|| anyhow::anyhow!("No before_state for updated event"))?;
-            delete_entity(tx, &event.entity_type, &event.entity_id)?;
-            restore_entity_from_json(tx, &event.entity_type, before)?;
+            update_entity_from_json(tx, &event.entity_type, before)?;
         } else {
             bail!("Unknown event type suffix: {}", event.event_type);
         }
@@ -322,13 +432,12 @@ pub fn redo(db: &mut Database) -> Result<String> {
             // Redo deletion = delete the entity again
             delete_entity(tx, &event.entity_type, &event.entity_id)?;
         } else if event.event_type.ends_with(".updated") {
-            // Redo update = apply after_state (delete current, insert after)
+            // Redo update = apply after_state via UPDATE (preserves FK children)
             let after = event
                 .after_state
                 .as_deref()
                 .ok_or_else(|| anyhow::anyhow!("No after_state for updated event"))?;
-            delete_entity(tx, &event.entity_type, &event.entity_id)?;
-            restore_entity_from_json(tx, &event.entity_type, after)?;
+            update_entity_from_json(tx, &event.entity_type, after)?;
         } else {
             bail!("Unknown event type suffix: {}", event.event_type);
         }
@@ -676,6 +785,261 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM events", [], |row| row.get(0))
             .unwrap();
         assert_eq!(event_count, 2);
+    }
+
+    #[test]
+    fn test_undo_update_preserves_children() {
+        let mut db = setup_db();
+
+        // Create a topology with a node child
+        let mut topo = Topology::new("update-test", "Will be updated");
+        let topo_id = topo.id.clone();
+        let node = Node::new(&topo_id, "server1", "server");
+        let node_id = node.id.clone();
+        let after_json = topo.to_json().unwrap();
+
+        db.transaction(|tx| {
+            topo.insert(tx)?;
+            node.insert(tx)?;
+            record_event(
+                tx,
+                "topology.created",
+                "topology",
+                &topo_id,
+                "Created topology",
+                None,
+                Some(&after_json),
+                &EventSource::User,
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+        // Update the topology (simulate tagging)
+        let before_json = topo.to_json().unwrap();
+        topo.tag = Some("current".to_string());
+        let after_json2 = topo.to_json().unwrap();
+
+        db.transaction(|tx| {
+            tx.execute(
+                "UPDATE topologies SET tag = ?1 WHERE id = ?2",
+                params!["current", &topo_id],
+            )?;
+            record_event(
+                tx,
+                "topology.updated",
+                "topology",
+                &topo_id,
+                "Tagged topology",
+                Some(&before_json),
+                Some(&after_json2),
+                &EventSource::User,
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+        // Verify node exists before undo
+        let count: i64 = db
+            .conn()
+            .query_row("SELECT COUNT(*) FROM nodes", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 1);
+
+        // Undo the update
+        let summary = undo(&mut db).unwrap();
+        assert_eq!(summary, "Tagged topology");
+
+        // Node MUST still exist (this was the bug: delete+insert killed children)
+        let count: i64 = db
+            .conn()
+            .query_row("SELECT COUNT(*) FROM nodes", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 1, "Node must survive undo of topology update");
+
+        // Verify topology tag was restored to NULL
+        let tag: Option<String> = db
+            .conn()
+            .query_row(
+                "SELECT tag FROM topologies WHERE id = ?1",
+                [&topo_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(tag.is_none(), "Tag should be restored to NULL after undo");
+
+        // Node id should be unchanged
+        let loaded_node_id: String = db
+            .conn()
+            .query_row("SELECT id FROM nodes WHERE name = 'server1'", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(loaded_node_id, node_id);
+    }
+
+    #[test]
+    fn test_redo_update_preserves_children() {
+        let mut db = setup_db();
+
+        // Create topology + node + update
+        let mut topo = Topology::new("redo-update-test", "");
+        let topo_id = topo.id.clone();
+        let node = Node::new(&topo_id, "server1", "server");
+        let after_json = topo.to_json().unwrap();
+
+        db.transaction(|tx| {
+            topo.insert(tx)?;
+            node.insert(tx)?;
+            record_event(
+                tx,
+                "topology.created",
+                "topology",
+                &topo_id,
+                "Created",
+                None,
+                Some(&after_json),
+                &EventSource::User,
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+        let before_json = topo.to_json().unwrap();
+        topo.tag = Some("exploring".to_string());
+        let after_json2 = topo.to_json().unwrap();
+
+        db.transaction(|tx| {
+            tx.execute(
+                "UPDATE topologies SET tag = ?1 WHERE id = ?2",
+                params!["exploring", &topo_id],
+            )?;
+            record_event(
+                tx,
+                "topology.updated",
+                "topology",
+                &topo_id,
+                "Tagged exploring",
+                Some(&before_json),
+                Some(&after_json2),
+                &EventSource::User,
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+        // Undo, then redo
+        undo(&mut db).unwrap();
+        redo(&mut db).unwrap();
+
+        // Node must survive redo
+        let count: i64 = db
+            .conn()
+            .query_row("SELECT COUNT(*) FROM nodes", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(count, 1, "Node must survive redo of topology update");
+
+        // Tag should be back to "exploring"
+        let tag: Option<String> = db
+            .conn()
+            .query_row(
+                "SELECT tag FROM topologies WHERE id = ?1",
+                [&topo_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(tag, Some("exploring".to_string()));
+    }
+
+    #[test]
+    fn test_undo_update_with_fork() {
+        let mut db = setup_db();
+
+        // Create parent topology
+        let mut topo = Topology::new("parent-topo", "");
+        let topo_id = topo.id.clone();
+        let after_json = topo.to_json().unwrap();
+
+        db.transaction(|tx| {
+            topo.insert(tx)?;
+            record_event(
+                tx,
+                "topology.created",
+                "topology",
+                &topo_id,
+                "Created parent",
+                None,
+                Some(&after_json),
+                &EventSource::User,
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+        // Create a fork (child topology referencing parent)
+        let mut fork = Topology::new("fork-topo", "");
+        fork.parent_id = Some(topo_id.clone());
+        let fork_id = fork.id.clone();
+        let fork_json = fork.to_json().unwrap();
+
+        db.transaction(|tx| {
+            fork.insert(tx)?;
+            record_event(
+                tx,
+                "topology.created",
+                "topology",
+                &fork_id,
+                "Created fork",
+                None,
+                Some(&fork_json),
+                &EventSource::User,
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+        // Update parent topology (tag it)
+        let before_json = topo.to_json().unwrap();
+        topo.tag = Some("current".to_string());
+        let after_json2 = topo.to_json().unwrap();
+
+        db.transaction(|tx| {
+            tx.execute(
+                "UPDATE topologies SET tag = ?1 WHERE id = ?2",
+                params!["current", &topo_id],
+            )?;
+            record_event(
+                tx,
+                "topology.updated",
+                "topology",
+                &topo_id,
+                "Tagged parent",
+                Some(&before_json),
+                Some(&after_json2),
+                &EventSource::User,
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+        // Undo the update — previously would fail with FK error due to fork
+        let result = undo(&mut db);
+        assert!(
+            result.is_ok(),
+            "Undo of update with fork should succeed: {:?}",
+            result.err()
+        );
+
+        // Fork should still exist with parent_id intact
+        let fork_parent: Option<String> = db
+            .conn()
+            .query_row(
+                "SELECT parent_id FROM topologies WHERE id = ?1",
+                [&fork_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(fork_parent, Some(topo_id.clone()));
     }
 
     #[test]

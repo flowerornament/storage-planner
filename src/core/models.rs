@@ -924,6 +924,7 @@ impl Event {
         })
     }
 
+    #[allow(dead_code)]
     pub fn to_json(&self) -> anyhow::Result<String> {
         Ok(serde_json::to_string(self)?)
     }

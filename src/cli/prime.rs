@@ -49,8 +49,8 @@ sp node add <name> --role=<desktop|server|nas|cloud> --location=<loc>
 sp volume add <name> --node=<node> --capacity=4TB
 sp dataset add <name> --size=500GB --criticality=critical --min-copies=3
 sp placement add <ds> <vol> --role=primary
-sp link add --from=<source-node> --to=<target-node> --type=lan --bandwidth=1GB/s
-sp sync add <name> --dataset=<ds> --from=<vol> --to=<vol> --type=rsync
+sp link add --from=<source-node> --to=<target-node> --connection-type=lan --bandwidth=1GB/s
+sp sync add <name> --dataset=<ds> --from=<vol> --to=<vol> --sync-type=rsync
 ```
 
 ### 4. Analyze Options
@@ -72,11 +72,11 @@ sp analyze constraints --decision=<dec>         # Check budget/power/noise limit
 
 ```
 sp decision create "NAS Upgrade 2026"
-sp decision update "NAS Upgrade 2026" --status=open
+sp decision update "NAS Upgrade 2026" --open
 sp decision consider "NAS Upgrade 2026" <topology>
 sp decision constrain "NAS Upgrade 2026" --type=budget --max=1500
-sp decision compare "NAS Upgrade 2026"
-sp decision choose "NAS Upgrade 2026" --topology=<winner> --rationale="..."
+sp analyze constraints --decision="NAS Upgrade 2026"
+sp decision choose "NAS Upgrade 2026" <winner> --rationale="..."
 sp decision show "NAS Upgrade 2026"
 sp decision list
 ```

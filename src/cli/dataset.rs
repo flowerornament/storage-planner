@@ -516,7 +516,7 @@ fn update(
         && max_rpo.is_none()
         && growth_rate.is_none()
     {
-        bail!("Nothing to update. Provide at least one field to change.");
+        bail!("Nothing to update. Provide --rename, --size, --criticality, --min-copies, --min-locations, --max-rpo, or --growth-rate.");
     }
 
     // Validate inputs
