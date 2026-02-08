@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-05)
 
 **Core value:** Session continuity for AI-assisted purchase decisions
-**Current focus:** Phase 5 complete -- Decision Integration (3 of 3 plans done)
+**Current focus:** Phase 6 in progress -- Cost and Context (wave 1 executing)
 
 ## Current Position
 
-Phase: 5 of 6 (Decision Integration)
-Plan: 3 of 3 in current phase
-Status: Phase complete
-Last activity: 2026-02-08 - Completed 05-03-PLAN.md
+Phase: 6 of 6 (Cost and Context)
+Plan: 5 of 5 in current phase
+Status: In progress (wave 1 plans executing in parallel)
+Last activity: 2026-02-08 - Completed 06-05-PLAN.md
 
-Progress: [██████████████░] ~93% (14/15 known plans)
+Progress: [███████████████] ~100% (15/15 known plans -- pending other wave 1 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
+- Total plans completed: 15
 - Average duration: 4m 39s
-- Total execution time: ~1.1 hours
+- Total execution time: ~1.2 hours
 
 **By Phase:**
 
@@ -32,9 +32,10 @@ Progress: [██████████████░] ~93% (14/15 known plan
 | 03 | 3/3 | 11m 13s | 3m 44s |
 | 04 | 2/2 | 13m 41s | 6m 51s |
 | 05 | 3/3 | 16m 56s | 5m 39s |
+| 06 | 1/5 | 4m 39s | 4m 39s |
 
 **Recent Trend:**
-- Last 5 plans: 04-02 (6m 41s), 05-01 (5m 29s), 05-02 (3m 44s), 05-03 (7m 43s)
+- Last 5 plans: 05-01 (5m 29s), 05-02 (3m 44s), 05-03 (7m 43s), 06-05 (4m 39s)
 - Trend: Consistent execution, larger plans take proportionally more time
 
 *Updated after each plan completion*
@@ -79,6 +80,8 @@ Recent decisions affecting current work:
 - D031: Decision titles use free-text (not slugs) -- supports natural language naming
 - D032: No power_watts column added -- existing power_draw_watts covers same concept
 - D033: RFC3339 timestamps used for closed_at to ensure consistent parsing in Decision::from_row
+- D034: Template mode strips IDs to empty strings; import uses name-based fallback keys for FK resolution
+- D035: Imported topologies start untagged with no parent_id (consistent with D022)
 
 ### Pending Todos
 
@@ -90,6 +93,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-08T01:42Z
-Stopped at: Completed 05-03-PLAN.md (decision lifecycle, constraint checking, topology comparison)
-Resume file: Phase 5 complete. Next: Phase 6 planning (Cost and Context).
+Last session: 2026-02-08T05:28Z
+Stopped at: Completed 06-05-PLAN.md (YAML export/import and ASCII diagram)
+Resume file: Phase 6 wave 1 in progress. Other plans (06-01 through 06-04) executing in parallel.
