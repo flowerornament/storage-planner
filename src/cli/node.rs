@@ -43,6 +43,18 @@ pub enum NodeCommands {
         #[arg(long)]
         power_draw: Option<f64>,
 
+        /// Estimated cost in dollars
+        #[arg(long)]
+        cost: Option<f64>,
+
+        /// Noise level in dB
+        #[arg(long)]
+        noise: Option<f64>,
+
+        /// Rack units consumed
+        #[arg(long)]
+        rack_units: Option<f64>,
+
         /// Target topology (defaults to active)
         #[arg(long)]
         topology: Option<String>,
@@ -104,6 +116,18 @@ pub enum NodeCommands {
         #[arg(long)]
         power_draw: Option<f64>,
 
+        /// Change the estimated cost in dollars
+        #[arg(long)]
+        cost: Option<f64>,
+
+        /// Change the noise level in dB
+        #[arg(long)]
+        noise: Option<f64>,
+
+        /// Change the rack units consumed
+        #[arg(long)]
+        rack_units: Option<f64>,
+
         /// Target topology (defaults to active)
         #[arg(long)]
         topology: Option<String>,
@@ -119,6 +143,9 @@ pub fn run(cmd: NodeCommands, db: &mut Database, format: OutputFormat) -> Result
             bays,
             interface_types,
             power_draw,
+            cost,
+            noise,
+            rack_units,
             topology,
         } => add(
             db,
@@ -128,6 +155,9 @@ pub fn run(cmd: NodeCommands, db: &mut Database, format: OutputFormat) -> Result
             bays,
             interface_types.as_deref(),
             power_draw,
+            cost,
+            noise,
+            rack_units,
             topology.as_deref(),
             format,
         ),
@@ -142,6 +172,9 @@ pub fn run(cmd: NodeCommands, db: &mut Database, format: OutputFormat) -> Result
             bays,
             interface_types,
             power_draw,
+            cost,
+            noise,
+            rack_units,
             topology,
         } => update(
             db,
@@ -152,6 +185,9 @@ pub fn run(cmd: NodeCommands, db: &mut Database, format: OutputFormat) -> Result
             bays,
             interface_types.as_deref(),
             power_draw,
+            cost,
+            noise,
+            rack_units,
             topology.as_deref(),
             format,
         ),
@@ -167,6 +203,9 @@ fn add(
     bays: Option<i32>,
     interface_types: Option<&str>,
     power_draw: Option<f64>,
+    cost: Option<f64>,
+    noise: Option<f64>,
+    rack_units: Option<f64>,
     topology_override: Option<&str>,
     format: OutputFormat,
 ) -> Result<()> {
@@ -184,6 +223,9 @@ fn add(
         node.interface_types = ifaces.to_string();
     }
     node.power_draw_watts = power_draw;
+    node.cost_estimate = cost;
+    node.noise_db = noise;
+    node.rack_units = rack_units;
 
     let after_json = node.to_json()?;
     let node_id = node.id.clone();
@@ -309,6 +351,15 @@ fn show(
             if let Some(watts) = node.power_draw_watts {
                 println!("  Power draw:      {:.0}W", watts);
             }
+            if let Some(cost) = node.cost_estimate {
+                println!("  Cost estimate:   ${:.2}", cost);
+            }
+            if let Some(noise) = node.noise_db {
+                println!("  Noise:           {:.1} dB", noise);
+            }
+            if let Some(ru) = node.rack_units {
+                println!("  Rack units:      {:.0}U", ru);
+            }
             println!("  ID:              {}", node.id);
             println!(
                 "  Created:         {}",
@@ -427,6 +478,9 @@ fn update(
     bays: Option<i32>,
     interface_types: Option<&str>,
     power_draw: Option<f64>,
+    cost: Option<f64>,
+    noise: Option<f64>,
+    rack_units: Option<f64>,
     topology_override: Option<&str>,
     format: OutputFormat,
 ) -> Result<()> {
@@ -436,8 +490,11 @@ fn update(
         && bays.is_none()
         && interface_types.is_none()
         && power_draw.is_none()
+        && cost.is_none()
+        && noise.is_none()
+        && rack_units.is_none()
     {
-        bail!("Nothing to update. Provide --rename, --role, --location, --bays, --interface-types, or --power-draw.");
+        bail!("Nothing to update. Provide --rename, --role, --location, --bays, --interface-types, --power-draw, --cost, --noise, or --rack-units.");
     }
 
     // Validate new name if renaming
@@ -486,6 +543,15 @@ fn update(
     if let Some(watts) = power_draw {
         after.power_draw_watts = Some(watts);
     }
+    if let Some(c) = cost {
+        after.cost_estimate = Some(c);
+    }
+    if let Some(n) = noise {
+        after.noise_db = Some(n);
+    }
+    if let Some(ru) = rack_units {
+        after.rack_units = Some(ru);
+    }
     let after_json = after.to_json()?;
     let final_name = after.name.clone();
 
@@ -524,6 +590,24 @@ fn update(
             tx.execute(
                 "UPDATE nodes SET power_draw_watts = ?1, updated_at = datetime('now') WHERE id = ?2",
                 params![watts, node_id],
+            )?;
+        }
+        if let Some(c) = cost {
+            tx.execute(
+                "UPDATE nodes SET cost_estimate = ?1, updated_at = datetime('now') WHERE id = ?2",
+                params![c, node_id],
+            )?;
+        }
+        if let Some(n) = noise {
+            tx.execute(
+                "UPDATE nodes SET noise_db = ?1, updated_at = datetime('now') WHERE id = ?2",
+                params![n, node_id],
+            )?;
+        }
+        if let Some(ru) = rack_units {
+            tx.execute(
+                "UPDATE nodes SET rack_units = ?1, updated_at = datetime('now') WHERE id = ?2",
+                params![ru, node_id],
             )?;
         }
 

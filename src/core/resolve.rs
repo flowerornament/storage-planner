@@ -11,7 +11,7 @@ use anyhow::{bail, Result};
 use rusqlite::params;
 
 use super::db::Database;
-use super::models::{Dataset, Node, Topology, Volume};
+use super::models::{Dataset, Decision, Node, Topology, Volume};
 
 /// Validate that a name is a valid slug: alphanumeric, hyphens, and underscores only.
 ///
@@ -332,6 +332,57 @@ pub fn resolve_dataset(db: &Database, topology_id: &str, name_or_id: &str) -> Re
     }
 }
 
+/// Resolve a decision by exact title or UUID prefix (minimum 4 chars).
+///
+/// Decisions use titles (not slug names), so no slug validation is performed.
+/// Titles may contain spaces and special characters.
+pub fn resolve_decision(db: &Database, title_or_id: &str) -> Result<Decision> {
+    // Try exact title match
+    let title_result = db.conn().query_row(
+        "SELECT id, title, description, status, parent_id, chosen_topology_id, \
+         rationale, snapshot, created_at, updated_at, closed_at \
+         FROM decisions WHERE title = ?1",
+        params![title_or_id],
+        Decision::from_row,
+    );
+
+    if let Ok(decision) = title_result {
+        return Ok(decision);
+    }
+
+    // Try UUID prefix match
+    if title_or_id.len() < 4 {
+        bail!(
+            "Decision '{}' not found. UUID prefix must be at least 4 characters.",
+            title_or_id
+        );
+    }
+
+    let pattern = format!("{}%", title_or_id);
+    let mut stmt = db.conn().prepare(
+        "SELECT id, title, description, status, parent_id, chosen_topology_id, \
+         rationale, snapshot, created_at, updated_at, closed_at \
+         FROM decisions WHERE id LIKE ?1",
+    )?;
+
+    let matches: Vec<Decision> = stmt
+        .query_map(params![pattern], Decision::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    match matches.len() {
+        0 => bail!("Decision '{}' not found", title_or_id),
+        1 => Ok(matches.into_iter().next().unwrap()),
+        _ => {
+            let titles: Vec<String> = matches.iter().map(|d| d.title.clone()).collect();
+            bail!(
+                "Ambiguous decision prefix '{}': matches {}",
+                title_or_id,
+                titles.join(", ")
+            )
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -339,7 +390,7 @@ pub fn resolve_dataset(db: &Database, topology_id: &str, name_or_id: &str) -> Re
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::models::{Node, Volume};
+    use crate::core::models::{Decision, Node, Volume};
 
     fn setup_db() -> Database {
         Database::open_memory().unwrap()
@@ -517,5 +568,44 @@ mod tests {
 
         let resolved = resolve_volume(&db, &topo.id, "data", Some("nas")).unwrap();
         assert_eq!(resolved.id, vol2.id);
+    }
+
+    #[test]
+    fn test_resolve_decision_by_title() {
+        let mut db = setup_db();
+        let decision = Decision::new("NAS Upgrade 2026");
+        db.transaction(|tx| {
+            decision.insert(tx)?;
+            Ok(())
+        })
+        .unwrap();
+
+        let resolved = resolve_decision(&db, "NAS Upgrade 2026").unwrap();
+        assert_eq!(resolved.id, decision.id);
+        assert_eq!(resolved.title, "NAS Upgrade 2026");
+    }
+
+    #[test]
+    fn test_resolve_decision_by_id_prefix() {
+        let mut db = setup_db();
+        let decision = Decision::new("Storage Choice");
+        let id_prefix = decision.id[..8].to_string();
+
+        db.transaction(|tx| {
+            decision.insert(tx)?;
+            Ok(())
+        })
+        .unwrap();
+
+        let resolved = resolve_decision(&db, &id_prefix).unwrap();
+        assert_eq!(resolved.id, decision.id);
+    }
+
+    #[test]
+    fn test_resolve_decision_not_found() {
+        let db = setup_db();
+        let result = resolve_decision(&db, "nonexistent");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("not found"));
     }
 }

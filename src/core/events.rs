@@ -11,7 +11,10 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 use super::db::Database;
-use super::models::{Dataset, Event, Link, Node, Placement, SyncRegime, Topology, Volume};
+use super::models::{
+    Dataset, Decision, DecisionConstraint, DecisionTopology, Event, Link, Node, Placement,
+    SyncRegime, Topology, Volume,
+};
 
 // ---------------------------------------------------------------------------
 // EventSource
@@ -71,6 +74,9 @@ pub fn entity_table_name(entity_type: &str) -> Result<&'static str> {
         "placement" => Ok("placements"),
         "link" => Ok("links"),
         "sync_regime" => Ok("sync_regimes"),
+        "decision" => Ok("decisions"),
+        "decision_constraint" => Ok("decision_constraints"),
+        "decision_topology" => Ok("decision_topologies"),
         _ => bail!("Unknown entity type: {}", entity_type),
     }
 }
@@ -123,6 +129,21 @@ pub fn restore_entity_from_json(
         "sync_regime" => {
             let entity: SyncRegime = serde_json::from_str(json_state)
                 .context("Failed to deserialize sync_regime from JSON")?;
+            entity.insert(tx)?;
+        }
+        "decision" => {
+            let entity: Decision = serde_json::from_str(json_state)
+                .context("Failed to deserialize decision from JSON")?;
+            entity.insert(tx)?;
+        }
+        "decision_constraint" => {
+            let entity: DecisionConstraint = serde_json::from_str(json_state)
+                .context("Failed to deserialize decision_constraint from JSON")?;
+            entity.insert(tx)?;
+        }
+        "decision_topology" => {
+            let entity: DecisionTopology = serde_json::from_str(json_state)
+                .context("Failed to deserialize decision_topology from JSON")?;
             entity.insert(tx)?;
         }
         _ => bail!("Unknown entity type for restore: {}", entity_type),
@@ -352,6 +373,15 @@ mod tests {
         assert_eq!(entity_table_name("placement").unwrap(), "placements");
         assert_eq!(entity_table_name("link").unwrap(), "links");
         assert_eq!(entity_table_name("sync_regime").unwrap(), "sync_regimes");
+        assert_eq!(entity_table_name("decision").unwrap(), "decisions");
+        assert_eq!(
+            entity_table_name("decision_constraint").unwrap(),
+            "decision_constraints"
+        );
+        assert_eq!(
+            entity_table_name("decision_topology").unwrap(),
+            "decision_topologies"
+        );
         assert!(entity_table_name("unknown").is_err());
     }
 
