@@ -128,10 +128,11 @@ Plans:
 ### Phase 7: CLI Polish and Correctness
 **Goal**: Fix command correctness issues discovered in post-v1 testing. See `.planning/phases/07-cli-polish-and-correctness/ASSESSMENT.md` for full assessment with reproduction steps.
 **Depends on**: Phase 6
-**Plans**: 0 plans
+**Plans**: 2 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 7 to break down)
+- [ ] 07-01-PLAN.md -- Fix prime command examples + add --item-id to node/volume commands
+- [ ] 07-02-PLAN.md -- Add uniqueness pre-checks to entity creation + catalog list headers
 
 **Details:**
 Priority fixes:
@@ -153,7 +154,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 4. Analysis Functions | 2/2 | Complete | 2026-02-07 |
 | 5. Decision Integration | 3/3 | Complete | 2026-02-08 |
 | 6. Cost and Context | 5/5 | Complete | 2026-02-08 |
-| 7. CLI Polish and Correctness | 0/0 | Not planned | - |
+| 7. CLI Polish and Correctness | 0/2 | Planned | - |
 
 ---
 *Roadmap created: 2026-02-06*
