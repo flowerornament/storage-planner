@@ -18,7 +18,7 @@ use rusqlite::params;
 use serde::{Deserialize, Serialize};
 
 use crate::core::db::Database;
-use crate::core::models::{Dataset, DecisionConstraint, Node, Volume};
+use crate::core::models::{Dataset, DecisionConstraint, Link, Node, Volume};
 
 // ---------------------------------------------------------------------------
 // Enriched placement data
@@ -983,6 +983,231 @@ pub fn check_constraints(constraints: &[DecisionConstraint], nodes: &[Node]) -> 
 }
 
 // ---------------------------------------------------------------------------
+// Bandwidth analysis
+// ---------------------------------------------------------------------------
+
+/// Status of a bandwidth check for a sync regime.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum BandwidthStatus {
+    /// Link bandwidth >= required
+    Adequate,
+    /// Link bandwidth is 50-100% of required
+    Tight,
+    /// Link bandwidth < 50% of required
+    Insufficient,
+    /// No direct link between source and target nodes
+    NoLink,
+}
+
+impl std::fmt::Display for BandwidthStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BandwidthStatus::Adequate => write!(f, "ADEQUATE"),
+            BandwidthStatus::Tight => write!(f, "TIGHT"),
+            BandwidthStatus::Insufficient => write!(f, "INSUFFICIENT"),
+            BandwidthStatus::NoLink => write!(f, "NO LINK"),
+        }
+    }
+}
+
+/// Result of checking one sync regime's bandwidth requirement against a link.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BandwidthResult {
+    pub sync_regime_name: String,
+    pub dataset_name: String,
+    pub dataset_size_bytes: i64,
+    pub source_node: String,
+    pub target_node: String,
+    pub link_bandwidth_bytes_sec: Option<i64>,
+    pub required_bandwidth_bytes_sec: i64,
+    pub status: BandwidthStatus,
+}
+
+/// Scored report on bandwidth adequacy across all sync regimes.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BandwidthReport {
+    pub results: Vec<BandwidthResult>,
+    pub score: f64,
+}
+
+/// Analyze whether network links support sync regime bandwidth requirements.
+///
+/// For each sync regime, resolves the source and target nodes via volume lookup,
+/// finds the direct link between them, and computes whether the link can handle
+/// the required data transfer rate.
+///
+/// Simple direct-link check only (NOT path-finding -- that's v2 ANLZ-10).
+pub fn analyze_bandwidth(
+    sync_regimes: &[SyncRegimeWithContext],
+    volumes: &[Volume],
+    links: &[Link],
+    datasets: &[Dataset],
+) -> BandwidthReport {
+    // Build volume_id -> node_id lookup
+    let vol_node: HashMap<&str, &str> = volumes
+        .iter()
+        .map(|v| (v.id.as_str(), v.node_id.as_str()))
+        .collect();
+
+    // Build node_id -> node_name lookup from volumes + placements would be complex.
+    // Instead, get node names from links (both source and target).
+    // Actually, we need node names for display. We'll get them from volumes' perspective
+    // by looking at sync regimes' volume names and mapping back.
+
+    // Build (source_node_id, target_node_id) -> Link lookup
+    // Links are directional but we also check reverse direction
+    let mut link_map: HashMap<(&str, &str), &Link> = HashMap::new();
+    for link in links {
+        link_map.insert(
+            (link.source_node_id.as_str(), link.target_node_id.as_str()),
+            link,
+        );
+        // Also index reverse direction
+        link_map.insert(
+            (link.target_node_id.as_str(), link.source_node_id.as_str()),
+            link,
+        );
+    }
+
+    // Dataset size lookup
+    let ds_map: HashMap<&str, &Dataset> = datasets.iter().map(|d| (d.id.as_str(), d)).collect();
+
+    let mut results = Vec::new();
+
+    for sr in sync_regimes {
+        let src_node_id = vol_node.get(sr.source_volume_id.as_str());
+        let tgt_node_id = vol_node.get(sr.target_volume_id.as_str());
+
+        let dataset_size = ds_map
+            .get(sr.dataset_id.as_str())
+            .map(|d| d.size_bytes)
+            .unwrap_or(0);
+
+        // Compute required bandwidth
+        let sync_interval_secs: f64 = if let Some(ref schedule) = sr.schedule {
+            let hours = cron_interval_hours(schedule).unwrap_or(1.0);
+            hours * 3600.0
+        } else {
+            // Continuous or manual: assume needs to transfer full dataset in 1 hour
+            3600.0
+        };
+
+        let required_bw = if sync_interval_secs > 0.0 {
+            (dataset_size as f64 / sync_interval_secs) as i64
+        } else {
+            dataset_size
+        };
+
+        let (link_bw, status, src_name, tgt_name) = match (src_node_id, tgt_node_id) {
+            (Some(&src_nid), Some(&tgt_nid)) => {
+                let link = link_map.get(&(src_nid, tgt_nid));
+                match link {
+                    Some(l) => match l.bandwidth_bytes_sec {
+                        Some(bw) => {
+                            let s = if bw >= required_bw {
+                                BandwidthStatus::Adequate
+                            } else if bw as f64 >= required_bw as f64 * 0.5 {
+                                BandwidthStatus::Tight
+                            } else {
+                                BandwidthStatus::Insufficient
+                            };
+                            (Some(bw), s, src_nid, tgt_nid)
+                        }
+                        None => (None, BandwidthStatus::NoLink, src_nid, tgt_nid),
+                    },
+                    None => (None, BandwidthStatus::NoLink, src_nid, tgt_nid),
+                }
+            }
+            _ => (None, BandwidthStatus::NoLink, "", ""),
+        };
+
+        // Get node display names from the sync regime volume names as fallback
+        let source_display = sr.source_volume_name.clone();
+        let target_display = sr.target_volume_name.clone();
+
+        results.push(BandwidthResult {
+            sync_regime_name: sr.name.clone(),
+            dataset_name: sr.dataset_name.clone(),
+            dataset_size_bytes: dataset_size,
+            source_node: if src_name.is_empty() {
+                source_display
+            } else {
+                src_name.to_string()
+            },
+            target_node: if tgt_name.is_empty() {
+                target_display
+            } else {
+                tgt_name.to_string()
+            },
+            link_bandwidth_bytes_sec: link_bw,
+            required_bandwidth_bytes_sec: required_bw,
+            status,
+        });
+    }
+
+    let adequate_or_tight = results
+        .iter()
+        .filter(|r| r.status == BandwidthStatus::Adequate || r.status == BandwidthStatus::Tight)
+        .count();
+
+    let score = if results.is_empty() {
+        1.0
+    } else {
+        adequate_or_tight as f64 / results.len() as f64
+    };
+
+    BandwidthReport { results, score }
+}
+
+// ---------------------------------------------------------------------------
+// Cost analysis
+// ---------------------------------------------------------------------------
+
+/// Per-entity cost breakdown entry.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EntityCost {
+    pub entity_type: String,
+    pub entity_name: String,
+    pub item_name: Option<String>,
+    pub item_id: Option<String>,
+    pub one_time_cents: i64,
+    pub monthly_cents: i64,
+    pub annual_cents: i64,
+}
+
+/// Aggregated cost report for a topology.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CostReport {
+    pub entities: Vec<EntityCost>,
+    pub one_time_total_cents: i64,
+    pub monthly_total_cents: i64,
+    pub annual_total_cents: i64,
+}
+
+/// Aggregate entity costs into a CostReport with per-entity breakdown and totals.
+pub fn analyze_cost(entities: &[EntityCost]) -> CostReport {
+    let one_time_total_cents: i64 = entities.iter().map(|e| e.one_time_cents).sum();
+    let monthly_total_cents: i64 = entities.iter().map(|e| e.monthly_cents).sum();
+    let annual_total_cents: i64 = entities.iter().map(|e| e.annual_cents).sum();
+
+    CostReport {
+        entities: entities.to_vec(),
+        one_time_total_cents,
+        monthly_total_cents,
+        annual_total_cents,
+    }
+}
+
+/// Compute total cost of ownership over a given number of years.
+///
+/// TCO = one_time_total + (monthly_total * 12 * years) + (annual_total * years)
+pub fn compute_tco_cents(report: &CostReport, years: u32) -> i64 {
+    report.one_time_total_cents
+        + (report.monthly_total_cents * 12 * years as i64)
+        + (report.annual_total_cents * years as i64)
+}
+
+// ---------------------------------------------------------------------------
 // Topology comparison
 // ---------------------------------------------------------------------------
 
@@ -1213,7 +1438,7 @@ pub fn compare_topologies(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::models::{Dataset, Node, Placement, Topology, Volume};
+    use crate::core::models::{Dataset, Link, Node, Placement, Topology, Volume};
 
     /// Helper to create a dataset with specified requirements
     fn make_dataset(
@@ -1968,5 +2193,181 @@ mod tests {
         // Constraints should be None
         assert!(report.constraints_a.is_none());
         assert!(report.constraints_b.is_none());
+    }
+
+    // -----------------------------------------------------------------------
+    // Bandwidth analysis tests
+    // -----------------------------------------------------------------------
+
+    /// Helper to create a SyncRegimeWithContext with specific volume IDs for bandwidth tests
+    fn make_sync_regime_with_vols(
+        dataset: &Dataset,
+        schedule: Option<&str>,
+        src_vol_id: &str,
+        tgt_vol_id: &str,
+    ) -> SyncRegimeWithContext {
+        SyncRegimeWithContext {
+            id: uuid::Uuid::new_v4().to_string(),
+            dataset_id: dataset.id.clone(),
+            dataset_name: dataset.name.clone(),
+            source_volume_id: src_vol_id.to_string(),
+            source_volume_name: "pool-src".to_string(),
+            target_volume_id: tgt_vol_id.to_string(),
+            target_volume_name: "pool-tgt".to_string(),
+            sync_type: "rsync".to_string(),
+            schedule: schedule.map(|s| s.to_string()),
+            direction: "push".to_string(),
+            name: format!("sync-{}", dataset.name),
+        }
+    }
+
+    #[test]
+    fn test_bandwidth_adequate() {
+        let ds = make_dataset("t1", "photos", 100_000_000_000, None, "normal", 1, 1);
+
+        let mut node1 = Node::new("t1", "nas-01", "nas");
+        node1.location = "office".to_string();
+        let mut node2 = Node::new("t1", "nas-02", "nas");
+        node2.location = "closet".to_string();
+
+        let vol1 = Volume::new("t1", &node1.id, "pool-src", 4_000_000_000_000);
+        let vol2 = Volume::new("t1", &node2.id, "pool-tgt", 4_000_000_000_000);
+
+        // 1 Gbps link = 125_000_000 bytes/sec
+        let mut link = Link::new("t1", &node1.id, &node2.id, "lan");
+        link.bandwidth_bytes_sec = Some(125_000_000);
+
+        // Every 6 hours -> required BW = 100GB / (6*3600) = ~4.6 MB/s
+        let sr = make_sync_regime_with_vols(&ds, Some("0 */6 * * *"), &vol1.id, &vol2.id);
+
+        let report = analyze_bandwidth(&[sr], &[vol1, vol2], &[link], &[ds]);
+        assert_eq!(report.results.len(), 1);
+        assert_eq!(report.results[0].status, BandwidthStatus::Adequate);
+        assert!((report.score - 1.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_bandwidth_insufficient() {
+        let ds = make_dataset("t1", "photos", 1_000_000_000_000, None, "normal", 1, 1);
+
+        let mut node1 = Node::new("t1", "nas-01", "nas");
+        node1.location = "office".to_string();
+        let mut node2 = Node::new("t1", "nas-02", "nas");
+        node2.location = "closet".to_string();
+
+        let vol1 = Volume::new("t1", &node1.id, "pool-src", 4_000_000_000_000);
+        let vol2 = Volume::new("t1", &node2.id, "pool-tgt", 4_000_000_000_000);
+
+        // Very slow link: 1 MB/s
+        let mut link = Link::new("t1", &node1.id, &node2.id, "wifi");
+        link.bandwidth_bytes_sec = Some(1_000_000);
+
+        // Every 1 hour -> required BW = 1TB / 3600 = ~278 MB/s -- way more than 1 MB/s
+        let sr = make_sync_regime_with_vols(&ds, Some("0 * * * *"), &vol1.id, &vol2.id);
+
+        let report = analyze_bandwidth(&[sr], &[vol1, vol2], &[link], &[ds]);
+        assert_eq!(report.results.len(), 1);
+        assert_eq!(report.results[0].status, BandwidthStatus::Insufficient);
+        assert!((report.score - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_bandwidth_no_link() {
+        let ds = make_dataset("t1", "photos", 100_000_000_000, None, "normal", 1, 1);
+
+        let mut node1 = Node::new("t1", "nas-01", "nas");
+        node1.location = "office".to_string();
+        let mut node2 = Node::new("t1", "nas-02", "nas");
+        node2.location = "closet".to_string();
+
+        let vol1 = Volume::new("t1", &node1.id, "pool-src", 4_000_000_000_000);
+        let vol2 = Volume::new("t1", &node2.id, "pool-tgt", 4_000_000_000_000);
+
+        // No links at all
+        let sr = make_sync_regime_with_vols(&ds, Some("0 */6 * * *"), &vol1.id, &vol2.id);
+
+        let report = analyze_bandwidth(&[sr], &[vol1, vol2], &[], &[ds]);
+        assert_eq!(report.results.len(), 1);
+        assert_eq!(report.results[0].status, BandwidthStatus::NoLink);
+        assert!((report.score - 0.0).abs() < f64::EPSILON);
+    }
+
+    // -----------------------------------------------------------------------
+    // Cost analysis tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_cost_aggregation() {
+        let entities = vec![
+            EntityCost {
+                entity_type: "node".to_string(),
+                entity_name: "mac-mini".to_string(),
+                item_name: Some("Mac Mini M4".to_string()),
+                item_id: Some("mac-mini-m4".to_string()),
+                one_time_cents: 59900,
+                monthly_cents: 0,
+                annual_cents: 0,
+            },
+            EntityCost {
+                entity_type: "volume".to_string(),
+                entity_name: "ssd-1".to_string(),
+                item_name: Some("Samsung 870 EVO 4TB".to_string()),
+                item_id: Some("samsung-870-evo-4tb".to_string()),
+                one_time_cents: 29999,
+                monthly_cents: 0,
+                annual_cents: 0,
+            },
+            EntityCost {
+                entity_type: "node".to_string(),
+                entity_name: "cloud-backup".to_string(),
+                item_name: Some("Backblaze B2".to_string()),
+                item_id: Some("backblaze-b2".to_string()),
+                one_time_cents: 0,
+                monthly_cents: 500,
+                annual_cents: 0,
+            },
+        ];
+
+        let report = analyze_cost(&entities);
+        assert_eq!(report.entities.len(), 3);
+        assert_eq!(report.one_time_total_cents, 89899); // 599.00 + 299.99
+        assert_eq!(report.monthly_total_cents, 500); // 5.00/mo
+        assert_eq!(report.annual_total_cents, 0);
+    }
+
+    #[test]
+    fn test_tco_projection() {
+        let entities = vec![
+            EntityCost {
+                entity_type: "node".to_string(),
+                entity_name: "mac-mini".to_string(),
+                item_name: None,
+                item_id: None,
+                one_time_cents: 60000, // $600
+                monthly_cents: 0,
+                annual_cents: 0,
+            },
+            EntityCost {
+                entity_type: "node".to_string(),
+                entity_name: "cloud".to_string(),
+                item_name: None,
+                item_id: None,
+                one_time_cents: 0,
+                monthly_cents: 1000, // $10/mo
+                annual_cents: 5000,  // $50/yr
+            },
+        ];
+
+        let report = analyze_cost(&entities);
+
+        // 3-year TCO = 60000 + (1000 * 12 * 3) + (5000 * 3)
+        //            = 60000 + 36000 + 15000 = 111000
+        let tco = compute_tco_cents(&report, 3);
+        assert_eq!(tco, 111000);
+
+        // 5-year TCO = 60000 + (1000 * 12 * 5) + (5000 * 5)
+        //            = 60000 + 60000 + 25000 = 145000
+        let tco_5 = compute_tco_cents(&report, 5);
+        assert_eq!(tco_5, 145000);
     }
 }
