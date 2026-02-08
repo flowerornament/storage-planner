@@ -17,6 +17,9 @@
 //!   sp diagram           - ASCII topology visualization (Phase 6)
 //!   sp export            - YAML topology export (Phase 6)
 //!   sp import            - YAML topology import (Phase 6)
+//!   sp status            - System health overview (Phase 6)
+//!   sp prime             - AI agent bootstrap document (Phase 6)
+//!   sp current           - Show/set current topology (Phase 6)
 //!   sp undo              - Undo last action
 //!   sp redo              - Redo last undone action
 
@@ -36,7 +39,9 @@ mod init;
 mod link;
 mod node;
 mod placement;
+mod prime;
 mod redo;
+mod status;
 mod sync_regime;
 mod topology;
 mod undo;
@@ -158,6 +163,18 @@ pub enum Commands {
         name: Option<String>,
     },
 
+    /// Show system health overview -- problems, topology, decisions, catalog, activity
+    Status,
+
+    /// Output AI agent bootstrap document with workflow guide and dynamic state
+    Prime,
+
+    /// Show or set the current topology
+    Current {
+        /// Topology name or ID to set as current (omit to show current)
+        topology: Option<String>,
+    },
+
     /// Undo the last action
     Undo,
 
@@ -262,6 +279,18 @@ impl Cli {
             Commands::Import { file, name } => {
                 let mut db = open_db(&db_path)?;
                 export::run_import(&mut db, &file, name.as_deref())
+            }
+            Commands::Status => {
+                let mut db = open_db(&db_path)?;
+                status::run_status(&mut db, format)
+            }
+            Commands::Prime => {
+                let mut db = open_db(&db_path)?;
+                prime::run_prime(&mut db)
+            }
+            Commands::Current { topology } => {
+                let mut db = open_db(&db_path)?;
+                status::run_current(&mut db, topology.as_deref(), format)
             }
             Commands::Undo => {
                 let mut db = open_db(&db_path)?;
