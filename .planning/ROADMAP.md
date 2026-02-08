@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: CLI Scaffolding and Basic Commands** - Usable topology management
 - [x] **Phase 3: Topology Versioning** - Fork, tag, and diff topologies
 - [x] **Phase 4: Analysis Functions** - Redundancy, failure sim, RPO, capacity
-- [ ] **Phase 5: Decision Integration** - Link decisions to topologies
+- [x] **Phase 5: Decision Integration** - Link decisions to topologies
 - [ ] **Phase 6: Cost and Context** - Cost analysis and AI context features
 
 ## Phase Details
@@ -101,7 +101,7 @@ Plans:
 Plans:
 - [x] 05-01-PLAN.md -- Schema migration v3, decision model structs, event system registration, entity resolver, node field extensions
 - [x] 05-02-PLAN.md -- Decision CLI module with CRUD commands and constraint/topology management
-- [ ] 05-03-PLAN.md -- Decision lifecycle (choose/abandon/reopen), constraint checking, topology comparison
+- [x] 05-03-PLAN.md -- Decision lifecycle (choose/abandon/reopen), constraint checking, topology comparison
 
 ### Phase 6: Cost and Context
 **Goal**: Users can analyze costs and agents can get full context via sp prime
@@ -131,7 +131,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 2. CLI Scaffolding and Basic Commands | 4/4 | Complete | 2026-02-07 |
 | 3. Topology Versioning | 3/3 | Complete | 2026-02-07 |
 | 4. Analysis Functions | 2/2 | Complete | 2026-02-07 |
-| 5. Decision Integration | 2/3 | In progress | - |
+| 5. Decision Integration | 3/3 | Complete | 2026-02-08 |
 | 6. Cost and Context | 0/TBD | Not started | - |
 
 ---
