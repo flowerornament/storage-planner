@@ -115,10 +115,14 @@ Plans:
   5. Running `sp status` shows current topology, open decisions, catalog stats
   6. Running `sp prime` outputs AI-optimized context dump for session continuity
   7. User can import/export topologies as YAML and view ASCII diagram
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- [ ] 06-01: TBD
+- [ ] 06-01-PLAN.md -- Schema migration v4, CatalogItem/Price models, event system, entity resolver, serde_yaml_ng dep
+- [ ] 06-02-PLAN.md -- Catalog CLI with item CRUD (add/show/list/search) and price management (add/list)
+- [ ] 06-03-PLAN.md -- Bandwidth analysis and cost analysis with per-entity breakdown, summary, and TCO
+- [ ] 06-04-PLAN.md -- Status dashboard, prime agent bootstrap, and current topology shortcut
+- [ ] 06-05-PLAN.md -- YAML topology export/import and ASCII diagram command
 
 ## Progress
 
@@ -132,7 +136,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 3. Topology Versioning | 3/3 | Complete | 2026-02-07 |
 | 4. Analysis Functions | 2/2 | Complete | 2026-02-07 |
 | 5. Decision Integration | 3/3 | Complete | 2026-02-08 |
-| 6. Cost and Context | 0/TBD | Not started | - |
+| 6. Cost and Context | 0/5 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-06*
