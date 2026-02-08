@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Topology Versioning** - Fork, tag, and diff topologies
 - [x] **Phase 4: Analysis Functions** - Redundancy, failure sim, RPO, capacity
 - [x] **Phase 5: Decision Integration** - Link decisions to topologies
-- [ ] **Phase 6: Cost and Context** - Cost analysis and AI context features
+- [x] **Phase 6: Cost and Context** - Cost analysis and AI context features
 
 ## Phase Details
 
@@ -119,9 +119,9 @@ Plans:
 
 Plans:
 - [x] 06-01-PLAN.md -- Schema migration v4, CatalogItem/Price models, event system, entity resolver, serde_yaml_ng dep
-- [ ] 06-02-PLAN.md -- Catalog CLI with item CRUD (add/show/list/search) and price management (add/list)
-- [ ] 06-03-PLAN.md -- Bandwidth analysis and cost analysis with per-entity breakdown, summary, and TCO
-- [ ] 06-04-PLAN.md -- Status dashboard, prime agent bootstrap, and current topology shortcut
+- [x] 06-02-PLAN.md -- Catalog CLI with item CRUD (add/show/list/search) and price management (add/list)
+- [x] 06-03-PLAN.md -- Bandwidth analysis and cost analysis with per-entity breakdown, summary, and TCO
+- [x] 06-04-PLAN.md -- Status dashboard, prime agent bootstrap, and current topology shortcut
 - [x] 06-05-PLAN.md -- YAML topology export/import and ASCII diagram command
 
 ## Progress
@@ -136,7 +136,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 3. Topology Versioning | 3/3 | Complete | 2026-02-07 |
 | 4. Analysis Functions | 2/2 | Complete | 2026-02-07 |
 | 5. Decision Integration | 3/3 | Complete | 2026-02-08 |
-| 6. Cost and Context | 2/5 | In progress | - |
+| 6. Cost and Context | 5/5 | Complete | 2026-02-08 |
 
 ---
 *Roadmap created: 2026-02-06*
