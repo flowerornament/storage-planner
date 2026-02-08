@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Analysis Functions** - Redundancy, failure sim, RPO, capacity
 - [x] **Phase 5: Decision Integration** - Link decisions to topologies
 - [x] **Phase 6: Cost and Context** - Cost analysis and AI context features
-- [ ] **Phase 7: CLI Polish and Correctness** - Fix prime examples, expose --item-id, friendly errors, catalog headers
+- [x] **Phase 7: CLI Polish and Correctness** - Fix prime examples, expose --item-id, friendly errors, catalog headers
 
 ## Phase Details
 
@@ -131,8 +131,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 07-01-PLAN.md -- Fix prime command examples + add --item-id to node/volume commands
-- [ ] 07-02-PLAN.md -- Add uniqueness pre-checks to entity creation + catalog list headers
+- [x] 07-01-PLAN.md -- Fix prime command examples + add --item-id to node/volume commands
+- [x] 07-02-PLAN.md -- Add uniqueness pre-checks to entity creation + catalog list headers
 
 **Details:**
 Priority fixes:
@@ -154,7 +154,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 4. Analysis Functions | 2/2 | Complete | 2026-02-07 |
 | 5. Decision Integration | 3/3 | Complete | 2026-02-08 |
 | 6. Cost and Context | 5/5 | Complete | 2026-02-08 |
-| 7. CLI Polish and Correctness | 0/2 | Planned | - |
+| 7. CLI Polish and Correctness | 2/2 | Complete | 2026-02-08 |
 
 ---
 *Roadmap created: 2026-02-06*
