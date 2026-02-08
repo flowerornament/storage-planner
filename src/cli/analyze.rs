@@ -1,25 +1,27 @@
 //! sp analyze -- Run analysis reports against topology data
 //!
-//! Subcommands: redundancy, capacity, rpo, failure
+//! Subcommands: redundancy, capacity, rpo, failure, bandwidth, cost
 //! Running `sp analyze` with no subcommand shows a combined dashboard.
 //!
 //! Each subcommand resolves the active topology, loads data, calls the
 //! corresponding pure analysis function, and formats output.
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use clap::Subcommand;
 use console::style;
 use rusqlite::params;
 
 use crate::core::db::Database;
-use crate::core::models::{Dataset, DecisionConstraint, Node, Volume};
+use crate::core::models::{Dataset, DecisionConstraint, Link, Node, Price, Volume};
 use crate::core::resolve::{resolve_active_topology, resolve_decision, resolve_topology};
 use crate::core::specs::Capacity;
 use crate::domains::storage::analysis::{
-    analyze_capacity, analyze_redundancy, analyze_rpo, check_constraints, compare_topologies,
-    compute_topology_metrics, load_placements_with_context, load_sync_regimes_with_context,
-    simulate_failure, CapacityReport, ConstraintReport, ConstraintStatus, FailureReport,
-    PlacementWithContext, RedundancyReport, RpoReport, SyncRegimeWithContext,
+    analyze_bandwidth, analyze_capacity, analyze_cost, analyze_redundancy, analyze_rpo,
+    check_constraints, compare_topologies, compute_tco_cents, compute_topology_metrics,
+    load_placements_with_context, load_sync_regimes_with_context, simulate_failure,
+    BandwidthReport, BandwidthStatus, CapacityReport, ConstraintReport, ConstraintStatus,
+    CostReport, EntityCost, FailureReport, PlacementWithContext, RedundancyReport, RpoReport,
+    SyncRegimeWithContext,
 };
 
 use super::OutputFormat;
@@ -89,6 +91,28 @@ pub enum AnalyzeCommands {
         topology: Option<String>,
     },
 
+    /// Check if network links support sync regime bandwidth requirements
+    Bandwidth {
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
+    },
+
+    /// Analyze topology cost (one-time + recurring from catalog items)
+    Cost {
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
+
+        /// Show category summary instead of per-entity breakdown
+        #[arg(long)]
+        summary: bool,
+
+        /// Show total cost of ownership projection (e.g., --tco=3yr)
+        #[arg(long, value_name = "PERIOD")]
+        tco: Option<String>,
+    },
+
     /// Compare two topologies side-by-side
     Compare {
         /// First topology name or ID
@@ -144,6 +168,14 @@ pub fn run(
             topology,
             verbose,
         }) => run_failure(db, topology.as_deref(), &nodes, verbose, format),
+        Some(AnalyzeCommands::Bandwidth { topology }) => {
+            run_bandwidth(db, topology.as_deref(), format)
+        }
+        Some(AnalyzeCommands::Cost {
+            topology,
+            summary,
+            tco,
+        }) => run_cost(db, topology.as_deref(), summary, tco.as_deref(), format),
         Some(AnalyzeCommands::Constraints { decision, topology }) => {
             run_constraints(db, &decision, topology.as_deref(), format)
         }
@@ -198,8 +230,29 @@ fn run_all(
             print_redundancy_text(&redundancy, &datasets, &placements, verbose);
             print_rpo_text(&rpo, verbose);
             print_capacity_text(&capacity, verbose);
+
+            // One-line cost summary if any catalog items are linked
+            let cost_entities = build_entity_costs(db, &load_nodes(db, &topo.id)?, &volumes)?;
+            if cost_entities.iter().any(|e| e.item_id.is_some()) {
+                let cost_report = analyze_cost(&cost_entities);
+                let one_time_str =
+                    format!("${:.2}", cost_report.one_time_total_cents as f64 / 100.0);
+                let monthly_str =
+                    format!("${:.2}/mo", cost_report.monthly_total_cents as f64 / 100.0);
+                println!(
+                    "Cost: {} one-time, {} recurring",
+                    style(one_time_str).bold(),
+                    style(monthly_str).bold(),
+                );
+            }
         }
         OutputFormat::Json => {
+            let cost_entities = build_entity_costs(db, &load_nodes(db, &topo.id)?, &volumes)?;
+            let cost_report = if cost_entities.iter().any(|e| e.item_id.is_some()) {
+                Some(analyze_cost(&cost_entities))
+            } else {
+                None
+            };
             let json = serde_json::json!({
                 "topology": topo.name,
                 "topology_id": topo.id,
@@ -207,6 +260,7 @@ fn run_all(
                 "redundancy": redundancy,
                 "rpo": rpo,
                 "capacity": capacity,
+                "cost": cost_report,
             });
             println!("{}", serde_json::to_string_pretty(&json)?);
         }
@@ -694,6 +748,486 @@ fn print_capacity_json(report: &CapacityReport, topo_name: &str, topo_id: &str) 
     });
     println!("{}", serde_json::to_string_pretty(&json)?);
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Bandwidth (ANLZ-06)
+// ---------------------------------------------------------------------------
+
+fn run_bandwidth(
+    db: &mut Database,
+    topology_override: Option<&str>,
+    format: OutputFormat,
+) -> Result<()> {
+    let topo = resolve_active_topology(db, topology_override)?;
+    let sync_regimes = load_sync_regimes(db, &topo.id)?;
+    let volumes = load_volumes(db, &topo.id)?;
+    let datasets = load_datasets(db, &topo.id)?;
+    let links = load_links(db, &topo.id)?;
+
+    let report = analyze_bandwidth(&sync_regimes, &volumes, &links, &datasets);
+    let has_issues = report
+        .results
+        .iter()
+        .any(|r| r.status == BandwidthStatus::Insufficient || r.status == BandwidthStatus::NoLink);
+
+    // Build node_id -> node_name map for display
+    let nodes = load_nodes(db, &topo.id)?;
+    let node_names: std::collections::HashMap<&str, &str> = nodes
+        .iter()
+        .map(|n| (n.id.as_str(), n.name.as_str()))
+        .collect();
+
+    match format {
+        OutputFormat::Text => {
+            print_bandwidth_text(&report, &node_names);
+        }
+        OutputFormat::Json => {
+            let json = serde_json::json!({
+                "topology": topo.name,
+                "topology_id": topo.id,
+                "analysis": "bandwidth",
+                "report": report,
+            });
+            println!("{}", serde_json::to_string_pretty(&json)?);
+        }
+    }
+
+    if has_issues {
+        std::process::exit(1);
+    }
+    Ok(())
+}
+
+fn print_bandwidth_text(
+    report: &BandwidthReport,
+    node_names: &std::collections::HashMap<&str, &str>,
+) {
+    let score_pct = report.score * 100.0;
+    let issue_count = report
+        .results
+        .iter()
+        .filter(|r| {
+            r.status == BandwidthStatus::Insufficient || r.status == BandwidthStatus::NoLink
+        })
+        .count();
+    let detail = format!("{} issue(s)", issue_count);
+    print_analysis_header("Bandwidth", score_pct, &detail);
+
+    if report.results.is_empty() {
+        println!("  No sync regimes found.");
+        return;
+    }
+
+    for result in &report.results {
+        let src_fallback = result.source_node.as_str();
+        let tgt_fallback = result.target_node.as_str();
+        let src_display = node_names
+            .get(result.source_node.as_str())
+            .unwrap_or(&src_fallback);
+        let tgt_display = node_names
+            .get(result.target_node.as_str())
+            .unwrap_or(&tgt_fallback);
+
+        let link_bw_str = match result.link_bandwidth_bytes_sec {
+            Some(bw) => format_bandwidth(bw),
+            None => "N/A".to_string(),
+        };
+        let req_bw_str = format_bandwidth(result.required_bandwidth_bytes_sec);
+
+        let status_styled = match result.status {
+            BandwidthStatus::Adequate => style(format!("[{}]", result.status)).green().bold(),
+            BandwidthStatus::Tight => style(format!("[{}]", result.status)).yellow().bold(),
+            BandwidthStatus::Insufficient => style(format!("[{}]", result.status)).red().bold(),
+            BandwidthStatus::NoLink => style(format!("[{}]", result.status)).red().bold(),
+        };
+
+        println!(
+            "  {} {} ({}): {} -> {} | need {} | have {}",
+            status_styled,
+            result.sync_regime_name,
+            result.dataset_name,
+            src_display,
+            tgt_display,
+            req_bw_str,
+            link_bw_str,
+        );
+    }
+}
+
+/// Format bandwidth in human-readable units.
+fn format_bandwidth(bytes_sec: i64) -> String {
+    let bps = bytes_sec as f64;
+    if bps >= 1_000_000_000.0 {
+        format!("{:.1} GB/s", bps / 1_000_000_000.0)
+    } else if bps >= 1_000_000.0 {
+        format!("{:.1} MB/s", bps / 1_000_000.0)
+    } else if bps >= 1_000.0 {
+        format!("{:.1} KB/s", bps / 1_000.0)
+    } else {
+        format!("{} B/s", bytes_sec)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Cost (ANLZ-07)
+// ---------------------------------------------------------------------------
+
+fn run_cost(
+    db: &mut Database,
+    topology_override: Option<&str>,
+    summary_mode: bool,
+    tco_period: Option<&str>,
+    format: OutputFormat,
+) -> Result<()> {
+    let topo = resolve_active_topology(db, topology_override)?;
+    let nodes = load_nodes(db, &topo.id)?;
+    let volumes = load_volumes(db, &topo.id)?;
+
+    let entities = build_entity_costs(db, &nodes, &volumes)?;
+    let report = analyze_cost(&entities);
+
+    // Parse TCO period if provided
+    let tco_years = if let Some(period) = tco_period {
+        Some(parse_tco_period(period)?)
+    } else {
+        None
+    };
+
+    match format {
+        OutputFormat::Text => {
+            if summary_mode {
+                print_cost_summary_text(&report, tco_years);
+            } else {
+                print_cost_detail_text(&report, tco_years);
+            }
+        }
+        OutputFormat::Json => {
+            let mut json = serde_json::to_value(&report)?;
+            if let Some(years) = tco_years {
+                json["tco_cents"] = serde_json::json!(compute_tco_cents(&report, years));
+                json["tco_years"] = serde_json::json!(years);
+            }
+            let wrapper = serde_json::json!({
+                "topology": topo.name,
+                "topology_id": topo.id,
+                "analysis": "cost",
+                "report": json,
+            });
+            println!("{}", serde_json::to_string_pretty(&wrapper)?);
+        }
+    }
+
+    Ok(())
+}
+
+/// Build EntityCost entries by looking up latest prices for entities with item_id.
+fn build_entity_costs(
+    db: &Database,
+    nodes: &[Node],
+    volumes: &[Volume],
+) -> Result<Vec<EntityCost>> {
+    let mut entities = Vec::new();
+
+    // Nodes
+    for node in nodes {
+        let (item_name, one_time, monthly, annual) = if let Some(ref item_id) = node.item_id {
+            load_latest_price_info(db, item_id)?
+        } else {
+            (None, 0, 0, 0)
+        };
+
+        entities.push(EntityCost {
+            entity_type: "node".to_string(),
+            entity_name: node.name.clone(),
+            item_name,
+            item_id: node.item_id.clone(),
+            one_time_cents: one_time,
+            monthly_cents: monthly,
+            annual_cents: annual,
+        });
+    }
+
+    // Volumes
+    for volume in volumes {
+        let (item_name, one_time, monthly, annual) = if let Some(ref item_id) = volume.item_id {
+            load_latest_price_info(db, item_id)?
+        } else {
+            (None, 0, 0, 0)
+        };
+
+        entities.push(EntityCost {
+            entity_type: "volume".to_string(),
+            entity_name: volume.name.clone(),
+            item_name,
+            item_id: volume.item_id.clone(),
+            one_time_cents: one_time,
+            monthly_cents: monthly,
+            annual_cents: annual,
+        });
+    }
+
+    Ok(entities)
+}
+
+/// Load latest price for an item and return (item_name, one_time_cents, monthly_cents, annual_cents).
+fn load_latest_price_info(db: &Database, item_id: &str) -> Result<(Option<String>, i64, i64, i64)> {
+    // Get item name
+    let item_name: Option<String> = {
+        let mut stmt = db
+            .conn()
+            .prepare("SELECT name FROM catalog_items WHERE id = ?1")?;
+        stmt.query_row(params![item_id], |row| row.get(0)).ok()
+    };
+
+    // Get latest price by observed_at
+    let price: Option<Price> = {
+        let mut stmt = db.conn().prepare(
+            "SELECT id, item_id, amount_cents, currency, source, condition, price_type, observed_at \
+             FROM prices WHERE item_id = ?1 ORDER BY observed_at DESC LIMIT 1",
+        )?;
+        stmt.query_row(params![item_id], Price::from_row).ok()
+    };
+
+    match price {
+        Some(p) => {
+            let (mut one_time, mut monthly, mut annual) = (0i64, 0i64, 0i64);
+            match p.price_type.as_str() {
+                "one-time" => one_time = p.amount_cents,
+                "monthly" => monthly = p.amount_cents,
+                "annual" => annual = p.amount_cents,
+                _ => one_time = p.amount_cents, // default to one-time
+            }
+            Ok((item_name, one_time, monthly, annual))
+        }
+        None => Ok((item_name, 0, 0, 0)),
+    }
+}
+
+/// Parse a TCO period string like "3yr" or "5yr" into years.
+fn parse_tco_period(period: &str) -> Result<u32> {
+    let trimmed = period.trim().to_lowercase();
+    if let Some(num_str) = trimmed.strip_suffix("yr") {
+        match num_str.parse::<u32>() {
+            Ok(n) if n > 0 => Ok(n),
+            _ => bail!(
+                "Invalid TCO period '{}'. Use format like '3yr' or '5yr'.",
+                period
+            ),
+        }
+    } else if let Some(num_str) = trimmed.strip_suffix("year") {
+        match num_str.parse::<u32>() {
+            Ok(n) if n > 0 => Ok(n),
+            _ => bail!(
+                "Invalid TCO period '{}'. Use format like '3yr' or '5yr'.",
+                period
+            ),
+        }
+    } else {
+        bail!(
+            "Invalid TCO period '{}'. Use format like '3yr' or '5yr'.",
+            period
+        )
+    }
+}
+
+/// Print per-entity cost breakdown (default view).
+fn print_cost_detail_text(report: &CostReport, tco_years: Option<u32>) {
+    println!("Cost Analysis");
+    println!();
+
+    // One-time costs
+    if report.one_time_total_cents > 0 {
+        println!("One-Time Costs:");
+        for e in &report.entities {
+            if e.one_time_cents > 0 {
+                let item_str = e.item_name.as_deref().unwrap_or("(no catalog item)");
+                println!(
+                    "  {:<20} {:<30} ${:.2}",
+                    format!("[{}]", e.entity_type),
+                    format!("{} ({})", e.entity_name, item_str),
+                    e.one_time_cents as f64 / 100.0,
+                );
+            }
+        }
+        println!(
+            "  {:<50} ${:.2}",
+            style("Total one-time:").bold(),
+            report.one_time_total_cents as f64 / 100.0,
+        );
+        println!();
+    }
+
+    // Recurring costs
+    let has_recurring = report
+        .entities
+        .iter()
+        .any(|e| e.monthly_cents > 0 || e.annual_cents > 0);
+
+    if has_recurring {
+        println!("Recurring Costs:");
+        for e in &report.entities {
+            if e.monthly_cents > 0 {
+                let item_str = e.item_name.as_deref().unwrap_or("(no catalog item)");
+                println!(
+                    "  {:<20} {:<30} ${:.2}/mo",
+                    format!("[{}]", e.entity_type),
+                    format!("{} ({})", e.entity_name, item_str),
+                    e.monthly_cents as f64 / 100.0,
+                );
+            }
+            if e.annual_cents > 0 {
+                let item_str = e.item_name.as_deref().unwrap_or("(no catalog item)");
+                println!(
+                    "  {:<20} {:<30} ${:.2}/yr",
+                    format!("[{}]", e.entity_type),
+                    format!("{} ({})", e.entity_name, item_str),
+                    e.annual_cents as f64 / 100.0,
+                );
+            }
+        }
+        println!(
+            "  {:<50} ${:.2}/mo",
+            style("Total monthly:").bold(),
+            report.monthly_total_cents as f64 / 100.0,
+        );
+        if report.annual_total_cents > 0 {
+            println!(
+                "  {:<50} ${:.2}/yr",
+                style("Total annual:").bold(),
+                report.annual_total_cents as f64 / 100.0,
+            );
+        }
+        println!();
+    }
+
+    // Entities with no catalog item linked
+    let unlinked: Vec<&EntityCost> = report
+        .entities
+        .iter()
+        .filter(|e| e.item_id.is_none())
+        .collect();
+    if !unlinked.is_empty() {
+        println!(
+            "  {} {} entit{} with no catalog item linked",
+            style("Note:").dim(),
+            unlinked.len(),
+            if unlinked.len() == 1 { "y" } else { "ies" }
+        );
+        for e in &unlinked {
+            println!(
+                "    {} {}",
+                style(&e.entity_type).dim(),
+                style(&e.entity_name).dim(),
+            );
+        }
+        println!();
+    }
+
+    // Totals section
+    println!("Totals:");
+    println!(
+        "  One-time:  ${:.2}",
+        report.one_time_total_cents as f64 / 100.0
+    );
+    println!(
+        "  Monthly:   ${:.2}/mo",
+        report.monthly_total_cents as f64 / 100.0
+    );
+    println!(
+        "  Annual:    ${:.2}/yr",
+        report.annual_total_cents as f64 / 100.0
+    );
+
+    if let Some(years) = tco_years {
+        let tco = compute_tco_cents(report, years);
+        println!(
+            "  {} ${:.2}",
+            style(format!("TCO ({}yr):", years)).bold(),
+            tco as f64 / 100.0
+        );
+    }
+}
+
+/// Print category summary (--summary flag).
+fn print_cost_summary_text(report: &CostReport, tco_years: Option<u32>) {
+    println!("Cost Summary");
+    println!();
+
+    // Group by entity_type
+    let mut node_count = 0usize;
+    let mut node_one_time = 0i64;
+    let mut node_monthly = 0i64;
+    let mut node_annual = 0i64;
+    let mut vol_count = 0usize;
+    let mut vol_one_time = 0i64;
+    let mut vol_monthly = 0i64;
+    let mut vol_annual = 0i64;
+
+    for e in &report.entities {
+        match e.entity_type.as_str() {
+            "node" => {
+                node_count += 1;
+                node_one_time += e.one_time_cents;
+                node_monthly += e.monthly_cents;
+                node_annual += e.annual_cents;
+            }
+            "volume" => {
+                vol_count += 1;
+                vol_one_time += e.one_time_cents;
+                vol_monthly += e.monthly_cents;
+                vol_annual += e.annual_cents;
+            }
+            _ => {}
+        }
+    }
+
+    println!(
+        "  {:<14}{:<8}{:<14}{:<14}{}",
+        "Category", "Count", "One-Time", "Monthly", "Annual"
+    );
+    println!(
+        "  {:<14}{:<8}{:<14}{:<14}{}",
+        "--------", "-----", "--------", "-------", "------"
+    );
+    println!(
+        "  {:<14}{:<8}{:<14}{:<14}{}",
+        "Nodes",
+        node_count,
+        format!("${:.2}", node_one_time as f64 / 100.0),
+        format!("${:.2}", node_monthly as f64 / 100.0),
+        format!("${:.2}", node_annual as f64 / 100.0),
+    );
+    println!(
+        "  {:<14}{:<8}{:<14}{:<14}{}",
+        "Volumes",
+        vol_count,
+        format!("${:.2}", vol_one_time as f64 / 100.0),
+        format!("${:.2}", vol_monthly as f64 / 100.0),
+        format!("${:.2}", vol_annual as f64 / 100.0),
+    );
+    println!(
+        "  {:<14}{:<8}{:<14}{:<14}{}",
+        style("Total").bold(),
+        node_count + vol_count,
+        style(format!(
+            "${:.2}",
+            report.one_time_total_cents as f64 / 100.0
+        ))
+        .bold(),
+        style(format!("${:.2}", report.monthly_total_cents as f64 / 100.0)).bold(),
+        style(format!("${:.2}", report.annual_total_cents as f64 / 100.0)).bold(),
+    );
+
+    if let Some(years) = tco_years {
+        let tco = compute_tco_cents(report, years);
+        println!();
+        println!(
+            "  {} ${:.2}",
+            style(format!("Total Cost of Ownership ({}yr):", years)).bold(),
+            tco as f64 / 100.0
+        );
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1197,6 +1731,20 @@ fn load_nodes(db: &Database, topology_id: &str) -> Result<Vec<Node>> {
              FROM nodes WHERE topology_id = ?1 ORDER BY name",
         )?;
         let rows = stmt.query_map(params![topology_id], Node::from_row)?;
+        rows.collect::<Result<Vec<_>, _>>()?
+    };
+    Ok(results)
+}
+
+/// Load all links for a topology.
+fn load_links(db: &Database, topology_id: &str) -> Result<Vec<Link>> {
+    let results = {
+        let mut stmt = db.conn().prepare(
+            "SELECT id, topology_id, source_node_id, target_node_id, bandwidth_bytes_sec, \
+             connection_type, latency_ms, is_metered, cost_per_gb_cents, created_at, updated_at \
+             FROM links WHERE topology_id = ?1",
+        )?;
+        let rows = stmt.query_map(params![topology_id], Link::from_row)?;
         rows.collect::<Result<Vec<_>, _>>()?
     };
     Ok(results)
