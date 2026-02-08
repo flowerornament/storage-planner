@@ -12,12 +12,13 @@ use console::style;
 use rusqlite::params;
 
 use crate::core::db::Database;
-use crate::core::models::{Dataset, Node, Volume};
-use crate::core::resolve::resolve_active_topology;
+use crate::core::models::{Dataset, DecisionConstraint, Node, Volume};
+use crate::core::resolve::{resolve_active_topology, resolve_decision, resolve_topology};
 use crate::core::specs::Capacity;
 use crate::domains::storage::analysis::{
-    analyze_capacity, analyze_redundancy, analyze_rpo, load_placements_with_context,
-    load_sync_regimes_with_context, simulate_failure, CapacityReport, FailureReport,
+    analyze_capacity, analyze_redundancy, analyze_rpo, check_constraints, compare_topologies,
+    compute_topology_metrics, load_placements_with_context, load_sync_regimes_with_context,
+    simulate_failure, CapacityReport, ConstraintReport, ConstraintStatus, FailureReport,
     PlacementWithContext, RedundancyReport, RpoReport, SyncRegimeWithContext,
 };
 
@@ -76,6 +77,38 @@ pub enum AnalyzeCommands {
         #[arg(long)]
         verbose: bool,
     },
+
+    /// Check decision constraints against a topology
+    Constraints {
+        /// Decision with constraints to check
+        #[arg(long)]
+        decision: String,
+
+        /// Target topology to check (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
+    },
+
+    /// Compare two topologies side-by-side
+    Compare {
+        /// First topology name or ID
+        a: String,
+
+        /// Second topology name or ID
+        b: String,
+
+        /// Include structural diff
+        #[arg(long)]
+        diff: bool,
+
+        /// Decision context for constraint checking
+        #[arg(long)]
+        decision: Option<String>,
+
+        /// Warn threshold months for capacity scoring
+        #[arg(long, default_value = "12")]
+        warn_months: i32,
+    },
 }
 
 /// Run analysis with optional subcommand. When None, runs the combined dashboard.
@@ -111,6 +144,16 @@ pub fn run(
             topology,
             verbose,
         }) => run_failure(db, topology.as_deref(), &nodes, verbose, format),
+        Some(AnalyzeCommands::Constraints { decision, topology }) => {
+            run_constraints(db, &decision, topology.as_deref(), format)
+        }
+        Some(AnalyzeCommands::Compare {
+            a,
+            b,
+            diff,
+            decision,
+            warn_months,
+        }) => run_compare(db, &a, &b, diff, decision.as_deref(), warn_months, format),
     }
 }
 
@@ -651,6 +694,466 @@ fn print_capacity_json(report: &CapacityReport, topo_name: &str, topo_id: &str) 
     });
     println!("{}", serde_json::to_string_pretty(&json)?);
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Constraints (ANLZ-02)
+// ---------------------------------------------------------------------------
+
+fn run_constraints(
+    db: &mut Database,
+    decision_name: &str,
+    topology_override: Option<&str>,
+    format: OutputFormat,
+) -> Result<()> {
+    let decision = resolve_decision(db, decision_name)?;
+
+    // Load constraints
+    let constraints: Vec<DecisionConstraint> = {
+        let mut stmt = db.conn().prepare(
+            "SELECT id, decision_id, constraint_type, max_value, created_at \
+             FROM decision_constraints WHERE decision_id = ?1 ORDER BY constraint_type",
+        )?;
+        let result = stmt
+            .query_map(params![decision.id], DecisionConstraint::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+        result
+    };
+
+    // Resolve topology
+    let topo = resolve_active_topology(db, topology_override)?;
+    let nodes = load_nodes(db, &topo.id)?;
+
+    let report = check_constraints(&constraints, &nodes);
+    let has_failures = report.has_failures;
+
+    match format {
+        OutputFormat::Text => {
+            print_constraints_text(&report, &topo.name);
+        }
+        OutputFormat::Json => {
+            let json = serde_json::json!({
+                "topology": topo.name,
+                "topology_id": topo.id,
+                "decision": decision.title,
+                "decision_id": decision.id,
+                "analysis": "constraints",
+                "report": report,
+            });
+            println!("{}", serde_json::to_string_pretty(&json)?);
+        }
+    }
+
+    if has_failures {
+        std::process::exit(1);
+    }
+    Ok(())
+}
+
+fn print_constraints_text(report: &ConstraintReport, topo_name: &str) {
+    let checked = report.results.len();
+    let score_str = format!("{:.0}%", report.score);
+    let colored_score = if report.score >= 100.0 {
+        style(score_str).green().bold()
+    } else if report.score >= 75.0 {
+        style(score_str).yellow().bold()
+    } else {
+        style(score_str).red().bold()
+    };
+
+    println!(
+        "Constraints: {} ({} checked) -- {}",
+        colored_score, checked, topo_name
+    );
+    println!();
+
+    for result in &report.results {
+        let status_styled = match result.status {
+            ConstraintStatus::Pass => style(format!("[{}]", result.status)).green().bold(),
+            ConstraintStatus::Warn => style(format!("[{}]", result.status)).yellow().bold(),
+            ConstraintStatus::Fail => style(format!("[{}]", result.status)).red().bold(),
+        };
+
+        let (actual_str, limit_str, _unit) =
+            format_constraint_display(&result.constraint_type, result.actual, result.limit);
+
+        let margin_word = if result.margin >= 0.0 {
+            "headroom"
+        } else {
+            "over"
+        };
+        let margin_abs = result.margin.abs();
+        let margin_str = format_constraint_margin(&result.constraint_type, margin_abs);
+
+        println!(
+            "  {} {:<12} {} / {} max    ({} {}, {:.1}%)",
+            status_styled,
+            format!("{}:", result.constraint_type),
+            actual_str,
+            limit_str,
+            margin_str,
+            margin_word,
+            result.margin_pct.abs(),
+        );
+    }
+}
+
+/// Format constraint actual and limit values for display.
+fn format_constraint_display(
+    constraint_type: &str,
+    actual: f64,
+    limit: f64,
+) -> (String, String, &'static str) {
+    match constraint_type {
+        "budget" => (format!("${:.2}", actual), format!("${:.2}", limit), ""),
+        "noise" => (
+            format!("{:.1} dB", actual),
+            format!("{:.1} dB", limit),
+            "dB",
+        ),
+        "power" => (format!("{:.1} W", actual), format!("{:.1} W", limit), "W"),
+        "rack_units" => (format!("{:.1} U", actual), format!("{:.1} U", limit), "U"),
+        _ => (format!("{:.1}", actual), format!("{:.1}", limit), ""),
+    }
+}
+
+/// Format constraint margin value for display.
+fn format_constraint_margin(constraint_type: &str, margin_abs: f64) -> String {
+    match constraint_type {
+        "budget" => format!("${:.2}", margin_abs),
+        "noise" => format!("{:.1} dB", margin_abs),
+        "power" => format!("{:.1} W", margin_abs),
+        "rack_units" => format!("{:.1} U", margin_abs),
+        _ => format!("{:.1}", margin_abs),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Compare (ANLZ-08)
+// ---------------------------------------------------------------------------
+
+fn run_compare(
+    db: &mut Database,
+    name_a: &str,
+    name_b: &str,
+    include_diff: bool,
+    decision_name: Option<&str>,
+    warn_months: i32,
+    format: OutputFormat,
+) -> Result<()> {
+    let topo_a = resolve_topology(db, name_a)?;
+    let topo_b = resolve_topology(db, name_b)?;
+
+    // Load data for topology A
+    let nodes_a = load_nodes(db, &topo_a.id)?;
+    let volumes_a = load_volumes(db, &topo_a.id)?;
+    let datasets_a = load_datasets(db, &topo_a.id)?;
+    let placements_a = load_placements_with_context(db, &topo_a.id)?;
+    let sync_regimes_a = load_sync_regimes(db, &topo_a.id)?;
+
+    // Load data for topology B
+    let nodes_b = load_nodes(db, &topo_b.id)?;
+    let volumes_b = load_volumes(db, &topo_b.id)?;
+    let datasets_b = load_datasets(db, &topo_b.id)?;
+    let placements_b = load_placements_with_context(db, &topo_b.id)?;
+    let sync_regimes_b = load_sync_regimes(db, &topo_b.id)?;
+
+    let metrics_a = compute_topology_metrics(
+        &topo_a.name,
+        &topo_a.id,
+        &nodes_a,
+        &volumes_a,
+        &datasets_a,
+        &placements_a,
+        &sync_regimes_a,
+        warn_months,
+    );
+    let metrics_b = compute_topology_metrics(
+        &topo_b.name,
+        &topo_b.id,
+        &nodes_b,
+        &volumes_b,
+        &datasets_b,
+        &placements_b,
+        &sync_regimes_b,
+        warn_months,
+    );
+
+    // Optional constraint checking within decision context
+    let (constraints_a, constraints_b) = if let Some(dec_name) = decision_name {
+        let decision = resolve_decision(db, dec_name)?;
+        let constraints: Vec<DecisionConstraint> = {
+            let mut stmt = db.conn().prepare(
+                "SELECT id, decision_id, constraint_type, max_value, created_at \
+                 FROM decision_constraints WHERE decision_id = ?1 ORDER BY constraint_type",
+            )?;
+            let result = stmt
+                .query_map(params![decision.id], DecisionConstraint::from_row)?
+                .collect::<Result<Vec<_>, _>>()?;
+            result
+        };
+
+        if constraints.is_empty() {
+            (None, None)
+        } else {
+            (
+                Some(check_constraints(&constraints, &nodes_a)),
+                Some(check_constraints(&constraints, &nodes_b)),
+            )
+        }
+    } else {
+        (None, None)
+    };
+
+    let report = compare_topologies(&metrics_a, &metrics_b, constraints_a, constraints_b);
+
+    match format {
+        OutputFormat::Text => {
+            print_compare_text(&report);
+
+            if include_diff {
+                println!();
+                println!("--- Structural Diff ---");
+                // Use the existing topology diff engine pattern
+                print_simple_diff(db, &topo_a.id, &topo_a.name, &topo_b.id, &topo_b.name)?;
+            }
+        }
+        OutputFormat::Json => {
+            let mut json = serde_json::to_value(&report)?;
+            if include_diff {
+                // Include diff data in JSON
+                let diff_data = build_diff_json(db, &topo_a.id, &topo_b.id)?;
+                json["diff"] = diff_data;
+            }
+            println!("{}", serde_json::to_string_pretty(&json)?);
+        }
+    }
+
+    Ok(())
+}
+
+fn print_compare_text(report: &crate::domains::storage::analysis::ComparisonReport) {
+    let name_a = &report.topology_a.name;
+    let name_b = &report.topology_b.name;
+
+    println!(
+        "Comparison: {} vs {}",
+        style(name_a).bold(),
+        style(name_b).bold()
+    );
+    println!();
+
+    // Determine column widths
+    let metric_width = 18;
+    let val_width = 14;
+
+    #[allow(clippy::print_literal)]
+    {
+        println!(
+            "  {:<width_m$}{:<width_v$}{:<width_v$}{}",
+            "Metric",
+            name_a,
+            name_b,
+            "Better",
+            width_m = metric_width,
+            width_v = val_width,
+        );
+        println!(
+            "  {:<width_m$}{:<width_v$}{:<width_v$}{}",
+            "------",
+            "---------",
+            "---------",
+            "------",
+            width_m = metric_width,
+            width_v = val_width,
+        );
+    }
+
+    for mc in &report.metrics_comparison {
+        let (a_str, b_str) = format_metric_values(&mc.metric, mc.a, mc.b, &mc.unit);
+        let better_str = match mc.better.as_str() {
+            "a" => format!("<- {}", name_a),
+            "b" => format!("<- {}", name_b),
+            _ => "tie".to_string(),
+        };
+
+        let label = match mc.metric.as_str() {
+            "total_cost" => "Total cost",
+            "total_noise" => "Total noise",
+            "total_power" => "Total power",
+            "total_rack_units" => "Rack units",
+            "total_capacity" => "Total capacity",
+            "total_usable" => "Total usable",
+            "redundancy" => "Redundancy",
+            "capacity" => "Capacity score",
+            "rpo" => "RPO score",
+            "nodes" => "Nodes",
+            "volumes" => "Volumes",
+            "datasets" => "Datasets",
+            other => other,
+        };
+
+        println!(
+            "  {:<width_m$}{:<width_v$}{:<width_v$}{}",
+            label,
+            a_str,
+            b_str,
+            better_str,
+            width_m = metric_width,
+            width_v = val_width,
+        );
+    }
+
+    // Print constraint results if present
+    if let Some(ref ca) = report.constraints_a {
+        println!();
+        println!("Constraints for {}:", style(&report.topology_a.name).bold());
+        print_constraints_text(ca, &report.topology_a.name);
+    }
+    if let Some(ref cb) = report.constraints_b {
+        println!();
+        println!("Constraints for {}:", style(&report.topology_b.name).bold());
+        print_constraints_text(cb, &report.topology_b.name);
+    }
+}
+
+fn format_metric_values(metric: &str, a: f64, b: f64, unit: &str) -> (String, String) {
+    match metric {
+        "total_cost" => (format!("${:.2}", a), format!("${:.2}", b)),
+        "total_noise" => (format!("{:.1} dB", a), format!("{:.1} dB", b)),
+        "total_power" => (format!("{:.1} W", a), format!("{:.1} W", b)),
+        "total_rack_units" => (format!("{:.1} U", a), format!("{:.1} U", b)),
+        "total_capacity" | "total_usable" => {
+            let a_cap = Capacity::from_bytes(a as u64);
+            let b_cap = Capacity::from_bytes(b as u64);
+            (format!("{}", a_cap), format!("{}", b_cap))
+        }
+        "redundancy" | "capacity" | "rpo" => (format!("{:.1}%", a), format!("{:.1}%", b)),
+        _ => {
+            if unit.is_empty() {
+                (format!("{}", a as i64), format!("{}", b as i64))
+            } else {
+                (format!("{:.1} {}", a, unit), format!("{:.1} {}", b, unit))
+            }
+        }
+    }
+}
+
+/// Print a simple structural diff between two topologies.
+fn print_simple_diff(
+    db: &mut Database,
+    topo_a_id: &str,
+    topo_a_name: &str,
+    topo_b_id: &str,
+    topo_b_name: &str,
+) -> Result<()> {
+    // Node comparison
+    let nodes_a = load_nodes(db, topo_a_id)?;
+    let nodes_b = load_nodes(db, topo_b_id)?;
+
+    let names_a: std::collections::HashSet<String> =
+        nodes_a.iter().map(|n| n.name.clone()).collect();
+    let names_b: std::collections::HashSet<String> =
+        nodes_b.iter().map(|n| n.name.clone()).collect();
+
+    let only_a: Vec<&String> = names_a.difference(&names_b).collect();
+    let only_b: Vec<&String> = names_b.difference(&names_a).collect();
+
+    if !only_a.is_empty() || !only_b.is_empty() {
+        println!("Nodes:");
+        for name in &only_a {
+            println!(
+                "  {} only in {}",
+                style(format!("- {}", name)).red(),
+                topo_a_name
+            );
+        }
+        for name in &only_b {
+            println!(
+                "  {} only in {}",
+                style(format!("+ {}", name)).green(),
+                topo_b_name
+            );
+        }
+    }
+
+    // Volume comparison
+    let volumes_a = load_volumes(db, topo_a_id)?;
+    let volumes_b = load_volumes(db, topo_b_id)?;
+
+    let vol_names_a: std::collections::HashSet<String> =
+        volumes_a.iter().map(|v| v.name.clone()).collect();
+    let vol_names_b: std::collections::HashSet<String> =
+        volumes_b.iter().map(|v| v.name.clone()).collect();
+
+    let vol_only_a: Vec<&String> = vol_names_a.difference(&vol_names_b).collect();
+    let vol_only_b: Vec<&String> = vol_names_b.difference(&vol_names_a).collect();
+
+    if !vol_only_a.is_empty() || !vol_only_b.is_empty() {
+        println!("Volumes:");
+        for name in &vol_only_a {
+            println!(
+                "  {} only in {}",
+                style(format!("- {}", name)).red(),
+                topo_a_name
+            );
+        }
+        for name in &vol_only_b {
+            println!(
+                "  {} only in {}",
+                style(format!("+ {}", name)).green(),
+                topo_b_name
+            );
+        }
+    }
+
+    if only_a.is_empty() && only_b.is_empty() && vol_only_a.is_empty() && vol_only_b.is_empty() {
+        println!("  No structural differences in nodes or volumes.");
+    }
+
+    Ok(())
+}
+
+/// Build diff data as JSON for the compare --diff flag.
+fn build_diff_json(
+    db: &mut Database,
+    topo_a_id: &str,
+    topo_b_id: &str,
+) -> Result<serde_json::Value> {
+    let nodes_a = load_nodes(db, topo_a_id)?;
+    let nodes_b = load_nodes(db, topo_b_id)?;
+
+    let names_a: std::collections::HashSet<String> =
+        nodes_a.iter().map(|n| n.name.clone()).collect();
+    let names_b: std::collections::HashSet<String> =
+        nodes_b.iter().map(|n| n.name.clone()).collect();
+
+    let only_a: Vec<String> = names_a.difference(&names_b).cloned().collect();
+    let only_b: Vec<String> = names_b.difference(&names_a).cloned().collect();
+    let common: Vec<String> = names_a.intersection(&names_b).cloned().collect();
+
+    let volumes_a = load_volumes(db, topo_a_id)?;
+    let volumes_b = load_volumes(db, topo_b_id)?;
+
+    let vol_names_a: std::collections::HashSet<String> =
+        volumes_a.iter().map(|v| v.name.clone()).collect();
+    let vol_names_b: std::collections::HashSet<String> =
+        volumes_b.iter().map(|v| v.name.clone()).collect();
+
+    let vol_only_a: Vec<String> = vol_names_a.difference(&vol_names_b).cloned().collect();
+    let vol_only_b: Vec<String> = vol_names_b.difference(&vol_names_a).cloned().collect();
+
+    Ok(serde_json::json!({
+        "nodes": {
+            "only_a": only_a,
+            "only_b": only_b,
+            "common": common,
+        },
+        "volumes": {
+            "only_a": vol_only_a,
+            "only_b": vol_only_b,
+        }
+    }))
 }
 
 // ---------------------------------------------------------------------------
