@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-05)
 
 **Core value:** Session continuity for AI-assisted purchase decisions
-**Current focus:** Phase 6 in progress -- Cost and Context (wave 2 executing)
+**Current focus:** Phase 6 in progress -- Cost and Context (wave 2 executing, 06-03 complete)
 
 ## Current Position
 
 Phase: 6 of 6 (Cost and Context)
 Plan: 5 of 5 in current phase
 Status: In progress (wave 2 plans executing)
-Last activity: 2026-02-08 - Completed 06-02-PLAN.md (catalog CLI)
+Last activity: 2026-02-08 - Completed 06-03-PLAN.md (bandwidth and cost analysis)
 
-Progress: [████████████████░░] ~94% (17/18 known plans -- 06-03, 06-04 remaining)
+Progress: [█████████████████░] ~97% (18/19 known plans -- 06-04 remaining)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 17
-- Average duration: 4m 43s
-- Total execution time: ~1.35 hours
+- Total plans completed: 18
+- Average duration: 4m 49s
+- Total execution time: ~1.42 hours
 
 **By Phase:**
 
@@ -32,11 +32,11 @@ Progress: [████████████████░░] ~94% (17/18 k
 | 03 | 3/3 | 11m 13s | 3m 44s |
 | 04 | 2/2 | 13m 41s | 6m 51s |
 | 05 | 3/3 | 16m 56s | 5m 39s |
-| 06 | 3/5 | 15m 43s | 5m 14s |
+| 06 | 4/5 | 22m 02s | 5m 31s |
 
 **Recent Trend:**
-- Last 5 plans: 05-02 (3m 44s), 05-03 (7m 43s), 06-05 (4m 39s), 06-01 (6m 37s), 06-02 (4m 27s)
-- Trend: Consistent execution, catalog CLI plan completed efficiently
+- Last 5 plans: 05-03 (7m 43s), 06-05 (4m 39s), 06-01 (6m 37s), 06-02 (4m 27s), 06-03 (6m 19s)
+- Trend: Consistent execution, bandwidth and cost analysis completed
 
 *Updated after each plan completion*
 
@@ -82,6 +82,10 @@ Recent decisions affecting current work:
 - D033: RFC3339 timestamps used for closed_at to ensure consistent parsing in Decision::from_row
 - D034: Template mode strips IDs to empty strings; import uses name-based fallback keys for FK resolution
 - D035: Imported topologies start untagged with no parent_id (consistent with D022)
+- D036: SyncRegimeWithContext lacks node IDs -- resolve volume_id to node_id via volumes parameter
+- D037: Bidirectional link matching -- index both directions for link lookup
+- D038: Latest price observation per item used for cost calculation
+- D039: Direct link checking only for bandwidth (path-finding deferred to ANLZ-10)
 
 ### Pending Todos
 
@@ -93,6 +97,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-08T05:37Z
-Stopped at: Completed 06-02-PLAN.md (catalog CLI with item CRUD and price management)
-Resume file: Phase 6 wave 2 in progress. Plans 06-03, 06-04 remaining.
+Last session: 2026-02-08T05:42Z
+Stopped at: Completed 06-03-PLAN.md (bandwidth and cost analysis)
+Resume file: Phase 6 wave 2 in progress. Plan 06-04 remaining.
