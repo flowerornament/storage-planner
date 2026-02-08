@@ -18,7 +18,7 @@ use rusqlite::params;
 use serde::{Deserialize, Serialize};
 
 use crate::core::db::Database;
-use crate::core::models::{Dataset, Node, Volume};
+use crate::core::models::{Dataset, DecisionConstraint, Node, Volume};
 
 // ---------------------------------------------------------------------------
 // Enriched placement data
@@ -867,6 +867,351 @@ pub fn simulate_failure(
 }
 
 // ---------------------------------------------------------------------------
+// Constraint checking
+// ---------------------------------------------------------------------------
+
+/// Status of a single constraint check.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub enum ConstraintStatus {
+    Pass,
+    Warn,
+    Fail,
+}
+
+impl std::fmt::Display for ConstraintStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ConstraintStatus::Pass => write!(f, "PASS"),
+            ConstraintStatus::Warn => write!(f, "WARN"),
+            ConstraintStatus::Fail => write!(f, "FAIL"),
+        }
+    }
+}
+
+/// Result of checking one constraint against actual values.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConstraintResult {
+    pub constraint_type: String,
+    pub limit: f64,
+    pub actual: f64,
+    pub status: ConstraintStatus,
+    pub margin: f64,
+    pub margin_pct: f64,
+}
+
+/// Aggregate constraint checking report.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConstraintReport {
+    pub score: f64,
+    pub results: Vec<ConstraintResult>,
+    pub has_failures: bool,
+}
+
+/// Check decision constraints against a set of nodes.
+///
+/// For each constraint, sums the relevant field across all nodes and compares
+/// against the constraint's max_value. Returns pass/warn/fail per constraint.
+///
+/// Status logic:
+/// - actual > limit => Fail
+/// - actual > limit * 0.9 => Warn
+/// - else => Pass
+///
+/// Score = (passing_count / total_count) * 100.0 (100.0 if no constraints).
+pub fn check_constraints(
+    constraints: &[DecisionConstraint],
+    nodes: &[Node],
+) -> ConstraintReport {
+    if constraints.is_empty() {
+        return ConstraintReport {
+            score: 100.0,
+            results: vec![],
+            has_failures: false,
+        };
+    }
+
+    let mut results = Vec::new();
+
+    for constraint in constraints {
+        let actual: f64 = match constraint.constraint_type.as_str() {
+            "budget" => nodes.iter().filter_map(|n| n.cost_estimate).sum(),
+            "noise" => nodes.iter().filter_map(|n| n.noise_db).sum(),
+            "power" => nodes.iter().filter_map(|n| n.power_draw_watts).sum(),
+            "rack_units" => nodes.iter().filter_map(|n| n.rack_units).sum(),
+            _ => 0.0,
+        };
+
+        let limit = constraint.max_value;
+        let status = if actual > limit {
+            ConstraintStatus::Fail
+        } else if actual > limit * 0.9 {
+            ConstraintStatus::Warn
+        } else {
+            ConstraintStatus::Pass
+        };
+
+        let margin = limit - actual;
+        let margin_pct = if limit == 0.0 {
+            if actual == 0.0 {
+                0.0
+            } else {
+                -100.0
+            }
+        } else {
+            (margin / limit) * 100.0
+        };
+
+        results.push(ConstraintResult {
+            constraint_type: constraint.constraint_type.clone(),
+            limit,
+            actual,
+            status,
+            margin,
+            margin_pct,
+        });
+    }
+
+    let passing_count = results
+        .iter()
+        .filter(|r| r.status != ConstraintStatus::Fail)
+        .count();
+    let score = (passing_count as f64 / results.len() as f64) * 100.0;
+    let has_failures = results
+        .iter()
+        .any(|r| r.status == ConstraintStatus::Fail);
+
+    ConstraintReport {
+        score,
+        results,
+        has_failures,
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Topology comparison
+// ---------------------------------------------------------------------------
+
+/// Aggregated metrics for a single topology.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TopologyMetrics {
+    pub name: String,
+    pub id: String,
+    pub node_count: usize,
+    pub volume_count: usize,
+    pub total_capacity_bytes: i64,
+    pub total_usable_bytes: i64,
+    pub dataset_count: usize,
+    pub total_cost_estimate: f64,
+    pub total_noise_db: f64,
+    pub total_power_watts: f64,
+    pub total_rack_units: f64,
+    pub redundancy_score: f64,
+    pub capacity_score: f64,
+    pub rpo_score: f64,
+}
+
+/// Comparison of a single metric between two topologies.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MetricComparison {
+    pub metric: String,
+    pub a: f64,
+    pub b: f64,
+    pub better: String,
+    pub unit: String,
+}
+
+/// Full comparison report between two topologies.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ComparisonReport {
+    pub topology_a: TopologyMetrics,
+    pub topology_b: TopologyMetrics,
+    pub metrics_comparison: Vec<MetricComparison>,
+    pub constraints_a: Option<ConstraintReport>,
+    pub constraints_b: Option<ConstraintReport>,
+}
+
+/// Compute aggregated metrics for a topology from its constituent data.
+#[allow(clippy::too_many_arguments)]
+pub fn compute_topology_metrics(
+    name: &str,
+    id: &str,
+    nodes: &[Node],
+    volumes: &[Volume],
+    datasets: &[Dataset],
+    placements: &[PlacementWithContext],
+    sync_regimes: &[SyncRegimeWithContext],
+    warn_months: i32,
+) -> TopologyMetrics {
+    let node_count = nodes.len();
+    let volume_count = volumes.len();
+    let total_capacity_bytes: i64 = volumes.iter().map(|v| v.capacity_bytes).sum();
+    let total_usable_bytes: i64 = volumes
+        .iter()
+        .map(|v| v.usable_bytes.unwrap_or(v.capacity_bytes))
+        .sum();
+    let dataset_count = datasets.len();
+    let total_cost_estimate: f64 = nodes.iter().filter_map(|n| n.cost_estimate).sum();
+    let total_noise_db: f64 = nodes.iter().filter_map(|n| n.noise_db).sum();
+    let total_power_watts: f64 = nodes.iter().filter_map(|n| n.power_draw_watts).sum();
+    let total_rack_units: f64 = nodes.iter().filter_map(|n| n.rack_units).sum();
+    let redundancy_score = analyze_redundancy(datasets, placements).score;
+    let capacity_score = analyze_capacity(datasets, volumes, placements, warn_months).score;
+    let rpo_score = analyze_rpo(datasets, placements, sync_regimes).score;
+
+    TopologyMetrics {
+        name: name.to_string(),
+        id: id.to_string(),
+        node_count,
+        volume_count,
+        total_capacity_bytes,
+        total_usable_bytes,
+        dataset_count,
+        total_cost_estimate,
+        total_noise_db,
+        total_power_watts,
+        total_rack_units,
+        redundancy_score,
+        capacity_score,
+        rpo_score,
+    }
+}
+
+/// Compare two topologies across all standard metrics.
+///
+/// For each metric, determines which topology is "better":
+/// - Lower is better: cost, noise, power, rack_units
+/// - Higher is better: capacity, usable, redundancy, capacity score, rpo
+/// - Neutral (no better): nodes, volumes, datasets
+pub fn compare_topologies(
+    metrics_a: &TopologyMetrics,
+    metrics_b: &TopologyMetrics,
+    constraints_a: Option<ConstraintReport>,
+    constraints_b: Option<ConstraintReport>,
+) -> ComparisonReport {
+    let mut comparisons = Vec::new();
+
+    // Helper: lower is better
+    let lower_better = |metric: &str, a: f64, b: f64, unit: &str| MetricComparison {
+        metric: metric.to_string(),
+        a,
+        b,
+        better: if (a - b).abs() < f64::EPSILON {
+            "tie".to_string()
+        } else if a < b {
+            "a".to_string()
+        } else {
+            "b".to_string()
+        },
+        unit: unit.to_string(),
+    };
+
+    // Helper: higher is better
+    let higher_better = |metric: &str, a: f64, b: f64, unit: &str| MetricComparison {
+        metric: metric.to_string(),
+        a,
+        b,
+        better: if (a - b).abs() < f64::EPSILON {
+            "tie".to_string()
+        } else if a > b {
+            "a".to_string()
+        } else {
+            "b".to_string()
+        },
+        unit: unit.to_string(),
+    };
+
+    // Helper: neutral (no better)
+    let neutral = |metric: &str, a: f64, b: f64, unit: &str| MetricComparison {
+        metric: metric.to_string(),
+        a,
+        b,
+        better: "tie".to_string(),
+        unit: unit.to_string(),
+    };
+
+    comparisons.push(lower_better(
+        "total_cost",
+        metrics_a.total_cost_estimate,
+        metrics_b.total_cost_estimate,
+        "$",
+    ));
+    comparisons.push(lower_better(
+        "total_noise",
+        metrics_a.total_noise_db,
+        metrics_b.total_noise_db,
+        "dB",
+    ));
+    comparisons.push(lower_better(
+        "total_power",
+        metrics_a.total_power_watts,
+        metrics_b.total_power_watts,
+        "W",
+    ));
+    comparisons.push(lower_better(
+        "total_rack_units",
+        metrics_a.total_rack_units,
+        metrics_b.total_rack_units,
+        "U",
+    ));
+    comparisons.push(higher_better(
+        "total_capacity",
+        metrics_a.total_capacity_bytes as f64,
+        metrics_b.total_capacity_bytes as f64,
+        "bytes",
+    ));
+    comparisons.push(higher_better(
+        "total_usable",
+        metrics_a.total_usable_bytes as f64,
+        metrics_b.total_usable_bytes as f64,
+        "bytes",
+    ));
+    comparisons.push(higher_better(
+        "redundancy",
+        metrics_a.redundancy_score,
+        metrics_b.redundancy_score,
+        "%",
+    ));
+    comparisons.push(higher_better(
+        "capacity",
+        metrics_a.capacity_score,
+        metrics_b.capacity_score,
+        "%",
+    ));
+    comparisons.push(higher_better(
+        "rpo",
+        metrics_a.rpo_score,
+        metrics_b.rpo_score,
+        "%",
+    ));
+    comparisons.push(neutral(
+        "nodes",
+        metrics_a.node_count as f64,
+        metrics_b.node_count as f64,
+        "",
+    ));
+    comparisons.push(neutral(
+        "volumes",
+        metrics_a.volume_count as f64,
+        metrics_b.volume_count as f64,
+        "",
+    ));
+    comparisons.push(neutral(
+        "datasets",
+        metrics_a.dataset_count as f64,
+        metrics_b.dataset_count as f64,
+        "",
+    ));
+
+    ComparisonReport {
+        topology_a: metrics_a.clone(),
+        topology_b: metrics_b.clone(),
+        metrics_comparison: comparisons,
+        constraints_a,
+        constraints_b,
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
@@ -1442,5 +1787,191 @@ mod tests {
         assert_eq!(report.summary.datasets_lost, 0);
         assert_eq!(report.summary.datasets_degraded, 0);
         assert_eq!(report.summary.datasets_at_risk, 0);
+    }
+
+    // -----------------------------------------------------------------------
+    // Constraint checking tests
+    // -----------------------------------------------------------------------
+
+    /// Helper to create a DecisionConstraint for testing
+    fn make_constraint(constraint_type: &str, max_value: f64) -> DecisionConstraint {
+        DecisionConstraint::new("decision-1", constraint_type, max_value)
+    }
+
+    /// Helper to create a Node with cost/noise/power/rack_units for testing
+    fn make_node_with_attrs(
+        name: &str,
+        cost: Option<f64>,
+        noise: Option<f64>,
+        power: Option<f64>,
+        rack_units: Option<f64>,
+    ) -> Node {
+        let mut node = Node::new("t1", name, "desktop");
+        node.cost_estimate = cost;
+        node.noise_db = noise;
+        node.power_draw_watts = power;
+        node.rack_units = rack_units;
+        node
+    }
+
+    #[test]
+    fn test_check_constraints_pass() {
+        let constraints = vec![
+            make_constraint("budget", 1000.0),
+            make_constraint("noise", 40.0),
+        ];
+        let nodes = vec![
+            make_node_with_attrs("mac-mini", Some(599.0), Some(10.0), Some(39.0), None),
+            make_node_with_attrs("enclosure", Some(150.0), Some(5.0), Some(0.0), None),
+        ];
+
+        let report = check_constraints(&constraints, &nodes);
+        assert_eq!(report.score, 100.0);
+        assert!(!report.has_failures);
+        assert_eq!(report.results.len(), 2);
+        assert_eq!(report.results[0].status, ConstraintStatus::Pass);
+        assert_eq!(report.results[1].status, ConstraintStatus::Pass);
+        // budget: 749 / 1000 = 251 margin
+        assert!((report.results[0].actual - 749.0).abs() < 0.01);
+        assert!((report.results[0].margin - 251.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_check_constraints_warn() {
+        // Budget: actual 920 / limit 1000 -- within 10% threshold
+        let constraints = vec![make_constraint("budget", 1000.0)];
+        let nodes = vec![
+            make_node_with_attrs("mac-mini", Some(620.0), None, None, None),
+            make_node_with_attrs("enclosure", Some(300.0), None, None, None),
+        ];
+
+        let report = check_constraints(&constraints, &nodes);
+        assert_eq!(report.results[0].status, ConstraintStatus::Warn);
+        assert!(!report.has_failures);
+        assert!((report.results[0].actual - 920.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_check_constraints_fail() {
+        let constraints = vec![make_constraint("budget", 500.0)];
+        let nodes = vec![
+            make_node_with_attrs("mac-mini", Some(599.0), None, None, None),
+            make_node_with_attrs("enclosure", Some(150.0), None, None, None),
+        ];
+
+        let report = check_constraints(&constraints, &nodes);
+        assert_eq!(report.score, 0.0);
+        assert!(report.has_failures);
+        assert_eq!(report.results[0].status, ConstraintStatus::Fail);
+        assert!(report.results[0].margin < 0.0);
+    }
+
+    #[test]
+    fn test_check_constraints_empty() {
+        let report = check_constraints(&[], &[]);
+        assert_eq!(report.score, 100.0);
+        assert!(!report.has_failures);
+        assert!(report.results.is_empty());
+    }
+
+    #[test]
+    fn test_check_constraints_power_uses_power_draw_watts() {
+        let constraints = vec![make_constraint("power", 100.0)];
+        let nodes = vec![
+            make_node_with_attrs("mac-mini", None, None, Some(39.0), None),
+            make_node_with_attrs("nas", None, None, Some(45.0), None),
+        ];
+
+        let report = check_constraints(&constraints, &nodes);
+        assert_eq!(report.results[0].status, ConstraintStatus::Pass);
+        assert!((report.results[0].actual - 84.0).abs() < 0.01);
+    }
+
+    // -----------------------------------------------------------------------
+    // Topology comparison tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_compare_topologies_basic() {
+        let metrics_a = TopologyMetrics {
+            name: "sata-option".to_string(),
+            id: "id-a".to_string(),
+            node_count: 2,
+            volume_count: 1,
+            total_capacity_bytes: 4_000_000_000_000,
+            total_usable_bytes: 3_600_000_000_000,
+            dataset_count: 1,
+            total_cost_estimate: 800.0,
+            total_noise_db: 0.0,
+            total_power_watts: 39.0,
+            total_rack_units: 0.0,
+            redundancy_score: 100.0,
+            capacity_score: 100.0,
+            rpo_score: 100.0,
+        };
+
+        let metrics_b = TopologyMetrics {
+            name: "nvme-option".to_string(),
+            id: "id-b".to_string(),
+            node_count: 2,
+            volume_count: 2,
+            total_capacity_bytes: 8_000_000_000_000,
+            total_usable_bytes: 7_200_000_000_000,
+            dataset_count: 1,
+            total_cost_estimate: 1200.0,
+            total_noise_db: 5.0,
+            total_power_watts: 50.0,
+            total_rack_units: 2.0,
+            redundancy_score: 75.0,
+            capacity_score: 50.0,
+            rpo_score: 100.0,
+        };
+
+        let report = compare_topologies(&metrics_a, &metrics_b, None, None);
+        assert_eq!(report.metrics_comparison.len(), 12);
+
+        // Cost: A is cheaper => better = "a"
+        let cost = report
+            .metrics_comparison
+            .iter()
+            .find(|m| m.metric == "total_cost")
+            .unwrap();
+        assert_eq!(cost.better, "a");
+
+        // Capacity: B has more => better = "b"
+        let cap = report
+            .metrics_comparison
+            .iter()
+            .find(|m| m.metric == "total_capacity")
+            .unwrap();
+        assert_eq!(cap.better, "b");
+
+        // Redundancy: A has higher score => better = "a"
+        let red = report
+            .metrics_comparison
+            .iter()
+            .find(|m| m.metric == "redundancy")
+            .unwrap();
+        assert_eq!(red.better, "a");
+
+        // RPO: same score => tie
+        let rpo = report
+            .metrics_comparison
+            .iter()
+            .find(|m| m.metric == "rpo")
+            .unwrap();
+        assert_eq!(rpo.better, "tie");
+
+        // Nodes: neutral => always tie
+        let nodes = report
+            .metrics_comparison
+            .iter()
+            .find(|m| m.metric == "nodes")
+            .unwrap();
+        assert_eq!(nodes.better, "tie");
+
+        // Constraints should be None
+        assert!(report.constraints_a.is_none());
+        assert!(report.constraints_b.is_none());
     }
 }
