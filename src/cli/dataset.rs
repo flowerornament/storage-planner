@@ -215,7 +215,11 @@ fn add(
         |row| row.get(0),
     )?;
     if existing > 0 {
-        bail!("Dataset '{}' already exists in topology '{}'", name, topo.name);
+        bail!(
+            "Dataset '{}' already exists in topology '{}'",
+            name,
+            topo.name
+        );
     }
 
     let mut dataset = Dataset::new(&topo.id, name, size_bytes);
