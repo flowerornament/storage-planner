@@ -118,11 +118,11 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 06-01-PLAN.md -- Schema migration v4, CatalogItem/Price models, event system, entity resolver, serde_yaml_ng dep
+- [x] 06-01-PLAN.md -- Schema migration v4, CatalogItem/Price models, event system, entity resolver, serde_yaml_ng dep
 - [ ] 06-02-PLAN.md -- Catalog CLI with item CRUD (add/show/list/search) and price management (add/list)
 - [ ] 06-03-PLAN.md -- Bandwidth analysis and cost analysis with per-entity breakdown, summary, and TCO
 - [ ] 06-04-PLAN.md -- Status dashboard, prime agent bootstrap, and current topology shortcut
-- [ ] 06-05-PLAN.md -- YAML topology export/import and ASCII diagram command
+- [x] 06-05-PLAN.md -- YAML topology export/import and ASCII diagram command
 
 ## Progress
 
@@ -136,7 +136,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6
 | 3. Topology Versioning | 3/3 | Complete | 2026-02-07 |
 | 4. Analysis Functions | 2/2 | Complete | 2026-02-07 |
 | 5. Decision Integration | 3/3 | Complete | 2026-02-08 |
-| 6. Cost and Context | 0/5 | Not started | - |
+| 6. Cost and Context | 2/5 | In progress | - |
 
 ---
 *Roadmap created: 2026-02-06*
