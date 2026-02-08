@@ -208,6 +208,16 @@ fn add(
 
     let topo = resolve_active_topology(db, topology_override)?;
 
+    // Pre-insert uniqueness check
+    let existing: i64 = db.conn().query_row(
+        "SELECT COUNT(*) FROM datasets WHERE topology_id = ?1 AND name = ?2",
+        params![topo.id, name],
+        |row| row.get(0),
+    )?;
+    if existing > 0 {
+        bail!("Dataset '{}' already exists in topology '{}'", name, topo.name);
+    }
+
     let mut dataset = Dataset::new(&topo.id, name, size_bytes);
     dataset.criticality = criticality.to_string();
     dataset.min_copies = min_copies;

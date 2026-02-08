@@ -155,6 +155,16 @@ fn add(
         )
     })?;
 
+    // Pre-insert uniqueness check
+    let existing: i64 = db.conn().query_row(
+        "SELECT COUNT(*) FROM catalog_items WHERE name = ?1",
+        params![name],
+        |row| row.get(0),
+    )?;
+    if existing > 0 {
+        bail!("Catalog item '{}' already exists", name);
+    }
+
     let mut item = CatalogItem::new(name, category);
     item.specs = specs;
     if let Some(u) = url {

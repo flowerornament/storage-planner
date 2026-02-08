@@ -179,6 +179,15 @@ pub fn run(cmd: TopologyCommands, db: &mut Database, format: OutputFormat) -> Re
 fn create(db: &mut Database, name: &str, description: &str, format: OutputFormat) -> Result<()> {
     validate_slug(name)?;
 
+    let existing: i64 = db.conn().query_row(
+        "SELECT COUNT(*) FROM topologies WHERE name = ?1",
+        params![name],
+        |row| row.get(0),
+    )?;
+    if existing > 0 {
+        bail!("Topology '{}' already exists", name);
+    }
+
     let topo = Topology::new(name, description);
     let after_json = topo.to_json()?;
     let topo_id = topo.id.clone();

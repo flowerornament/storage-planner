@@ -229,6 +229,16 @@ fn add(
     // Resolve active topology
     let topo = resolve_active_topology(db, topology_override)?;
 
+    // Pre-insert uniqueness check
+    let existing: i64 = db.conn().query_row(
+        "SELECT COUNT(*) FROM nodes WHERE topology_id = ?1 AND name = ?2",
+        params![topo.id, name],
+        |row| row.get(0),
+    )?;
+    if existing > 0 {
+        bail!("Node '{}' already exists in topology '{}'", name, topo.name);
+    }
+
     // Resolve catalog item before transaction (D009 pattern)
     let resolved_item_id = if let Some(iid) = item_id {
         let item = resolve_catalog_item(db, iid)?;
