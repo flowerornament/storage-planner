@@ -225,16 +225,34 @@ fn create(db: &mut Database, name: &str, description: &str, format: OutputFormat
         Ok(())
     })?;
 
+    // Check if the topology was auto-tagged as current (first topology)
+    let was_auto_current: bool = db
+        .conn()
+        .query_row(
+            "SELECT tag = 'current' FROM topologies WHERE id = ?1",
+            params![topo_id],
+            |row| row.get(0),
+        )
+        .unwrap_or(false);
+
     let id_prefix = &topo_id[..8];
     match format {
         OutputFormat::Text => {
-            println!("Created topology '{}' (id: {})", name, id_prefix);
+            if was_auto_current {
+                println!(
+                    "Created topology '{}' (id: {}) [set as current]",
+                    name, id_prefix
+                );
+            } else {
+                println!("Created topology '{}' (id: {})", name, id_prefix);
+            }
         }
         OutputFormat::Json => {
             let json = serde_json::json!({
                 "action": "created",
                 "topology": name,
                 "id": topo_id,
+                "set_as_current": was_auto_current,
             });
             println!("{}", serde_json::to_string_pretty(&json)?);
         }

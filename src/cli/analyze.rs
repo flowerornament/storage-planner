@@ -1559,9 +1559,21 @@ fn format_metric_values(metric: &str, a: f64, b: f64, unit: &str) -> (String, St
             let b = if b == 0.0 { 0.0 } else { b };
             (format!("${:.2}", a), format!("${:.2}", b))
         }
-        "total_noise" => (format!("{:.1} dB", a), format!("{:.1} dB", b)),
-        "total_power" => (format!("{:.1} W", a), format!("{:.1} W", b)),
-        "total_rack_units" => (format!("{:.1} U", a), format!("{:.1} U", b)),
+        "total_noise" => {
+            let a = if a == 0.0 { 0.0 } else { a };
+            let b = if b == 0.0 { 0.0 } else { b };
+            (format!("{:.1} dB", a), format!("{:.1} dB", b))
+        }
+        "total_power" => {
+            let a = if a == 0.0 { 0.0 } else { a };
+            let b = if b == 0.0 { 0.0 } else { b };
+            (format!("{:.1} W", a), format!("{:.1} W", b))
+        }
+        "total_rack_units" => {
+            let a = if a == 0.0 { 0.0 } else { a };
+            let b = if b == 0.0 { 0.0 } else { b };
+            (format!("{:.1} U", a), format!("{:.1} U", b))
+        }
         "total_capacity" | "total_usable" => {
             let a_cap = Capacity::from_bytes(a as u64);
             let b_cap = Capacity::from_bytes(b as u64);
@@ -1569,6 +1581,8 @@ fn format_metric_values(metric: &str, a: f64, b: f64, unit: &str) -> (String, St
         }
         "redundancy" | "capacity" | "rpo" => (format!("{:.1}%", a), format!("{:.1}%", b)),
         _ => {
+            let a = if a == 0.0 { 0.0 } else { a };
+            let b = if b == 0.0 { 0.0 } else { b };
             if unit.is_empty() {
                 (format!("{}", a as i64), format!("{}", b as i64))
             } else {
