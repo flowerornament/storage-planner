@@ -1338,6 +1338,9 @@ fn format_constraint_display(
     actual: f64,
     limit: f64,
 ) -> (String, String, &'static str) {
+    // Normalize negative zero to positive zero
+    let actual = if actual == 0.0 { 0.0 } else { actual };
+    let limit = if limit == 0.0 { 0.0 } else { limit };
     match constraint_type {
         "budget" => (format!("${:.2}", actual), format!("${:.2}", limit), ""),
         "noise" => (
