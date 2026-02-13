@@ -83,7 +83,7 @@ pub enum PriceCommands {
         condition: String,
 
         /// Price type: one-time, monthly, or annual
-        #[arg(long, value_name = "TYPE", default_value = "one-time")]
+        #[arg(long, value_name = "TYPE", default_value = "one-time", value_parser = clap::builder::PossibleValuesParser::new(["one-time", "monthly", "annual"]))]
         r#type: String,
 
         /// Currency code

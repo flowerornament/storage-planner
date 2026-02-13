@@ -210,9 +210,6 @@ fn run_all(
     let rpo = analyze_rpo(&datasets, &placements, &sync_regimes);
     let capacity = analyze_capacity(&datasets, &volumes, &placements, warn_months);
 
-    let has_issues =
-        !redundancy.issues.is_empty() || !rpo.issues.is_empty() || !capacity.issues.is_empty();
-
     match format {
         OutputFormat::Text => {
             let tag_str = topo
@@ -266,9 +263,6 @@ fn run_all(
         }
     }
 
-    if has_issues {
-        std::process::exit(1);
-    }
     Ok(())
 }
 
@@ -287,16 +281,12 @@ fn run_redundancy(
     let placements = load_placements_with_context(db, &topo.id)?;
 
     let report = analyze_redundancy(&datasets, &placements);
-    let has_issues = !report.issues.is_empty();
 
     match format {
         OutputFormat::Text => print_redundancy_text(&report, &datasets, &placements, verbose),
         OutputFormat::Json => print_redundancy_json(&report, &topo.name, &topo.id)?,
     }
 
-    if has_issues {
-        std::process::exit(1);
-    }
     Ok(())
 }
 
@@ -399,16 +389,12 @@ fn run_rpo(
     let sync_regimes = load_sync_regimes(db, &topo.id)?;
 
     let report = analyze_rpo(&datasets, &placements, &sync_regimes);
-    let has_issues = !report.issues.is_empty();
 
     match format {
         OutputFormat::Text => print_rpo_text(&report, verbose),
         OutputFormat::Json => print_rpo_json(&report, &topo.name, &topo.id)?,
     }
 
-    if has_issues {
-        std::process::exit(1);
-    }
     Ok(())
 }
 
@@ -639,16 +625,12 @@ fn run_capacity(
     let placements = load_placements_with_context(db, &topo.id)?;
 
     let report = analyze_capacity(&datasets, &volumes, &placements, warn_months);
-    let has_issues = !report.issues.is_empty();
 
     match format {
         OutputFormat::Text => print_capacity_text(&report, verbose),
         OutputFormat::Json => print_capacity_json(&report, &topo.name, &topo.id)?,
     }
 
-    if has_issues {
-        std::process::exit(1);
-    }
     Ok(())
 }
 
@@ -766,10 +748,6 @@ fn run_bandwidth(
     let links = load_links(db, &topo.id)?;
 
     let report = analyze_bandwidth(&sync_regimes, &volumes, &links, &datasets);
-    let has_issues = report
-        .results
-        .iter()
-        .any(|r| r.status == BandwidthStatus::Insufficient || r.status == BandwidthStatus::NoLink);
 
     // Build node_id -> node_name map for display
     let nodes = load_nodes(db, &topo.id)?;
@@ -793,9 +771,6 @@ fn run_bandwidth(
         }
     }
 
-    if has_issues {
-        std::process::exit(1);
-    }
     Ok(())
 }
 
@@ -1259,7 +1234,6 @@ fn run_constraints(
     let nodes = load_nodes(db, &topo.id)?;
 
     let report = check_constraints(&constraints, &nodes);
-    let has_failures = report.has_failures;
 
     match format {
         OutputFormat::Text => {
@@ -1278,9 +1252,6 @@ fn run_constraints(
         }
     }
 
-    if has_failures {
-        std::process::exit(1);
-    }
     Ok(())
 }
 

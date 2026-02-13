@@ -71,6 +71,7 @@ pub enum TopologyCommands {
         /// Topology name or ID prefix
         name: String,
         /// Tag to apply: current, exploring, or archived
+        #[arg(value_parser = clap::builder::PossibleValuesParser::new(["current", "exploring", "archived"]))]
         tag: String,
     },
 
@@ -88,6 +89,10 @@ pub enum TopologyCommands {
         /// Optional name for the fork (auto-generated if omitted)
         #[arg(long)]
         name: Option<String>,
+
+        /// Description for the fork (defaults to "Fork of <source>")
+        #[arg(long)]
+        description: Option<String>,
     },
 
     /// Compare two topologies showing entity-level and field-level changes
@@ -148,7 +153,11 @@ pub fn run(cmd: TopologyCommands, db: &mut Database, format: OutputFormat) -> Re
             tag: tag_value,
         } => tag(db, &name, &tag_value, format),
         TopologyCommands::Untag { name } => untag(db, &name, format),
-        TopologyCommands::Fork { source, name } => fork(db, &source, name.as_deref(), format),
+        TopologyCommands::Fork {
+            source,
+            name,
+            description,
+        } => fork(db, &source, name.as_deref(), description, format),
         TopologyCommands::Diff {
             target,
             base,
@@ -431,6 +440,22 @@ fn show_tree_text(db: &Database, topology_id: &str) -> Result<()> {
                 .map(|r| format!("/{}", r))
                 .unwrap_or_default();
             println!("    {}: {} {}{}", vol.name, cap, fs, raid);
+
+            // Show dataset placements on this volume
+            let mut pstmt = db.conn().prepare(
+                "SELECT d.name, p.role, d.size_bytes, d.criticality \
+                 FROM placements p JOIN datasets d ON p.dataset_id = d.id \
+                 WHERE p.volume_id = ?1 ORDER BY d.name",
+            )?;
+            let placements: Vec<(String, String, i64, String)> = pstmt
+                .query_map(params![vol.id], |row| {
+                    Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+                })?
+                .collect::<Result<Vec<_>, _>>()?;
+            for (ds_name, role, size, crit) in &placements {
+                let ds_cap = Capacity::from_bytes(*size as u64);
+                println!("      {} [{}] ({}, {})", ds_name, role, ds_cap, crit);
+            }
         }
     }
 
@@ -461,7 +486,30 @@ fn build_tree_json(db: &Database, topo: &Topology) -> Result<serde_json::Value> 
 
         let vol_json: Vec<serde_json::Value> = volumes
             .iter()
-            .map(|v| serde_json::to_value(v).unwrap_or_default())
+            .map(|v| {
+                let mut val = serde_json::to_value(v).unwrap_or_default();
+                // Add placements for this volume
+                if let Ok(mut pstmt) = db.conn().prepare(
+                    "SELECT d.name, p.role, d.size_bytes, d.criticality \
+                     FROM placements p JOIN datasets d ON p.dataset_id = d.id \
+                     WHERE p.volume_id = ?1 ORDER BY d.name",
+                ) {
+                    if let Ok(rows) = pstmt.query_map(params![v.id], |row| {
+                        Ok(serde_json::json!({
+                            "dataset": row.get::<_, String>(0)?,
+                            "role": row.get::<_, String>(1)?,
+                            "size_bytes": row.get::<_, i64>(2)?,
+                            "criticality": row.get::<_, String>(3)?,
+                        }))
+                    }) {
+                        let pl_json: Vec<serde_json::Value> = rows.filter_map(|r| r.ok()).collect();
+                        if let serde_json::Value::Object(ref mut map) = val {
+                            map.insert("placements".to_string(), serde_json::Value::Array(pl_json));
+                        }
+                    }
+                }
+                val
+            })
             .collect();
 
         let mut node_val = serde_json::to_value(node)?;
@@ -647,11 +695,11 @@ fn set_active(db: &mut Database, name: &str) -> Result<()> {
         Ok(())
     })?;
 
-    eprintln!(
+    println!("Set topology '{}' as current", topo_name);
+    println!(
         "Note: 'set-active' is deprecated. Use 'sp topology tag {} current' instead.",
         topo_name
     );
-    println!("Set topology '{}' as current", topo_name);
     Ok(())
 }
 
@@ -802,6 +850,7 @@ fn fork(
     db: &mut Database,
     source_name: &str,
     fork_name: Option<&str>,
+    description: Option<String>,
     format: OutputFormat,
 ) -> Result<()> {
     // Resolve source topology (can be ANY topology, not just active)
@@ -913,13 +962,15 @@ fn fork(
     db.transaction(|tx| {
         // 1. Create new topology with parent_id = source.id
         let now = chrono::Utc::now();
+        let fork_description = description
+            .unwrap_or_else(|| format!("Fork of {}", source_name_clone));
         tx.execute(
             "INSERT INTO topologies (id, name, description, parent_id, tag, created_at, updated_at) \
              VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?6)",
             params![
                 new_topo_id,
                 fork_name_clone,
-                source.description,
+                fork_description,
                 source_id,
                 now.to_rfc3339(),
                 now.to_rfc3339()
@@ -1143,6 +1194,21 @@ fn format_diff_value(v: &Value) -> String {
         Value::Number(n) => n.to_string(),
         _ => v.to_string(),
     }
+}
+
+/// Format a field value with awareness of byte-valued fields
+fn format_field_value(field: &str, v: &Value) -> String {
+    if let Value::Number(n) = v {
+        if field.ends_with("_bytes")
+            || field.ends_with("_bytes_sec")
+            || field.ends_with("_bytes_month")
+        {
+            if let Some(i) = n.as_i64() {
+                return format!("{}", Capacity::from_bytes(i as u64));
+            }
+        }
+    }
+    format_diff_value(v)
 }
 
 /// Compare two JSON objects field-by-field, skipping DIFF_SKIP_FIELDS
@@ -1394,12 +1460,11 @@ fn print_diff_section(section_name: &str, entries: &[DiffEntry]) -> (usize, usiz
     let mut modified = 0;
     let mut removed = 0;
 
-    println!("{}:", section_name);
-
     if entries.is_empty() {
-        println!("  (no changes)");
         return (0, 0, 0);
     }
+
+    println!("{}:", section_name);
 
     for entry in entries {
         match entry {
@@ -1433,8 +1498,8 @@ fn print_diff_section(section_name: &str, entries: &[DiffEntry]) -> (usize, usiz
                     println!(
                         "      {}: {} -> {}",
                         fd.field,
-                        style(format_diff_value(&fd.old_value)).red(),
-                        style(format_diff_value(&fd.new_value)).green(),
+                        style(format_field_value(&fd.field, &fd.old_value)).red(),
+                        style(format_field_value(&fd.field, &fd.new_value)).green(),
                     );
                 }
             }
@@ -1574,63 +1639,49 @@ fn diff(
             println!("Diff: {} -> {}", base.name, target.name);
             println!();
 
-            let mut total_added = 0;
-            let mut total_modified = 0;
-            let mut total_removed = 0;
+            let mut added_details = Vec::new();
+            let mut modified_details = Vec::new();
+            let mut removed_details = Vec::new();
 
-            if diff_nodes {
-                let (a, m, r) = print_diff_section("Nodes", &node_entries);
-                total_added += a;
-                total_modified += m;
-                total_removed += r;
-                println!();
-            }
-            if diff_volumes {
-                let (a, m, r) = print_diff_section("Volumes", &volume_entries);
-                total_added += a;
-                total_modified += m;
-                total_removed += r;
-                println!();
-            }
-            if diff_datasets {
-                let (a, m, r) = print_diff_section("Datasets", &dataset_entries);
-                total_added += a;
-                total_modified += m;
-                total_removed += r;
-                println!();
-            }
-            if diff_placements {
-                let (a, m, r) = print_diff_section("Placements", &placement_entries);
-                total_added += a;
-                total_modified += m;
-                total_removed += r;
-                println!();
-            }
-            if diff_links {
-                let (a, m, r) = print_diff_section("Links", &link_entries);
-                total_added += a;
-                total_modified += m;
-                total_removed += r;
-                println!();
-            }
-            if diff_syncs {
-                let (a, m, r) = print_diff_section("Sync Regimes", &sync_entries);
-                total_added += a;
-                total_modified += m;
-                total_removed += r;
-                println!();
+            let sections: &[(&str, bool, &[DiffEntry])] = &[
+                ("Nodes", diff_nodes, &node_entries),
+                ("Volumes", diff_volumes, &volume_entries),
+                ("Datasets", diff_datasets, &dataset_entries),
+                ("Placements", diff_placements, &placement_entries),
+                ("Links", diff_links, &link_entries),
+                ("Sync Regimes", diff_syncs, &sync_entries),
+            ];
+
+            for &(name, enabled, entries) in sections {
+                if !enabled {
+                    continue;
+                }
+                let (a, m, r) = print_diff_section(name, entries);
+                if a + m + r > 0 {
+                    println!();
+                }
+                let label = name.to_lowercase();
+                if a > 0 {
+                    added_details.push(format!("{} {}", a, label));
+                }
+                if m > 0 {
+                    modified_details.push(format!("{} {}", m, label));
+                }
+                if r > 0 {
+                    removed_details.push(format!("{} {}", r, label));
+                }
             }
 
-            // Summary
+            // Summary with entity types
             let mut parts = Vec::new();
-            if total_added > 0 {
-                parts.push(format!("{} added", total_added));
+            if !added_details.is_empty() {
+                parts.push(format!("{} added", added_details.join(", ")));
             }
-            if total_modified > 0 {
-                parts.push(format!("{} modified", total_modified));
+            if !modified_details.is_empty() {
+                parts.push(format!("{} modified", modified_details.join(", ")));
             }
-            if total_removed > 0 {
-                parts.push(format!("{} removed", total_removed));
+            if !removed_details.is_empty() {
+                parts.push(format!("{} removed", removed_details.join(", ")));
             }
             if parts.is_empty() {
                 println!("No differences found.");

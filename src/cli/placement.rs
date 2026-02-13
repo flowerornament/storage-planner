@@ -31,7 +31,7 @@ pub enum PlacementCommands {
         node: Option<String>,
 
         /// Placement role (primary, replica, backup, archive)
-        #[arg(long, default_value = "primary")]
+        #[arg(long, default_value = "primary", value_parser = clap::builder::PossibleValuesParser::new(["primary", "replica", "backup", "archive"]))]
         role: String,
 
         /// Priority (higher = preferred for reads)

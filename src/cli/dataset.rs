@@ -28,7 +28,7 @@ pub enum DatasetCommands {
         size: String,
 
         /// Criticality level (normal, important, critical)
-        #[arg(long, default_value = "normal")]
+        #[arg(long, default_value = "normal", value_parser = clap::builder::PossibleValuesParser::new(["normal", "important", "critical"]))]
         criticality: String,
 
         /// Minimum number of copies required
@@ -93,7 +93,7 @@ pub enum DatasetCommands {
         size: Option<String>,
 
         /// New criticality level (normal, important, critical)
-        #[arg(long)]
+        #[arg(long, value_parser = clap::builder::PossibleValuesParser::new(["normal", "important", "critical"]))]
         criticality: Option<String>,
 
         /// New minimum copies

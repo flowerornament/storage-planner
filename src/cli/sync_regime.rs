@@ -46,7 +46,7 @@ pub enum SyncCommands {
         schedule: Option<String>,
 
         /// Sync direction (push, pull, bidirectional)
-        #[arg(long, default_value = "push")]
+        #[arg(long, default_value = "push", value_parser = clap::builder::PossibleValuesParser::new(["push", "pull", "bidirectional"]))]
         direction: String,
 
         /// Source node (to disambiguate source volume)

@@ -46,7 +46,7 @@ pub enum DecisionCommands {
     /// List decisions with optional status filter
     List {
         /// Filter by status (draft, open, decided, abandoned)
-        #[arg(long)]
+        #[arg(long, value_parser = clap::builder::PossibleValuesParser::new(["draft", "open", "decided", "abandoned"]))]
         status: Option<String>,
     },
 
@@ -74,7 +74,7 @@ pub enum DecisionCommands {
         decision: String,
 
         /// Constraint type: budget, noise, power, rack_units
-        #[arg(long, value_name = "TYPE")]
+        #[arg(long, value_name = "TYPE", value_parser = clap::builder::PossibleValuesParser::new(["budget", "noise", "power", "rack_units"]))]
         r#type: String,
 
         /// Maximum allowed value
@@ -88,7 +88,7 @@ pub enum DecisionCommands {
         decision: String,
 
         /// Constraint type to remove: budget, noise, power, rack_units
-        #[arg(long, value_name = "TYPE")]
+        #[arg(long, value_name = "TYPE", value_parser = clap::builder::PossibleValuesParser::new(["budget", "noise", "power", "rack_units"]))]
         r#type: String,
     },
 

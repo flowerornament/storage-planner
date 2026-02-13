@@ -294,11 +294,11 @@ impl Cli {
             }
             Commands::Undo => {
                 let mut db = open_db(&db_path)?;
-                undo::run(&mut db)
+                undo::run(&mut db, format)
             }
             Commands::Redo => {
                 let mut db = open_db(&db_path)?;
-                redo::run(&mut db)
+                redo::run(&mut db, format)
             }
         }
     }
