@@ -1,17 +1,14 @@
 # Storage Planner
 
-Rust CLI tool for evaluating purchase decisions, with a focus on storage systems. Uses SQLite as the source of truth, with all mutations going through CLI commands.
+Rust CLI tool for evaluating purchase decisions, with a focus on storage systems. Models topologies, tracks product prices, and guides structured decision-making. Uses SQLite as the source of truth.
 
 ## Installation
 
 ```bash
-# Build from source
-cargo build --release
+# Nix flake (recommended)
+nix profile install github:flowerornament/storage-planner
 
-# The binary is at ./target/release/sp
-./target/release/sp --help
-
-# Or install to your path
+# Or build from source
 cargo install --path .
 ```
 
@@ -21,82 +18,71 @@ cargo install --path .
 # Initialize database
 sp init
 
-# Add items to catalog
-sp item add samsung-870-evo-4tb \
-  --name="Samsung 870 EVO 4TB" \
-  --category=ssd \
-  --brand=Samsung \
-  --specs='{"capacity":"4TB","read_speed":"560MB/s"}'
+# Create a topology and set it as current
+sp topology create --name home-server
+sp current set home-server
 
-# Record prices
-sp price add samsung-870-evo-4tb --price=289 --condition=new
+# Add nodes, volumes, datasets
+sp node add nas --desc "Synology DS1621+"
+sp volume add nas/pool1 --capacity 16TB --type raid6
+sp dataset add photos --size 2TB --replicas 2
+sp placement add photos nas/pool1
 
-# Create and compare configurations
-sp config create "SATA Setup"
-sp config add-item "SATA Setup" samsung-870-evo-4tb --qty=2
+# Track products and prices
+sp catalog add --name "Samsung 870 EVO 4TB" --category ssd
+sp catalog price <item-id> --price 199.99 --source Amazon
 
-# Make decisions
-sp decide create --purpose="Replace NAS with SSD"
-sp decide add-option sata --config="SATA Setup"
-sp decide compare
-sp decide choose sata --rationale="Best value per TB"
-sp decide deploy
+# Visualize and analyze
+sp diagram
+sp analyze capacity
+sp status
 
-# Check status
-sp prime                    # Full context for agents
-sp doctor                   # Health check
-sp analyze                  # Run analysis on current config
+# Decision workflow
+sp decision create --title "NVMe vs SATA for NAS expansion"
+sp decision compare <id>
+sp decision choose <id> <option> --rationale "Best value per TB"
 ```
 
-## Key Commands
+## Commands
 
 | Command | Description |
 |---------|-------------|
 | `sp init` | Initialize database |
-| `sp prime` | Output full context (for agents) |
-| `sp doctor` | Health check |
-| `sp item *` | Manage catalog items |
-| `sp price *` | Manage price observations |
-| `sp config *` | Manage configurations |
-| `sp decide *` | Decision workflow |
-| `sp analyze` | Run analysis |
-| `sp sync` | Export to YAML |
-| `sp events` | View audit log |
-
-## Documentation
-
-- **[CLAUDE.md](CLAUDE.md)** - Quick reference for agents/users
-- **[docs/](docs/)** - Additional documentation
+| `sp prime` | Full context dump (for AI agents) |
+| `sp status` | Health overview with problems |
+| `sp topology` | Manage named configurations |
+| `sp node` | Compute nodes within a topology |
+| `sp volume` | Storage volumes on nodes |
+| `sp dataset` | Logical datasets with replication needs |
+| `sp placement` | Map datasets to volumes |
+| `sp link` | Network links between nodes |
+| `sp sync` | Data sync regimes between volumes |
+| `sp catalog` | Product catalog and price observations |
+| `sp decision` | Purchase decision lifecycle |
+| `sp analyze` | Run analysis reports |
+| `sp diagram` | ASCII topology diagram |
+| `sp export/import` | YAML topology export/import |
+| `sp current` | Show or set current topology |
+| `sp undo/redo` | Undo/redo last action |
 
 ## Project Structure
 
 ```
-storage-planner/
-├── .sp/                      # Database (gitignored)
-│   └── decisions.db          # SQLite - source of truth
-├── export/                   # Read-only YAML exports
-├── src/                      # Rust implementation
-│   ├── core/                 # Domain-agnostic models
-│   ├── cli/                  # Command implementations
-│   ├── domains/storage/      # Storage-specific analysis
-│   └── pricing/              # Price API stubs
-├── catalog/                  # Legacy YAML (for migration)
-└── python-archive/           # Old Python implementation
+src/
+├── main.rs               # CLI entry point
+├── core/                 # Models, database, events
+├── cli/                  # Command implementations
+├── domains/storage/      # Storage-specific analysis
+└── pricing/              # API integrations
 ```
-
-## Design Principles
-
-1. **SQLite is truth** - Database is the source of truth, not YAML files
-2. **Append-only events** - All changes recorded in audit log
-3. **Atomic operations** - Commands complete fully or not at all
-4. **No direct editing** - Use `sp` commands, not file edits
 
 ## Development
 
 ```bash
-cargo build                   # Build
-cargo test                    # Run tests
-cargo build --release         # Release build
+just check    # fmt + lint + test
+just fmt      # Format code
+just lint     # Run clippy
+just test     # Run tests
 ```
 
 ## License
