@@ -185,6 +185,7 @@ fn strip_ids(export: &mut TopologyExport) {
 
     export.topology.id = empty.clone();
     export.topology.parent_id = None;
+    export.topology.tag = None;
 
     for node in &mut export.nodes {
         node.id = empty.clone();
@@ -351,6 +352,14 @@ pub fn run_import(db: &mut Database, file: &PathBuf, name: Option<&str>) -> Resu
     db.transaction(|tx| {
         let now = chrono::Utc::now();
 
+        // Collect newly-inserted entities for composite after_state snapshot
+        let mut new_nodes = Vec::new();
+        let mut new_volumes = Vec::new();
+        let mut new_datasets = Vec::new();
+        let mut new_placements = Vec::new();
+        let mut new_links = Vec::new();
+        let mut new_sync_regimes = Vec::new();
+
         // 1. Insert topology
         let mut topo = export.topology.clone();
         topo.id = new_topo_id.clone();
@@ -370,6 +379,7 @@ pub fn run_import(db: &mut Database, file: &PathBuf, name: Option<&str>) -> Resu
             new_node.created_at = now;
             new_node.updated_at = now;
             new_node.insert(tx)?;
+            new_nodes.push(new_node);
         }
 
         // 3. Insert volumes (remap node_id)
@@ -383,6 +393,7 @@ pub fn run_import(db: &mut Database, file: &PathBuf, name: Option<&str>) -> Resu
             new_vol.created_at = now;
             new_vol.updated_at = now;
             new_vol.insert(tx)?;
+            new_volumes.push(new_vol);
         }
 
         // 4. Insert datasets
@@ -394,6 +405,7 @@ pub fn run_import(db: &mut Database, file: &PathBuf, name: Option<&str>) -> Resu
             new_ds.created_at = now;
             new_ds.updated_at = now;
             new_ds.insert(tx)?;
+            new_datasets.push(new_ds);
         }
 
         // 5. Insert placements (remap dataset_id, volume_id)
@@ -408,6 +420,7 @@ pub fn run_import(db: &mut Database, file: &PathBuf, name: Option<&str>) -> Resu
             new_pl.volume_id = new_volume_id;
             new_pl.created_at = now;
             new_pl.insert(tx)?;
+            new_placements.push(new_pl);
         }
 
         // 6. Insert links (remap source_node_id, target_node_id)
@@ -423,6 +436,7 @@ pub fn run_import(db: &mut Database, file: &PathBuf, name: Option<&str>) -> Resu
             new_link.created_at = now;
             new_link.updated_at = now;
             new_link.insert(tx)?;
+            new_links.push(new_link);
         }
 
         // 7. Insert sync regimes (remap dataset_id, source_volume_id, target_volume_id)
@@ -440,9 +454,22 @@ pub fn run_import(db: &mut Database, file: &PathBuf, name: Option<&str>) -> Resu
             new_sr.created_at = now;
             new_sr.updated_at = now;
             new_sr.insert(tx)?;
+            new_sync_regimes.push(new_sr);
         }
 
-        // 8. Record import event
+        // 8. Build composite after_state snapshot for redo support
+        let after_snapshot = TopologyExport {
+            topology: topo.clone(),
+            nodes: new_nodes,
+            volumes: new_volumes,
+            datasets: new_datasets,
+            placements: new_placements,
+            links: new_links,
+            sync_regimes: new_sync_regimes,
+        };
+        let after_json = serde_json::to_string(&after_snapshot)?;
+
+        // 9. Record import event with composite after_state
         record_event(
             tx,
             "topology.created",
@@ -450,7 +477,7 @@ pub fn run_import(db: &mut Database, file: &PathBuf, name: Option<&str>) -> Resu
             &new_topo_id,
             &format!("Imported topology '{}'", topo_name),
             None,
-            None,
+            Some(&after_json),
             &EventSource::Import,
         )?;
 

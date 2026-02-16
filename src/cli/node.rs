@@ -9,8 +9,8 @@ use clap::Subcommand;
 use rusqlite::params;
 
 use crate::core::db::Database;
-use crate::core::events::{record_event, EventSource};
-use crate::core::models::{Node, Volume};
+use crate::core::events::{record_event, EventSource, NodeSnapshot};
+use crate::core::models::{Node, Placement, Volume};
 use crate::core::resolve::{
     resolve_active_topology, resolve_catalog_item, resolve_node, validate_slug,
 };
@@ -468,16 +468,50 @@ fn remove(
     let topo = resolve_active_topology(db, topology_override)?;
     let node = resolve_node(db, &topo.id, name)?;
 
-    // Count dependent volumes
-    let volume_count: i64 = db.conn().query_row(
-        "SELECT COUNT(*) FROM volumes WHERE node_id = ?1",
-        params![node.id],
-        |row| row.get(0),
-    )?;
-
-    let before_json = node.to_json()?;
     let node_id = node.id.clone();
     let node_name = node.name.clone();
+
+    // Capture composite snapshot: node + volumes + placements (for undo)
+    let volumes: Vec<Volume> = {
+        let mut stmt = db.conn().prepare(
+            "SELECT id, topology_id, node_id, name, capacity_bytes, usable_bytes, filesystem, \
+             raid_level, pool_type, item_id, created_at, updated_at \
+             FROM volumes WHERE node_id = ?1 ORDER BY name",
+        )?;
+        let result = stmt
+            .query_map(params![node_id], Volume::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+        result
+    };
+
+    let volume_ids: Vec<String> = volumes.iter().map(|v| v.id.clone()).collect();
+    let placements: Vec<Placement> = if !volume_ids.is_empty() {
+        let placeholders: String = volume_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+        let sql = format!(
+            "SELECT id, topology_id, dataset_id, volume_id, role, priority, created_at \
+             FROM placements WHERE volume_id IN ({}) ORDER BY role",
+            placeholders
+        );
+        let mut stmt = db.conn().prepare(&sql)?;
+        let params: Vec<&dyn rusqlite::ToSql> = volume_ids
+            .iter()
+            .map(|id| id as &dyn rusqlite::ToSql)
+            .collect();
+        let result = stmt
+            .query_map(params.as_slice(), Placement::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+        result
+    } else {
+        Vec::new()
+    };
+
+    let volume_count = volumes.len();
+    let snapshot = NodeSnapshot {
+        node: node.clone(),
+        volumes,
+        placements,
+    };
+    let before_json = serde_json::to_string(&snapshot)?;
 
     // Print warning about cascading deletes
     if volume_count > 0 {

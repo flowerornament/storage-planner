@@ -13,6 +13,7 @@ use rusqlite::params;
 use serde_json::Value;
 use uuid::Uuid;
 
+use crate::cli::export::TopologyExport;
 use crate::core::db::Database;
 use crate::core::events::{record_event, EventSource};
 use crate::core::models::{Dataset, Link, Node, Placement, SyncRegime, Topology, Volume};
@@ -1891,8 +1892,11 @@ fn delete(db: &mut Database, name: &str) -> Result<()> {
     // Resolve outside transaction
     let topo = resolve_topology(db, name)?;
     let topo_name = topo.name.clone();
-    let before_json = topo.to_json()?;
     let topo_id = topo.id.clone();
+
+    // Capture full composite snapshot before deletion (for undo)
+    let snapshot = build_topology_snapshot(db, &topo)?;
+    let before_json = serde_json::to_string(&snapshot)?;
 
     db.transaction(|tx| {
         // Delete (cascades to nodes, volumes, etc.)
@@ -1914,4 +1918,91 @@ fn delete(db: &mut Database, name: &str) -> Result<()> {
 
     println!("Deleted topology '{}'", topo_name);
     Ok(())
+}
+
+/// Build a TopologyExport snapshot of a topology and all its children.
+/// Used to capture full state before deletion for undo support.
+fn build_topology_snapshot(db: &Database, topo: &Topology) -> Result<TopologyExport> {
+    let topology_id = &topo.id;
+
+    let nodes: Vec<Node> = {
+        let mut stmt = db.conn().prepare(
+            "SELECT id, topology_id, name, role, location, available_bays, interface_types, \
+             power_draw_watts, cost_estimate, noise_db, rack_units, item_id, created_at, updated_at \
+             FROM nodes WHERE topology_id = ?1 ORDER BY name",
+        )?;
+        let result = stmt
+            .query_map(params![topology_id], Node::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+        result
+    };
+
+    let volumes: Vec<Volume> = {
+        let mut stmt = db.conn().prepare(
+            "SELECT id, topology_id, node_id, name, capacity_bytes, usable_bytes, filesystem, \
+             raid_level, pool_type, item_id, created_at, updated_at \
+             FROM volumes WHERE topology_id = ?1 ORDER BY name",
+        )?;
+        let result = stmt
+            .query_map(params![topology_id], Volume::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+        result
+    };
+
+    let datasets: Vec<Dataset> = {
+        let mut stmt = db.conn().prepare(
+            "SELECT id, topology_id, name, size_bytes, growth_rate_bytes_month, criticality, \
+             min_copies, min_locations, max_rpo_hours, created_at, updated_at \
+             FROM datasets WHERE topology_id = ?1 ORDER BY name",
+        )?;
+        let result = stmt
+            .query_map(params![topology_id], Dataset::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+        result
+    };
+
+    let placements: Vec<Placement> = {
+        let mut stmt = db.conn().prepare(
+            "SELECT id, topology_id, dataset_id, volume_id, role, priority, created_at \
+             FROM placements WHERE topology_id = ?1 ORDER BY role",
+        )?;
+        let result = stmt
+            .query_map(params![topology_id], Placement::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+        result
+    };
+
+    let links: Vec<Link> = {
+        let mut stmt = db.conn().prepare(
+            "SELECT id, topology_id, source_node_id, target_node_id, bandwidth_bytes_sec, \
+             connection_type, latency_ms, is_metered, cost_per_gb_cents, created_at, updated_at \
+             FROM links WHERE topology_id = ?1 ORDER BY connection_type",
+        )?;
+        let result = stmt
+            .query_map(params![topology_id], Link::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+        result
+    };
+
+    let sync_regimes: Vec<SyncRegime> = {
+        let mut stmt = db.conn().prepare(
+            "SELECT id, topology_id, name, dataset_id, source_volume_id, target_volume_id, \
+             sync_type, schedule, direction, created_at, updated_at \
+             FROM sync_regimes WHERE topology_id = ?1 ORDER BY name",
+        )?;
+        let result = stmt
+            .query_map(params![topology_id], SyncRegime::from_row)?
+            .collect::<Result<Vec<_>, _>>()?;
+        result
+    };
+
+    Ok(TopologyExport {
+        topology: topo.clone(),
+        nodes,
+        volumes,
+        datasets,
+        placements,
+        links,
+        sync_regimes,
+    })
 }

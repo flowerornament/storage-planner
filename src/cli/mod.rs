@@ -34,7 +34,7 @@ mod catalog;
 mod dataset;
 mod decision;
 mod diagram;
-mod export;
+pub(crate) mod export;
 mod init;
 mod link;
 mod node;
@@ -176,10 +176,18 @@ pub enum Commands {
     },
 
     /// Undo the last action
-    Undo,
+    Undo {
+        /// Skip the current undo event (move pointer without reversing)
+        #[arg(long)]
+        skip: bool,
+    },
 
     /// Redo the last undone action
-    Redo,
+    Redo {
+        /// Skip the current redo event (move pointer without re-applying)
+        #[arg(long)]
+        skip: bool,
+    },
 }
 
 /// Output format for commands
@@ -292,13 +300,13 @@ impl Cli {
                 let mut db = open_db(&db_path)?;
                 status::run_current(&mut db, topology.as_deref(), format)
             }
-            Commands::Undo => {
+            Commands::Undo { skip } => {
                 let mut db = open_db(&db_path)?;
-                undo::run(&mut db, format)
+                undo::run(&mut db, format, skip)
             }
-            Commands::Redo => {
+            Commands::Redo { skip } => {
                 let mut db = open_db(&db_path)?;
-                redo::run(&mut db, format)
+                redo::run(&mut db, format, skip)
             }
         }
     }

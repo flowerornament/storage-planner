@@ -7,14 +7,19 @@ use crate::core::events;
 
 use super::OutputFormat;
 
-pub fn run(db: &mut Database, format: OutputFormat) -> Result<()> {
-    let summary = events::undo(db)?;
+pub fn run(db: &mut Database, format: OutputFormat, skip: bool) -> Result<()> {
+    let summary = events::undo(db, skip)?;
     match format {
         OutputFormat::Text => {
-            println!("Undone: {}", summary);
+            if skip {
+                println!("Skipped: {}", summary);
+            } else {
+                println!("Undone: {}", summary);
+            }
         }
         OutputFormat::Json => {
-            let json = serde_json::json!({ "action": "undo", "summary": summary });
+            let action = if skip { "skip_undo" } else { "undo" };
+            let json = serde_json::json!({ "action": action, "summary": summary });
             println!("{}", serde_json::to_string_pretty(&json)?);
         }
     }

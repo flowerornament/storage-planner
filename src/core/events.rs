@@ -15,6 +15,7 @@ use super::models::{
     CatalogItem, Dataset, Decision, DecisionConstraint, DecisionTopology, Event, Link, Node,
     Placement, Price, SyncRegime, Topology, Volume,
 };
+use crate::cli::export::TopologyExport;
 
 // ---------------------------------------------------------------------------
 // EventSource
@@ -275,6 +276,108 @@ pub fn update_entity_from_json(
 }
 
 // ---------------------------------------------------------------------------
+// Composite snapshot helpers (for topology/node delete and import undo/redo)
+// ---------------------------------------------------------------------------
+
+/// Node composite snapshot for undo of node deletion
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NodeSnapshot {
+    pub node: Node,
+    #[serde(default)]
+    pub volumes: Vec<Volume>,
+    #[serde(default)]
+    pub placements: Vec<Placement>,
+}
+
+/// Detect if a JSON string is a composite topology snapshot (has "nodes" key).
+fn is_topology_composite(json: &str) -> bool {
+    serde_json::from_str::<serde_json::Value>(json)
+        .ok()
+        .and_then(|v| v.get("nodes").cloned())
+        .is_some()
+}
+
+/// Detect if a JSON string is a composite node snapshot (has "node" key).
+fn is_node_composite(json: &str) -> bool {
+    serde_json::from_str::<serde_json::Value>(json)
+        .ok()
+        .and_then(|v| v.get("node").cloned())
+        .is_some()
+}
+
+/// Restore a full topology and all children from a TopologyExport JSON snapshot.
+/// Inserts in FK-safe order: topology → nodes → volumes → datasets → placements → links → sync_regimes.
+pub fn restore_topology_cascade(tx: &Transaction, json_state: &str) -> Result<()> {
+    let export: TopologyExport = serde_json::from_str(json_state)
+        .context("Failed to deserialize TopologyExport from JSON")?;
+
+    export.topology.insert(tx)?;
+    for node in &export.nodes {
+        node.insert(tx)?;
+    }
+    for vol in &export.volumes {
+        vol.insert(tx)?;
+    }
+    for ds in &export.datasets {
+        ds.insert(tx)?;
+    }
+    for pl in &export.placements {
+        pl.insert(tx)?;
+    }
+    for link in &export.links {
+        link.insert(tx)?;
+    }
+    for sr in &export.sync_regimes {
+        sr.insert(tx)?;
+    }
+
+    Ok(())
+}
+
+/// Restore a node and its children from a NodeSnapshot JSON.
+/// Inserts in FK-safe order: node → volumes → placements.
+fn restore_node_cascade(tx: &Transaction, json_state: &str) -> Result<()> {
+    let snapshot: NodeSnapshot =
+        serde_json::from_str(json_state).context("Failed to deserialize NodeSnapshot from JSON")?;
+
+    snapshot.node.insert(tx)?;
+    for vol in &snapshot.volumes {
+        vol.insert(tx)?;
+    }
+    for pl in &snapshot.placements {
+        pl.insert(tx)?;
+    }
+
+    Ok(())
+}
+
+/// Restore from before_state — handles both composite snapshots and simple entity JSON.
+/// Used by undo of .deleted events.
+fn restore_from_before_state(
+    tx: &Transaction,
+    entity_type: &str,
+    before_state: &str,
+) -> Result<()> {
+    if entity_type == "topology" && is_topology_composite(before_state) {
+        restore_topology_cascade(tx, before_state)
+    } else if entity_type == "node" && is_node_composite(before_state) {
+        restore_node_cascade(tx, before_state)
+    } else {
+        restore_entity_from_json(tx, entity_type, before_state)
+    }
+}
+
+/// Restore from after_state — handles both composite snapshots and simple entity JSON.
+/// Used by redo of .created events (import redo).
+fn restore_from_after_state(tx: &Transaction, entity_type: &str, after_state: &str) -> Result<()> {
+    if entity_type == "topology" && is_topology_composite(after_state) {
+        restore_topology_cascade(tx, after_state)
+    } else {
+        restore_entity_from_json(tx, entity_type, after_state)
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Core event functions
 // ---------------------------------------------------------------------------
 
@@ -347,7 +450,7 @@ pub fn record_event(
 /// Reads the current sequence from undo_pointer, finds the event at that sequence,
 /// reverses the mutation, and decrements the pointer.
 /// Returns the summary of the undone event.
-pub fn undo(db: &mut Database) -> Result<String> {
+pub fn undo(db: &mut Database, skip: bool) -> Result<String> {
     db.transaction(|tx| {
         let current_seq: i64 = tx.query_row(
             "SELECT current_sequence FROM undo_pointer WHERE id = 1",
@@ -366,26 +469,34 @@ pub fn undo(db: &mut Database) -> Result<String> {
             Event::from_row,
         ).context("Failed to find event for undo")?;
 
-        // Reverse based on event_type suffix
-        if event.event_type.ends_with(".created") {
-            // Undo creation = delete the entity
-            delete_entity(tx, &event.entity_type, &event.entity_id)?;
-        } else if event.event_type.ends_with(".deleted") {
-            // Undo deletion = restore from before_state
-            let before = event
-                .before_state
-                .as_deref()
-                .ok_or_else(|| anyhow::anyhow!("No before_state for deleted event"))?;
-            restore_entity_from_json(tx, &event.entity_type, before)?;
-        } else if event.event_type.ends_with(".updated") {
-            // Undo update = restore before_state via UPDATE (preserves FK children)
-            let before = event
-                .before_state
-                .as_deref()
-                .ok_or_else(|| anyhow::anyhow!("No before_state for updated event"))?;
-            update_entity_from_json(tx, &event.entity_type, before)?;
+        if skip {
+            // Skip mode: just move pointer without reversing
+            eprintln!(
+                "Warning: skipped undo of event (not reversed): {}",
+                event.summary
+            );
         } else {
-            bail!("Unknown event type suffix: {}", event.event_type);
+            // Reverse based on event_type suffix
+            if event.event_type.ends_with(".created") {
+                // Undo creation = delete the entity
+                delete_entity(tx, &event.entity_type, &event.entity_id)?;
+            } else if event.event_type.ends_with(".deleted") {
+                // Undo deletion = restore from before_state
+                let before = event
+                    .before_state
+                    .as_deref()
+                    .ok_or_else(|| anyhow::anyhow!("No before_state for deleted event"))?;
+                restore_from_before_state(tx, &event.entity_type, before)?;
+            } else if event.event_type.ends_with(".updated") {
+                // Undo update = restore before_state via UPDATE (preserves FK children)
+                let before = event
+                    .before_state
+                    .as_deref()
+                    .ok_or_else(|| anyhow::anyhow!("No before_state for updated event"))?;
+                update_entity_from_json(tx, &event.entity_type, before)?;
+            } else {
+                bail!("Unknown event type suffix: {}", event.event_type);
+            }
         }
 
         // Decrement pointer
@@ -403,7 +514,7 @@ pub fn undo(db: &mut Database) -> Result<String> {
 /// Reads the current sequence from undo_pointer, finds the event at sequence+1,
 /// re-applies the mutation, and increments the pointer.
 /// Returns the summary of the redone event.
-pub fn redo(db: &mut Database) -> Result<String> {
+pub fn redo(db: &mut Database, skip: bool) -> Result<String> {
     db.transaction(|tx| {
         let current_seq: i64 = tx.query_row(
             "SELECT current_sequence FROM undo_pointer WHERE id = 1",
@@ -420,26 +531,34 @@ pub fn redo(db: &mut Database) -> Result<String> {
             Event::from_row,
         ).map_err(|_| anyhow::anyhow!("Nothing to redo"))?;
 
-        // Re-apply based on event_type suffix
-        if event.event_type.ends_with(".created") {
-            // Redo creation = re-insert from after_state
-            let after = event
-                .after_state
-                .as_deref()
-                .ok_or_else(|| anyhow::anyhow!("No after_state for created event"))?;
-            restore_entity_from_json(tx, &event.entity_type, after)?;
-        } else if event.event_type.ends_with(".deleted") {
-            // Redo deletion = delete the entity again
-            delete_entity(tx, &event.entity_type, &event.entity_id)?;
-        } else if event.event_type.ends_with(".updated") {
-            // Redo update = apply after_state via UPDATE (preserves FK children)
-            let after = event
-                .after_state
-                .as_deref()
-                .ok_or_else(|| anyhow::anyhow!("No after_state for updated event"))?;
-            update_entity_from_json(tx, &event.entity_type, after)?;
+        if skip {
+            // Skip mode: just move pointer without re-applying
+            eprintln!(
+                "Warning: skipped redo of event (not re-applied): {}",
+                event.summary
+            );
         } else {
-            bail!("Unknown event type suffix: {}", event.event_type);
+            // Re-apply based on event_type suffix
+            if event.event_type.ends_with(".created") {
+                // Redo creation = re-insert from after_state
+                let after = event
+                    .after_state
+                    .as_deref()
+                    .ok_or_else(|| anyhow::anyhow!("No after_state for created event"))?;
+                restore_from_after_state(tx, &event.entity_type, after)?;
+            } else if event.event_type.ends_with(".deleted") {
+                // Redo deletion = delete the entity again
+                delete_entity(tx, &event.entity_type, &event.entity_id)?;
+            } else if event.event_type.ends_with(".updated") {
+                // Redo update = apply after_state via UPDATE (preserves FK children)
+                let after = event
+                    .after_state
+                    .as_deref()
+                    .ok_or_else(|| anyhow::anyhow!("No after_state for updated event"))?;
+                update_entity_from_json(tx, &event.entity_type, after)?;
+            } else {
+                bail!("Unknown event type suffix: {}", event.event_type);
+            }
         }
 
         // Increment pointer
@@ -580,7 +699,7 @@ mod tests {
         assert_eq!(count, 1);
 
         // Undo
-        let summary = undo(&mut db).unwrap();
+        let summary = undo(&mut db, false).unwrap();
         assert_eq!(summary, "Created topology 'undo-test'");
 
         // Verify topology is gone
@@ -625,7 +744,7 @@ mod tests {
         .unwrap();
 
         // Undo
-        undo(&mut db).unwrap();
+        undo(&mut db, false).unwrap();
 
         // Verify gone
         let count: i64 = db
@@ -635,7 +754,7 @@ mod tests {
         assert_eq!(count, 0);
 
         // Redo
-        let summary = redo(&mut db).unwrap();
+        let summary = redo(&mut db, false).unwrap();
         assert_eq!(summary, "Created topology 'redo-test'");
 
         // Verify back
@@ -691,9 +810,9 @@ mod tests {
         assert_eq!(count, 3);
 
         // Undo all 3
-        undo(&mut db).unwrap(); // undo topo-3
-        undo(&mut db).unwrap(); // undo topo-2
-        undo(&mut db).unwrap(); // undo topo-1
+        undo(&mut db, false).unwrap(); // undo topo-3
+        undo(&mut db, false).unwrap(); // undo topo-2
+        undo(&mut db, false).unwrap(); // undo topo-1
 
         // Verify all gone
         let count: i64 = db
@@ -703,9 +822,9 @@ mod tests {
         assert_eq!(count, 0);
 
         // Redo all 3
-        redo(&mut db).unwrap(); // redo topo-1
-        redo(&mut db).unwrap(); // redo topo-2
-        redo(&mut db).unwrap(); // redo topo-3
+        redo(&mut db, false).unwrap(); // redo topo-1
+        redo(&mut db, false).unwrap(); // redo topo-2
+        redo(&mut db, false).unwrap(); // redo topo-3
 
         // Verify all back
         let count: i64 = db
@@ -742,7 +861,7 @@ mod tests {
         }
 
         // Undo topo-2
-        undo(&mut db).unwrap();
+        undo(&mut db, false).unwrap();
 
         // Create a new topology (should clear redo stack)
         let topo3 = Topology::new("topo-3", "New topology after undo");
@@ -765,7 +884,7 @@ mod tests {
         .unwrap();
 
         // Try to redo -- should fail because redo stack was cleared
-        let result = redo(&mut db);
+        let result = redo(&mut db, false);
         assert!(result.is_err());
         assert!(
             result.unwrap_err().to_string().contains("Nothing to redo"),
@@ -847,7 +966,7 @@ mod tests {
         assert_eq!(count, 1);
 
         // Undo the update
-        let summary = undo(&mut db).unwrap();
+        let summary = undo(&mut db, false).unwrap();
         assert_eq!(summary, "Tagged topology");
 
         // Node MUST still exist (this was the bug: delete+insert killed children)
@@ -929,8 +1048,8 @@ mod tests {
         .unwrap();
 
         // Undo, then redo
-        undo(&mut db).unwrap();
-        redo(&mut db).unwrap();
+        undo(&mut db, false).unwrap();
+        redo(&mut db, false).unwrap();
 
         // Node must survive redo
         let count: i64 = db
@@ -1023,7 +1142,7 @@ mod tests {
         .unwrap();
 
         // Undo the update — previously would fail with FK error due to fork
-        let result = undo(&mut db);
+        let result = undo(&mut db, false);
         assert!(
             result.is_ok(),
             "Undo of update with fork should succeed: {:?}",
@@ -1045,7 +1164,7 @@ mod tests {
     #[test]
     fn test_undo_nothing() {
         let mut db = setup_db();
-        let result = undo(&mut db);
+        let result = undo(&mut db, false);
         assert!(result.is_err());
         assert!(
             result.unwrap_err().to_string().contains("Nothing to undo"),
@@ -1056,7 +1175,7 @@ mod tests {
     #[test]
     fn test_redo_nothing() {
         let mut db = setup_db();
-        let result = redo(&mut db);
+        let result = redo(&mut db, false);
         assert!(result.is_err());
         assert!(
             result.unwrap_err().to_string().contains("Nothing to redo"),

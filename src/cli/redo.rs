@@ -7,14 +7,19 @@ use crate::core::events;
 
 use super::OutputFormat;
 
-pub fn run(db: &mut Database, format: OutputFormat) -> Result<()> {
-    let summary = events::redo(db)?;
+pub fn run(db: &mut Database, format: OutputFormat, skip: bool) -> Result<()> {
+    let summary = events::redo(db, skip)?;
     match format {
         OutputFormat::Text => {
-            println!("Redone: {}", summary);
+            if skip {
+                println!("Skipped: {}", summary);
+            } else {
+                println!("Redone: {}", summary);
+            }
         }
         OutputFormat::Json => {
-            let json = serde_json::json!({ "action": "redo", "summary": summary });
+            let action = if skip { "skip_redo" } else { "redo" };
+            let json = serde_json::json!({ "action": action, "summary": summary });
             println!("{}", serde_json::to_string_pretty(&json)?);
         }
     }
