@@ -19,6 +19,7 @@ use crate::domains::storage::analysis::{
     load_sync_regimes_with_context,
 };
 
+use super::analyze::catalog_one_time_dollars;
 use super::OutputFormat;
 
 #[derive(Subcommand)]
@@ -1131,6 +1132,7 @@ fn choose(
         let datasets = load_datasets_for_topology(db, ct_id)?;
         let placements = load_placements_with_context(db, ct_id)?;
         let sync_regimes = load_sync_regimes_with_context(db, ct_id)?;
+        let cost = catalog_one_time_dollars(db, &nodes, &volumes)?;
 
         let metrics = compute_topology_metrics(
             ct_name,
@@ -1141,10 +1143,11 @@ fn choose(
             &placements,
             &sync_regimes,
             12,
+            cost,
         );
 
         let constraint_report = if !constraints.is_empty() {
-            Some(check_constraints(&constraints, &nodes))
+            Some(check_constraints(&constraints, &nodes, cost))
         } else {
             None
         };
@@ -1282,6 +1285,7 @@ fn abandon(
         let datasets = load_datasets_for_topology(db, ct_id)?;
         let placements = load_placements_with_context(db, ct_id)?;
         let sync_regimes = load_sync_regimes_with_context(db, ct_id)?;
+        let cost = catalog_one_time_dollars(db, &nodes, &volumes)?;
 
         let metrics = compute_topology_metrics(
             ct_name,
@@ -1292,10 +1296,11 @@ fn abandon(
             &placements,
             &sync_regimes,
             12,
+            cost,
         );
 
         let constraint_report = if !constraints.is_empty() {
-            Some(check_constraints(&constraints, &nodes))
+            Some(check_constraints(&constraints, &nodes, cost))
         } else {
             None
         };

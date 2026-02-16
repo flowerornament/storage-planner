@@ -912,13 +912,20 @@ pub struct ConstraintReport {
 /// For each constraint, sums the relevant field across all nodes and compares
 /// against the constraint's max_value. Returns pass/warn/fail per constraint.
 ///
+/// `catalog_cost` overrides node.cost_estimate for the "budget" constraint when
+/// catalog items are linked. Pass None to fall back to node.cost_estimate sum.
+///
 /// Status logic:
 /// - actual > limit => Fail
 /// - actual > limit * 0.9 => Warn
 /// - else => Pass
 ///
 /// Score = (passing_count / total_count) * 100.0 (100.0 if no constraints).
-pub fn check_constraints(constraints: &[DecisionConstraint], nodes: &[Node]) -> ConstraintReport {
+pub fn check_constraints(
+    constraints: &[DecisionConstraint],
+    nodes: &[Node],
+    catalog_cost: Option<f64>,
+) -> ConstraintReport {
     if constraints.is_empty() {
         return ConstraintReport {
             score: 100.0,
@@ -931,7 +938,9 @@ pub fn check_constraints(constraints: &[DecisionConstraint], nodes: &[Node]) -> 
 
     for constraint in constraints {
         let actual: f64 = match constraint.constraint_type.as_str() {
-            "budget" => nodes.iter().filter_map(|n| n.cost_estimate).sum(),
+            "budget" => {
+                catalog_cost.unwrap_or_else(|| nodes.iter().filter_map(|n| n.cost_estimate).sum())
+            }
             "noise" => nodes.iter().filter_map(|n| n.noise_db).sum(),
             "power" => nodes.iter().filter_map(|n| n.power_draw_watts).sum(),
             "rack_units" => nodes.iter().filter_map(|n| n.rack_units).sum(),
@@ -1251,6 +1260,9 @@ pub struct ComparisonReport {
 }
 
 /// Compute aggregated metrics for a topology from its constituent data.
+///
+/// `catalog_cost` overrides node.cost_estimate for total_cost_estimate when
+/// catalog items are linked. Pass None to fall back to node.cost_estimate sum.
 #[allow(clippy::too_many_arguments)]
 pub fn compute_topology_metrics(
     name: &str,
@@ -1261,6 +1273,7 @@ pub fn compute_topology_metrics(
     placements: &[PlacementWithContext],
     sync_regimes: &[SyncRegimeWithContext],
     warn_months: i32,
+    catalog_cost: Option<f64>,
 ) -> TopologyMetrics {
     let node_count = nodes.len();
     let volume_count = volumes.len();
@@ -1270,7 +1283,8 @@ pub fn compute_topology_metrics(
         .map(|v| v.usable_bytes.unwrap_or(v.capacity_bytes))
         .sum();
     let dataset_count = datasets.len();
-    let total_cost_estimate: f64 = nodes.iter().filter_map(|n| n.cost_estimate).sum();
+    let total_cost_estimate: f64 =
+        catalog_cost.unwrap_or_else(|| nodes.iter().filter_map(|n| n.cost_estimate).sum());
     let total_noise_db: f64 = nodes.iter().filter_map(|n| n.noise_db).sum();
     let total_power_watts: f64 = nodes.iter().filter_map(|n| n.power_draw_watts).sum();
     let total_rack_units: f64 = nodes.iter().filter_map(|n| n.rack_units).sum();
@@ -2045,7 +2059,7 @@ mod tests {
             make_node_with_attrs("enclosure", Some(150.0), Some(5.0), Some(0.0), None),
         ];
 
-        let report = check_constraints(&constraints, &nodes);
+        let report = check_constraints(&constraints, &nodes, None);
         assert_eq!(report.score, 100.0);
         assert!(!report.has_failures);
         assert_eq!(report.results.len(), 2);
@@ -2065,7 +2079,7 @@ mod tests {
             make_node_with_attrs("enclosure", Some(300.0), None, None, None),
         ];
 
-        let report = check_constraints(&constraints, &nodes);
+        let report = check_constraints(&constraints, &nodes, None);
         assert_eq!(report.results[0].status, ConstraintStatus::Warn);
         assert!(!report.has_failures);
         assert!((report.results[0].actual - 920.0).abs() < 0.01);
@@ -2079,7 +2093,7 @@ mod tests {
             make_node_with_attrs("enclosure", Some(150.0), None, None, None),
         ];
 
-        let report = check_constraints(&constraints, &nodes);
+        let report = check_constraints(&constraints, &nodes, None);
         assert_eq!(report.score, 0.0);
         assert!(report.has_failures);
         assert_eq!(report.results[0].status, ConstraintStatus::Fail);
@@ -2088,7 +2102,7 @@ mod tests {
 
     #[test]
     fn test_check_constraints_empty() {
-        let report = check_constraints(&[], &[]);
+        let report = check_constraints(&[], &[], None);
         assert_eq!(report.score, 100.0);
         assert!(!report.has_failures);
         assert!(report.results.is_empty());
@@ -2102,9 +2116,31 @@ mod tests {
             make_node_with_attrs("nas", None, None, Some(45.0), None),
         ];
 
-        let report = check_constraints(&constraints, &nodes);
+        let report = check_constraints(&constraints, &nodes, None);
         assert_eq!(report.results[0].status, ConstraintStatus::Pass);
         assert!((report.results[0].actual - 84.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_check_constraints_budget_uses_catalog_cost() {
+        let constraints = vec![make_constraint("budget", 1000.0)];
+        // Nodes have cost_estimate $0 -- without catalog_cost, budget would show $0
+        let nodes = vec![make_node_with_attrs("nas", None, None, Some(45.0), None)];
+
+        // Without catalog cost: falls back to node.cost_estimate (None -> 0)
+        let report = check_constraints(&constraints, &nodes, None);
+        assert!((report.results[0].actual - 0.0).abs() < 0.01);
+        assert_eq!(report.results[0].status, ConstraintStatus::Pass);
+
+        // With catalog cost: uses the provided value
+        let report = check_constraints(&constraints, &nodes, Some(580.0));
+        assert!((report.results[0].actual - 580.0).abs() < 0.01);
+        assert_eq!(report.results[0].status, ConstraintStatus::Pass);
+
+        // Catalog cost exceeds budget
+        let report = check_constraints(&constraints, &nodes, Some(1100.0));
+        assert!((report.results[0].actual - 1100.0).abs() < 0.01);
+        assert_eq!(report.results[0].status, ConstraintStatus::Fail);
     }
 
     // -----------------------------------------------------------------------

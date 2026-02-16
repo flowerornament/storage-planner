@@ -897,7 +897,7 @@ fn run_cost(
 }
 
 /// Build EntityCost entries by looking up latest prices for entities with item_id.
-fn build_entity_costs(
+pub(crate) fn build_entity_costs(
     db: &Database,
     nodes: &[Node],
     volumes: &[Volume],
@@ -943,6 +943,22 @@ fn build_entity_costs(
     }
 
     Ok(entities)
+}
+
+/// Compute catalog-derived one-time cost in dollars, if any entities have catalog items linked.
+/// Returns None if no entities have item_id set (falls back to node.cost_estimate).
+pub(crate) fn catalog_one_time_dollars(
+    db: &Database,
+    nodes: &[Node],
+    volumes: &[Volume],
+) -> Result<Option<f64>> {
+    let entities = build_entity_costs(db, nodes, volumes)?;
+    if entities.iter().any(|e| e.item_id.is_some()) {
+        let report = analyze_cost(&entities);
+        Ok(Some(report.one_time_total_cents as f64 / 100.0))
+    } else {
+        Ok(None)
+    }
 }
 
 /// Load latest price for an item and return (item_name, one_time_cents, monthly_cents, annual_cents).
@@ -1232,8 +1248,10 @@ fn run_constraints(
     // Resolve topology
     let topo = resolve_active_topology(db, topology_override)?;
     let nodes = load_nodes(db, &topo.id)?;
+    let volumes = load_volumes(db, &topo.id)?;
+    let cost = catalog_one_time_dollars(db, &nodes, &volumes)?;
 
-    let report = check_constraints(&constraints, &nodes);
+    let report = check_constraints(&constraints, &nodes, cost);
 
     match format {
         OutputFormat::Text => {
@@ -1366,6 +1384,10 @@ fn run_compare(
     let placements_b = load_placements_with_context(db, &topo_b.id)?;
     let sync_regimes_b = load_sync_regimes(db, &topo_b.id)?;
 
+    // Compute catalog-derived costs for each topology
+    let cost_a = catalog_one_time_dollars(db, &nodes_a, &volumes_a)?;
+    let cost_b = catalog_one_time_dollars(db, &nodes_b, &volumes_b)?;
+
     let metrics_a = compute_topology_metrics(
         &topo_a.name,
         &topo_a.id,
@@ -1375,6 +1397,7 @@ fn run_compare(
         &placements_a,
         &sync_regimes_a,
         warn_months,
+        cost_a,
     );
     let metrics_b = compute_topology_metrics(
         &topo_b.name,
@@ -1385,6 +1408,7 @@ fn run_compare(
         &placements_b,
         &sync_regimes_b,
         warn_months,
+        cost_b,
     );
 
     // Optional constraint checking within decision context
@@ -1405,8 +1429,8 @@ fn run_compare(
             (None, None)
         } else {
             (
-                Some(check_constraints(&constraints, &nodes_a)),
-                Some(check_constraints(&constraints, &nodes_b)),
+                Some(check_constraints(&constraints, &nodes_a, cost_a)),
+                Some(check_constraints(&constraints, &nodes_b, cost_b)),
             )
         }
     } else {
