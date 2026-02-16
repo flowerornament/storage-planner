@@ -3,7 +3,6 @@ name = "storage-planner"
 version = "0.1.0"
 edition = "2021"
 description = "CLI tool for evaluating storage and purchase decisions"
-authors = ["Morgan"]
 license = "MIT"
 
 [[bin]]
