@@ -50,7 +50,7 @@ sp volume add <name> --node=<node> --capacity=4TB
 sp dataset add <name> --size=500GB --criticality=critical --min-copies=3
 sp placement add <ds> <vol> --role=primary
 sp link add --from=<source-node> --to=<target-node> --connection-type=lan --bandwidth=1GB/s
-sp sync add <name> --dataset=<ds> --from=<vol> --to=<vol> --type=rsync
+sp sync add <name> --dataset=<ds> --from=<vol> --to=<vol> --sync-type=rsync
 ```
 
 ### 4. Analyze Options
