@@ -42,10 +42,19 @@ v1.0 delivers the complete purchase decision workflow:
 ### Out of Scope
 
 - GUI or web interface — CLI only, designed for AI agents
-- Real-time sync daemon — tool is stateless between commands
 - Multi-user collaboration — single-user local tool
-- Cloud storage — SQLite database, local only
 - Automatic purchasing — provides recommendations, human executes
+- **Live pricing APIs** — catalog data sourced from Herald (see Architecture Decision below)
+
+### Architecture Decision: Catalog Lives in Herald (2026-02-16)
+
+The original plan had `sp` calling Best Buy/eBay APIs directly for pricing. This was never implemented, and the design has shifted:
+
+- **Herald** (`~/code/herald`) owns the product catalog domain — PostgreSQL, Oban background jobs for periodic price refresh, API integrations (Best Buy, eBay), MCP tools for querying
+- **sp** keeps its local `catalog_items` and `prices` tables for manual entry and as a working set during topology modeling and decision comparison
+- Long-term, `sp` may query Herald's catalog via MCP rather than maintaining its own, but the local catalog remains useful for offline/manual workflows
+
+**Rationale:** Herald already has the infrastructure for background data sync (Oban, circuit breakers, PostgreSQL). Building a price-refreshing daemon into a CLI tool is architecturally awkward — it requires cron/launchd, token persistence, and error recovery that Herald already handles.
 
 ## Context
 
@@ -87,6 +96,7 @@ Requirements: budget < $1000, noise = 0dB, capacity >= 8TB, maintain 3 copies of
 | YAML for topology exchange | serde_yaml_ng for import/export | Good — human-readable, agent-friendly |
 | Markdown for sp prime | Not JSON — agent bootstrap is read by LLMs | Good — natural for agents |
 | Slug validation for names | Alphanumeric, hyphens, underscores only | Good — prevents quoting issues |
+| Catalog moves to Herald | Herald has PostgreSQL + Oban + sync infra; CLI shouldn't be a daemon | Good — clear separation of concerns |
 
 ## Tech Debt (from v1.0)
 
