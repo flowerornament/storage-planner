@@ -1,4 +1,6 @@
 {
-  "database": "beads.db",
-  "jsonl_export": "issues.jsonl"
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_database": "storage-planner",
+  "project_id": "6150d49c-cca9-46fa-9b2a-c71147c460b9"
 }
