@@ -144,7 +144,7 @@ pub fn run(
     warn_months: i32,
 ) -> Result<()> {
     match cmd {
-        None => run_all(
+        None => run_dashboard(
             db,
             topology_override.as_deref(),
             verbose,
@@ -192,7 +192,7 @@ pub fn run(
 // Combined dashboard ("sp analyze" with no subcommand)
 // ---------------------------------------------------------------------------
 
-fn run_all(
+fn run_dashboard(
     db: &mut Database,
     topology_override: Option<&str>,
     verbose: bool,
@@ -200,8 +200,8 @@ fn run_all(
     format: OutputFormat,
 ) -> Result<()> {
     let topo = resolve_active_topology(db, topology_override)?;
-    let datasets = load_datasets(db, &topo.id)?;
-    let volumes = load_volumes(db, &topo.id)?;
+    let datasets = Dataset::load_for_topology(db, &topo.id)?;
+    let volumes = Volume::load_for_topology(db, &topo.id)?;
     let placements = load_placements_with_context(db, &topo.id)?;
     let sync_regimes = load_sync_regimes_with_context(db, &topo.id)?;
 
@@ -228,7 +228,8 @@ fn run_all(
             print_capacity_text(&capacity, verbose);
 
             // One-line cost summary if any catalog items are linked
-            let cost_entities = build_entity_costs(db, &load_nodes(db, &topo.id)?, &volumes)?;
+            let cost_entities =
+                build_entity_costs(db, &Node::load_for_topology(db, &topo.id)?, &volumes)?;
             if cost_entities.iter().any(|e| e.item_id.is_some()) {
                 let cost_report = analyze_cost(&cost_entities);
                 let one_time_str =
@@ -243,7 +244,8 @@ fn run_all(
             }
         }
         OutputFormat::Json => {
-            let cost_entities = build_entity_costs(db, &load_nodes(db, &topo.id)?, &volumes)?;
+            let cost_entities =
+                build_entity_costs(db, &Node::load_for_topology(db, &topo.id)?, &volumes)?;
             let cost_report = if cost_entities.iter().any(|e| e.item_id.is_some()) {
                 Some(analyze_cost(&cost_entities))
             } else {
@@ -276,7 +278,7 @@ fn run_redundancy(
     format: OutputFormat,
 ) -> Result<()> {
     let topo = resolve_active_topology(db, topology_override)?;
-    let datasets = load_datasets(db, &topo.id)?;
+    let datasets = Dataset::load_for_topology(db, &topo.id)?;
     let placements = load_placements_with_context(db, &topo.id)?;
 
     let report = analyze_redundancy(&datasets, &placements);
@@ -383,7 +385,7 @@ fn run_rpo(
     format: OutputFormat,
 ) -> Result<()> {
     let topo = resolve_active_topology(db, topology_override)?;
-    let datasets = load_datasets(db, &topo.id)?;
+    let datasets = Dataset::load_for_topology(db, &topo.id)?;
     let sync_regimes = load_sync_regimes_with_context(db, &topo.id)?;
 
     let report = analyze_rpo(&datasets, &sync_regimes);
@@ -486,8 +488,8 @@ fn run_failure(
     format: OutputFormat,
 ) -> Result<()> {
     let topo = resolve_active_topology(db, topology_override)?;
-    let nodes = load_nodes(db, &topo.id)?;
-    let datasets = load_datasets(db, &topo.id)?;
+    let nodes = Node::load_for_topology(db, &topo.id)?;
+    let datasets = Dataset::load_for_topology(db, &topo.id)?;
     let placements = load_placements_with_context(db, &topo.id)?;
 
     let report = simulate_failure(node_names, &nodes, &datasets, &placements)?;
@@ -618,8 +620,8 @@ fn run_capacity(
     format: OutputFormat,
 ) -> Result<()> {
     let topo = resolve_active_topology(db, topology_override)?;
-    let datasets = load_datasets(db, &topo.id)?;
-    let volumes = load_volumes(db, &topo.id)?;
+    let datasets = Dataset::load_for_topology(db, &topo.id)?;
+    let volumes = Volume::load_for_topology(db, &topo.id)?;
     let placements = load_placements_with_context(db, &topo.id)?;
 
     let report = analyze_capacity(&datasets, &volumes, &placements, warn_months);
@@ -741,14 +743,14 @@ fn run_bandwidth(
 ) -> Result<()> {
     let topo = resolve_active_topology(db, topology_override)?;
     let sync_regimes = load_sync_regimes_with_context(db, &topo.id)?;
-    let volumes = load_volumes(db, &topo.id)?;
-    let datasets = load_datasets(db, &topo.id)?;
-    let links = load_links(db, &topo.id)?;
+    let volumes = Volume::load_for_topology(db, &topo.id)?;
+    let datasets = Dataset::load_for_topology(db, &topo.id)?;
+    let links = Link::load_for_topology(db, &topo.id)?;
 
     let report = analyze_bandwidth(&sync_regimes, &volumes, &links, &datasets);
 
     // Build node_id -> node_name map for display
-    let nodes = load_nodes(db, &topo.id)?;
+    let nodes = Node::load_for_topology(db, &topo.id)?;
     let node_names: std::collections::HashMap<&str, &str> = nodes
         .iter()
         .map(|n| (n.id.as_str(), n.name.as_str()))
@@ -854,8 +856,8 @@ fn run_cost(
     format: OutputFormat,
 ) -> Result<()> {
     let topo = resolve_active_topology(db, topology_override)?;
-    let nodes = load_nodes(db, &topo.id)?;
-    let volumes = load_volumes(db, &topo.id)?;
+    let nodes = Node::load_for_topology(db, &topo.id)?;
+    let volumes = Volume::load_for_topology(db, &topo.id)?;
 
     let entities = build_entity_costs(db, &nodes, &volumes)?;
     let report = analyze_cost(&entities);
@@ -1245,8 +1247,8 @@ fn run_constraints(
 
     // Resolve topology
     let topo = resolve_active_topology(db, topology_override)?;
-    let nodes = load_nodes(db, &topo.id)?;
-    let volumes = load_volumes(db, &topo.id)?;
+    let nodes = Node::load_for_topology(db, &topo.id)?;
+    let volumes = Volume::load_for_topology(db, &topo.id)?;
     let cost = catalog_one_time_dollars(db, &nodes, &volumes)?;
 
     let report = check_constraints(&constraints, &nodes, cost);
@@ -1369,16 +1371,16 @@ fn run_compare(
     let topo_b = resolve_topology(db, name_b)?;
 
     // Load data for topology A
-    let nodes_a = load_nodes(db, &topo_a.id)?;
-    let volumes_a = load_volumes(db, &topo_a.id)?;
-    let datasets_a = load_datasets(db, &topo_a.id)?;
+    let nodes_a = Node::load_for_topology(db, &topo_a.id)?;
+    let volumes_a = Volume::load_for_topology(db, &topo_a.id)?;
+    let datasets_a = Dataset::load_for_topology(db, &topo_a.id)?;
     let placements_a = load_placements_with_context(db, &topo_a.id)?;
     let sync_regimes_a = load_sync_regimes_with_context(db, &topo_a.id)?;
 
     // Load data for topology B
-    let nodes_b = load_nodes(db, &topo_b.id)?;
-    let volumes_b = load_volumes(db, &topo_b.id)?;
-    let datasets_b = load_datasets(db, &topo_b.id)?;
+    let nodes_b = Node::load_for_topology(db, &topo_b.id)?;
+    let volumes_b = Volume::load_for_topology(db, &topo_b.id)?;
+    let datasets_b = Dataset::load_for_topology(db, &topo_b.id)?;
     let placements_b = load_placements_with_context(db, &topo_b.id)?;
     let sync_regimes_b = load_sync_regimes_with_context(db, &topo_b.id)?;
 
@@ -1597,8 +1599,8 @@ fn print_simple_diff(
     topo_b_name: &str,
 ) -> Result<()> {
     // Node comparison
-    let nodes_a = load_nodes(db, topo_a_id)?;
-    let nodes_b = load_nodes(db, topo_b_id)?;
+    let nodes_a = Node::load_for_topology(db, topo_a_id)?;
+    let nodes_b = Node::load_for_topology(db, topo_b_id)?;
 
     let names_a: std::collections::HashSet<String> =
         nodes_a.iter().map(|n| n.name.clone()).collect();
@@ -1627,8 +1629,8 @@ fn print_simple_diff(
     }
 
     // Volume comparison
-    let volumes_a = load_volumes(db, topo_a_id)?;
-    let volumes_b = load_volumes(db, topo_b_id)?;
+    let volumes_a = Volume::load_for_topology(db, topo_a_id)?;
+    let volumes_b = Volume::load_for_topology(db, topo_b_id)?;
 
     let vol_names_a: std::collections::HashSet<String> =
         volumes_a.iter().map(|v| v.name.clone()).collect();
@@ -1669,8 +1671,8 @@ fn build_diff_json(
     topo_a_id: &str,
     topo_b_id: &str,
 ) -> Result<serde_json::Value> {
-    let nodes_a = load_nodes(db, topo_a_id)?;
-    let nodes_b = load_nodes(db, topo_b_id)?;
+    let nodes_a = Node::load_for_topology(db, topo_a_id)?;
+    let nodes_b = Node::load_for_topology(db, topo_b_id)?;
 
     let names_a: std::collections::HashSet<String> =
         nodes_a.iter().map(|n| n.name.clone()).collect();
@@ -1681,8 +1683,8 @@ fn build_diff_json(
     let only_b: Vec<String> = names_b.difference(&names_a).cloned().collect();
     let common: Vec<String> = names_a.intersection(&names_b).cloned().collect();
 
-    let volumes_a = load_volumes(db, topo_a_id)?;
-    let volumes_b = load_volumes(db, topo_b_id)?;
+    let volumes_a = Volume::load_for_topology(db, topo_a_id)?;
+    let volumes_b = Volume::load_for_topology(db, topo_b_id)?;
 
     let vol_names_a: std::collections::HashSet<String> =
         volumes_a.iter().map(|v| v.name.clone()).collect();
@@ -1708,62 +1710,6 @@ fn build_diff_json(
 // ---------------------------------------------------------------------------
 // Shared helpers
 // ---------------------------------------------------------------------------
-
-/// Load all datasets for a topology.
-fn load_datasets(db: &Database, topology_id: &str) -> Result<Vec<Dataset>> {
-    let results = {
-        let mut stmt = db.conn().prepare(
-            "SELECT id, topology_id, name, size_bytes, growth_rate_bytes_month, \
-             criticality, min_copies, min_locations, max_rpo_hours, created_at, updated_at \
-             FROM datasets WHERE topology_id = ?1 ORDER BY name",
-        )?;
-        let rows = stmt.query_map(params![topology_id], Dataset::from_row)?;
-        rows.collect::<Result<Vec<_>, _>>()?
-    };
-    Ok(results)
-}
-
-/// Load all volumes for a topology.
-fn load_volumes(db: &Database, topology_id: &str) -> Result<Vec<Volume>> {
-    let results = {
-        let mut stmt = db.conn().prepare(
-            "SELECT id, topology_id, node_id, name, capacity_bytes, usable_bytes, \
-             filesystem, raid_level, pool_type, item_id, created_at, updated_at \
-             FROM volumes WHERE topology_id = ?1 ORDER BY name",
-        )?;
-        let rows = stmt.query_map(params![topology_id], Volume::from_row)?;
-        rows.collect::<Result<Vec<_>, _>>()?
-    };
-    Ok(results)
-}
-
-/// Load all nodes for a topology.
-fn load_nodes(db: &Database, topology_id: &str) -> Result<Vec<Node>> {
-    let results = {
-        let mut stmt = db.conn().prepare(
-            "SELECT id, topology_id, name, role, location, available_bays, \
-             interface_types, power_draw_watts, cost_estimate, noise_db, rack_units, item_id, created_at, updated_at \
-             FROM nodes WHERE topology_id = ?1 ORDER BY name",
-        )?;
-        let rows = stmt.query_map(params![topology_id], Node::from_row)?;
-        rows.collect::<Result<Vec<_>, _>>()?
-    };
-    Ok(results)
-}
-
-/// Load all links for a topology.
-fn load_links(db: &Database, topology_id: &str) -> Result<Vec<Link>> {
-    let results = {
-        let mut stmt = db.conn().prepare(
-            "SELECT id, topology_id, source_node_id, target_node_id, bandwidth_bytes_sec, \
-             connection_type, latency_ms, is_metered, cost_per_gb_cents, created_at, updated_at \
-             FROM links WHERE topology_id = ?1",
-        )?;
-        let rows = stmt.query_map(params![topology_id], Link::from_row)?;
-        rows.collect::<Result<Vec<_>, _>>()?
-    };
-    Ok(results)
-}
 
 /// Print a colored analysis header line.
 fn print_analysis_header(name: &str, score: f64, detail: &str) {

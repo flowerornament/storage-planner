@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use rusqlite::params;
 use uuid::Uuid;
 
@@ -140,7 +140,8 @@ pub fn run_export(
 
     match output {
         Some(path) => {
-            std::fs::write(path, &yaml)?;
+            std::fs::write(path, &yaml)
+                .with_context(|| format!("Failed to write export to: {}", path.display()))?;
             eprintln!(
                 "Exported topology '{}' to {}",
                 export.topology.name,
@@ -208,8 +209,10 @@ fn strip_ids(export: &mut TopologyExport) {
 // ---------------------------------------------------------------------------
 
 pub fn run_import(db: &mut Database, file: &PathBuf, name: Option<&str>) -> Result<()> {
-    let yaml_content = std::fs::read_to_string(file)?;
-    let export: TopologyExport = serde_yaml_ng::from_str(&yaml_content)?;
+    let yaml_content = std::fs::read_to_string(file)
+        .with_context(|| format!("Failed to read import file: {}", file.display()))?;
+    let export: TopologyExport = serde_yaml_ng::from_str(&yaml_content)
+        .with_context(|| format!("Failed to parse YAML from: {}", file.display()))?;
 
     // Determine the topology name
     let topo_name = match name {

@@ -5,9 +5,12 @@
 //!
 //! Entities: Topology, Node, Volume, Dataset, Placement, Link, SyncRegime, Event
 
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use rusqlite::{params, Row, Transaction};
 use serde::{Deserialize, Serialize};
+
+use crate::core::db::Database;
 
 // ---------------------------------------------------------------------------
 // Topology
@@ -181,6 +184,20 @@ impl Node {
     pub fn to_json(&self) -> anyhow::Result<String> {
         Ok(serde_json::to_string(self)?)
     }
+
+    /// Load all nodes for a topology, ordered by name.
+    pub fn load_for_topology(db: &Database, topology_id: &str) -> Result<Vec<Self>> {
+        let results = {
+            let mut stmt = db.conn().prepare(
+                "SELECT id, topology_id, name, role, location, available_bays, \
+                 interface_types, power_draw_watts, cost_estimate, noise_db, rack_units, item_id, created_at, updated_at \
+                 FROM nodes WHERE topology_id = ?1 ORDER BY name",
+            )?;
+            let rows = stmt.query_map(params![topology_id], Node::from_row)?;
+            rows.collect::<Result<Vec<_>, _>>()?
+        };
+        Ok(results)
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -277,6 +294,20 @@ impl Volume {
     pub fn to_json(&self) -> anyhow::Result<String> {
         Ok(serde_json::to_string(self)?)
     }
+
+    /// Load all volumes for a topology, ordered by name.
+    pub fn load_for_topology(db: &Database, topology_id: &str) -> Result<Vec<Self>> {
+        let results = {
+            let mut stmt = db.conn().prepare(
+                "SELECT id, topology_id, node_id, name, capacity_bytes, usable_bytes, \
+                 filesystem, raid_level, pool_type, item_id, created_at, updated_at \
+                 FROM volumes WHERE topology_id = ?1 ORDER BY name",
+            )?;
+            let rows = stmt.query_map(params![topology_id], Volume::from_row)?;
+            rows.collect::<Result<Vec<_>, _>>()?
+        };
+        Ok(results)
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -363,6 +394,20 @@ impl Dataset {
 
     pub fn to_json(&self) -> anyhow::Result<String> {
         Ok(serde_json::to_string(self)?)
+    }
+
+    /// Load all datasets for a topology, ordered by name.
+    pub fn load_for_topology(db: &Database, topology_id: &str) -> Result<Vec<Self>> {
+        let results = {
+            let mut stmt = db.conn().prepare(
+                "SELECT id, topology_id, name, size_bytes, growth_rate_bytes_month, \
+                 criticality, min_copies, min_locations, max_rpo_hours, created_at, updated_at \
+                 FROM datasets WHERE topology_id = ?1 ORDER BY name",
+            )?;
+            let rows = stmt.query_map(params![topology_id], Dataset::from_row)?;
+            rows.collect::<Result<Vec<_>, _>>()?
+        };
+        Ok(results)
     }
 }
 
@@ -527,6 +572,20 @@ impl Link {
 
     pub fn to_json(&self) -> anyhow::Result<String> {
         Ok(serde_json::to_string(self)?)
+    }
+
+    /// Load all links for a topology.
+    pub fn load_for_topology(db: &Database, topology_id: &str) -> Result<Vec<Self>> {
+        let results = {
+            let mut stmt = db.conn().prepare(
+                "SELECT id, topology_id, source_node_id, target_node_id, bandwidth_bytes_sec, \
+                 connection_type, latency_ms, is_metered, cost_per_gb_cents, created_at, updated_at \
+                 FROM links WHERE topology_id = ?1",
+            )?;
+            let rows = stmt.query_map(params![topology_id], Link::from_row)?;
+            rows.collect::<Result<Vec<_>, _>>()?
+        };
+        Ok(results)
     }
 }
 
@@ -1107,7 +1166,6 @@ pub struct TopologyExport {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::db::Database;
 
     #[test]
     fn test_topology_new() {

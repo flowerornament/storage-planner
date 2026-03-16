@@ -1127,9 +1127,9 @@ fn choose(
 
     let mut snapshot_topos = Vec::new();
     for (ct_id, ct_name) in &considered_topos {
-        let nodes = load_nodes_for_topology(db, ct_id)?;
-        let volumes = load_volumes_for_topology(db, ct_id)?;
-        let datasets = load_datasets_for_topology(db, ct_id)?;
+        let nodes = Node::load_for_topology(db, ct_id)?;
+        let volumes = Volume::load_for_topology(db, ct_id)?;
+        let datasets = Dataset::load_for_topology(db, ct_id)?;
         let placements = load_placements_with_context(db, ct_id)?;
         let sync_regimes = load_sync_regimes_with_context(db, ct_id)?;
         let cost = catalog_one_time_dollars(db, &nodes, &volumes)?;
@@ -1280,9 +1280,9 @@ fn abandon(
 
     let mut snapshot_topos = Vec::new();
     for (ct_id, ct_name) in &considered_topos {
-        let nodes = load_nodes_for_topology(db, ct_id)?;
-        let volumes = load_volumes_for_topology(db, ct_id)?;
-        let datasets = load_datasets_for_topology(db, ct_id)?;
+        let nodes = Node::load_for_topology(db, ct_id)?;
+        let volumes = Volume::load_for_topology(db, ct_id)?;
+        let datasets = Dataset::load_for_topology(db, ct_id)?;
         let placements = load_placements_with_context(db, ct_id)?;
         let sync_regimes = load_sync_regimes_with_context(db, ct_id)?;
         let cost = catalog_one_time_dollars(db, &nodes, &volumes)?;
@@ -1442,42 +1442,3 @@ fn reopen(db: &mut Database, name: &str, format: OutputFormat) -> Result<()> {
 // ---------------------------------------------------------------------------
 // Shared helpers for decision commands
 // ---------------------------------------------------------------------------
-
-fn load_nodes_for_topology(db: &Database, topology_id: &str) -> Result<Vec<Node>> {
-    let results = {
-        let mut stmt = db.conn().prepare(
-            "SELECT id, topology_id, name, role, location, available_bays, interface_types, \
-             power_draw_watts, cost_estimate, noise_db, rack_units, item_id, created_at, updated_at \
-             FROM nodes WHERE topology_id = ?1 ORDER BY name",
-        )?;
-        let rows = stmt.query_map(params![topology_id], Node::from_row)?;
-        rows.collect::<Result<Vec<_>, _>>()?
-    };
-    Ok(results)
-}
-
-fn load_volumes_for_topology(db: &Database, topology_id: &str) -> Result<Vec<Volume>> {
-    let results = {
-        let mut stmt = db.conn().prepare(
-            "SELECT id, topology_id, node_id, name, capacity_bytes, usable_bytes, \
-             filesystem, raid_level, pool_type, item_id, created_at, updated_at \
-             FROM volumes WHERE topology_id = ?1 ORDER BY name",
-        )?;
-        let rows = stmt.query_map(params![topology_id], Volume::from_row)?;
-        rows.collect::<Result<Vec<_>, _>>()?
-    };
-    Ok(results)
-}
-
-fn load_datasets_for_topology(db: &Database, topology_id: &str) -> Result<Vec<Dataset>> {
-    let results = {
-        let mut stmt = db.conn().prepare(
-            "SELECT id, topology_id, name, size_bytes, growth_rate_bytes_month, \
-             criticality, min_copies, min_locations, max_rpo_hours, created_at, updated_at \
-             FROM datasets WHERE topology_id = ?1 ORDER BY name",
-        )?;
-        let rows = stmt.query_map(params![topology_id], Dataset::from_row)?;
-        rows.collect::<Result<Vec<_>, _>>()?
-    };
-    Ok(results)
-}

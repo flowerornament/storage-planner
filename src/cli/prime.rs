@@ -5,7 +5,6 @@
 //! Designed as the first command an AI agent runs to understand the system.
 
 use anyhow::Result;
-use rusqlite::params;
 
 use crate::core::db::Database;
 use crate::core::resolve::resolve_active_topology;
@@ -250,22 +249,12 @@ fn gather_brief_problems(db: &mut Database) -> Result<Vec<String>> {
 
     // Basic redundancy check on current topology
     if let Ok(topo) = resolve_active_topology(db, None) {
-        use crate::core::models::Dataset;
+        use crate::core::models::{Dataset, Volume};
         use crate::domains::storage::analysis::{
             analyze_capacity, analyze_redundancy, load_placements_with_context,
         };
 
-        let datasets: Vec<Dataset> = {
-            let mut stmt = db.conn().prepare(
-                "SELECT id, topology_id, name, size_bytes, growth_rate_bytes_month, \
-                 criticality, min_copies, min_locations, max_rpo_hours, created_at, updated_at \
-                 FROM datasets WHERE topology_id = ?1",
-            )?;
-            let result = stmt
-                .query_map(params![topo.id], Dataset::from_row)?
-                .collect::<Result<Vec<_>, _>>()?;
-            result
-        };
+        let datasets = Dataset::load_for_topology(db, &topo.id)?;
 
         if !datasets.is_empty() {
             let placements = load_placements_with_context(db, &topo.id)?;
@@ -277,17 +266,7 @@ fn gather_brief_problems(db: &mut Database) -> Result<Vec<String>> {
                 ));
             }
 
-            let volumes: Vec<crate::core::models::Volume> = {
-                let mut stmt = db.conn().prepare(
-                    "SELECT id, topology_id, node_id, name, capacity_bytes, usable_bytes, \
-                     filesystem, raid_level, pool_type, item_id, created_at, updated_at \
-                     FROM volumes WHERE topology_id = ?1",
-                )?;
-                let result = stmt
-                    .query_map(params![topo.id], crate::core::models::Volume::from_row)?
-                    .collect::<Result<Vec<_>, _>>()?;
-                result
-            };
+            let volumes = Volume::load_for_topology(db, &topo.id)?;
 
             let capacity = analyze_capacity(&datasets, &volumes, &placements, 6);
             if !capacity.issues.is_empty() {

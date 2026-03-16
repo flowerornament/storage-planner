@@ -78,8 +78,8 @@ fn run_status_text(db: &mut Database) -> Result<()> {
 
             // Quick analysis scores
             if counts.datasets > 0 {
-                let datasets = load_datasets(db, &topo.id)?;
-                let volumes = load_volumes(db, &topo.id)?;
+                let datasets = Dataset::load_for_topology(db, &topo.id)?;
+                let volumes = Volume::load_for_topology(db, &topo.id)?;
                 let placements = load_placements_with_context(db, &topo.id)?;
 
                 let redundancy = analyze_redundancy(&datasets, &placements);
@@ -166,8 +166,8 @@ fn run_status_json(db: &mut Database) -> Result<()> {
         Some(topo) => {
             let counts = count_topology_entities(db, &topo.id)?;
             let (redundancy_score, capacity_score) = if counts.datasets > 0 {
-                let datasets = load_datasets(db, &topo.id)?;
-                let volumes = load_volumes(db, &topo.id)?;
+                let datasets = Dataset::load_for_topology(db, &topo.id)?;
+                let volumes = Volume::load_for_topology(db, &topo.id)?;
                 let placements = load_placements_with_context(db, &topo.id)?;
                 let redundancy = analyze_redundancy(&datasets, &placements);
                 let capacity = analyze_capacity(&datasets, &volumes, &placements, 12);
@@ -361,8 +361,8 @@ fn gather_problems(db: &mut Database) -> Result<Problems> {
 
     // Only analyze if there's a current topology
     if let Some(topo) = get_current_topology(db) {
-        let datasets = load_datasets(db, &topo.id)?;
-        let volumes = load_volumes(db, &topo.id)?;
+        let datasets = Dataset::load_for_topology(db, &topo.id)?;
+        let volumes = Volume::load_for_topology(db, &topo.id)?;
         let placements = load_placements_with_context(db, &topo.id)?;
 
         // Redundancy: datasets with insufficient copies/locations
@@ -574,34 +574,6 @@ fn load_recent_events(db: &Database) -> Result<Vec<RecentEvent>> {
         })?
         .collect::<Result<Vec<_>, _>>()?;
 
-    Ok(results)
-}
-
-/// Load all datasets for a topology (status-local helper).
-fn load_datasets(db: &Database, topology_id: &str) -> Result<Vec<Dataset>> {
-    let results = {
-        let mut stmt = db.conn().prepare(
-            "SELECT id, topology_id, name, size_bytes, growth_rate_bytes_month, \
-             criticality, min_copies, min_locations, max_rpo_hours, created_at, updated_at \
-             FROM datasets WHERE topology_id = ?1 ORDER BY name",
-        )?;
-        let rows = stmt.query_map(params![topology_id], Dataset::from_row)?;
-        rows.collect::<Result<Vec<_>, _>>()?
-    };
-    Ok(results)
-}
-
-/// Load all volumes for a topology (status-local helper).
-fn load_volumes(db: &Database, topology_id: &str) -> Result<Vec<Volume>> {
-    let results = {
-        let mut stmt = db.conn().prepare(
-            "SELECT id, topology_id, node_id, name, capacity_bytes, usable_bytes, \
-             filesystem, raid_level, pool_type, item_id, created_at, updated_at \
-             FROM volumes WHERE topology_id = ?1 ORDER BY name",
-        )?;
-        let rows = stmt.query_map(params![topology_id], Volume::from_row)?;
-        rows.collect::<Result<Vec<_>, _>>()?
-    };
     Ok(results)
 }
 

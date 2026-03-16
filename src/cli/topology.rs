@@ -63,6 +63,7 @@ pub enum TopologyCommands {
     },
 
     /// Set a topology as the active topology (deprecated: use 'tag' instead)
+    #[command(hide = true)]
     SetActive {
         /// Topology name or ID prefix to activate
         name: String,
