@@ -8,7 +8,7 @@ use anyhow::Result;
 use rusqlite::params;
 
 use crate::core::db::Database;
-use crate::core::models::Topology;
+use crate::core::resolve::resolve_active_topology;
 
 /// Static instructional content for the agent bootstrap document.
 const STATIC_GUIDE: &str = r#"# Storage Planner -- Agent Bootstrap
@@ -114,7 +114,7 @@ sp analyze --format=json
 "#;
 
 /// Run the prime command: print agent bootstrap document.
-pub fn run_prime(db: &mut Database) -> Result<()> {
+pub fn run(db: &mut Database) -> Result<()> {
     // Print static guide
     print!("{}", STATIC_GUIDE);
 
@@ -125,7 +125,7 @@ pub fn run_prime(db: &mut Database) -> Result<()> {
     println!();
 
     // Current topology
-    let current_topo = get_current_topology(db);
+    let current_topo = resolve_active_topology(db, None).ok();
     match &current_topo {
         Some(topo) => {
             println!("**Current topology:** {}", topo.name);
@@ -232,18 +232,6 @@ pub fn run_prime(db: &mut Database) -> Result<()> {
     Ok(())
 }
 
-/// Get current topology (same pattern as status.rs).
-fn get_current_topology(db: &Database) -> Option<Topology> {
-    db.conn()
-        .query_row(
-            "SELECT id, name, description, parent_id, tag, created_at, updated_at \
-             FROM topologies WHERE tag = 'current'",
-            [],
-            Topology::from_row,
-        )
-        .ok()
-}
-
 /// Gather brief problem descriptions for the state summary.
 fn gather_brief_problems(db: &mut Database) -> Result<Vec<String>> {
     let mut problems = Vec::new();
@@ -261,7 +249,7 @@ fn gather_brief_problems(db: &mut Database) -> Result<Vec<String>> {
     }
 
     // Basic redundancy check on current topology
-    if let Some(topo) = get_current_topology(db) {
+    if let Ok(topo) = resolve_active_topology(db, None) {
         use crate::core::models::Dataset;
         use crate::domains::storage::analysis::{
             analyze_capacity, analyze_redundancy, load_placements_with_context,

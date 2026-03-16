@@ -21,10 +21,10 @@ sp prime               # Get current context (catalog, prices, active decisions)
 
 ## Core Workflow
 
-1. **Add products** the user is considering → `sp item add --url=<product-url>`
-2. **Record prices** they're seeing → `sp price add <item> --price=X`
-3. **Build configurations** for each option → `sp config create`, `sp config add-item`
-4. **Compare and decide** → `sp decide create`, `sp decide compare`, `sp decide choose`
+1. **Add products** to the catalog → `sp catalog add --url=<product-url>`
+2. **Record prices** → `sp catalog price add <item> --price=X`
+3. **Build topologies** → `sp topology create`, `sp node add`, `sp volume add`
+4. **Compare and decide** → `sp decision create`, `sp analyze compare`, `sp decision choose`
 
 The CLI is self-documenting. Use `--help` liberally.
 
@@ -42,8 +42,7 @@ src/
 ├── main.rs               # CLI entry point
 ├── core/                 # Models, database, events
 ├── cli/                  # Command implementations
-├── domains/storage/      # Storage-specific analysis
-└── pricing/              # API integrations (Best Buy, eBay)
+└── domains/storage/      # Storage-specific analysis
 ```
 
 ```bash

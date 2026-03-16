@@ -72,8 +72,7 @@ src/
 ├── main.rs               # CLI entry point
 ├── core/                 # Models, database, events
 ├── cli/                  # Command implementations
-├── domains/storage/      # Storage-specific analysis
-└── pricing/              # API integrations
+└── domains/storage/      # Storage-specific analysis
 ```
 
 ## Development

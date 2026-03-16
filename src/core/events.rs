@@ -13,9 +13,8 @@ use std::fmt;
 use super::db::Database;
 use super::models::{
     CatalogItem, Dataset, Decision, DecisionConstraint, DecisionTopology, Event, Link, Node,
-    Placement, Price, SyncRegime, Topology, Volume,
+    Placement, Price, SyncRegime, Topology, TopologyExport, Volume,
 };
-use crate::cli::export::TopologyExport;
 
 // ---------------------------------------------------------------------------
 // EventSource

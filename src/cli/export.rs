@@ -8,35 +8,12 @@ use std::path::PathBuf;
 
 use anyhow::{bail, Result};
 use rusqlite::params;
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::core::db::Database;
 use crate::core::events::{record_event, EventSource};
-use crate::core::models::{Dataset, Link, Node, Placement, SyncRegime, Topology, Volume};
+use crate::core::models::{Dataset, Link, Node, Placement, SyncRegime, TopologyExport, Volume};
 use crate::core::resolve::resolve_topology;
-
-// ---------------------------------------------------------------------------
-// Export data structures
-// ---------------------------------------------------------------------------
-
-/// Full topology export structure, serialized to/from YAML
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TopologyExport {
-    pub topology: Topology,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub nodes: Vec<Node>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub volumes: Vec<Volume>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub datasets: Vec<Dataset>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub placements: Vec<Placement>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub links: Vec<Link>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub sync_regimes: Vec<SyncRegime>,
-}
 
 // ---------------------------------------------------------------------------
 // Export command

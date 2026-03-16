@@ -1082,6 +1082,28 @@ impl Price {
     }
 }
 
+// ---------------------------------------------------------------------------
+// TopologyExport
+// ---------------------------------------------------------------------------
+
+/// Full topology export structure, serialized to/from YAML
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TopologyExport {
+    pub topology: Topology,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub nodes: Vec<Node>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub volumes: Vec<Volume>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub datasets: Vec<Dataset>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub placements: Vec<Placement>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub links: Vec<Link>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub sync_regimes: Vec<SyncRegime>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

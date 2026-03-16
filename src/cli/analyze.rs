@@ -21,7 +21,6 @@ use crate::domains::storage::analysis::{
     load_placements_with_context, load_sync_regimes_with_context, simulate_failure,
     BandwidthReport, BandwidthStatus, CapacityReport, ConstraintReport, ConstraintStatus,
     CostReport, EntityCost, FailureReport, PlacementWithContext, RedundancyReport, RpoReport,
-    SyncRegimeWithContext,
 };
 
 use super::OutputFormat;
@@ -204,10 +203,10 @@ fn run_all(
     let datasets = load_datasets(db, &topo.id)?;
     let volumes = load_volumes(db, &topo.id)?;
     let placements = load_placements_with_context(db, &topo.id)?;
-    let sync_regimes = load_sync_regimes(db, &topo.id)?;
+    let sync_regimes = load_sync_regimes_with_context(db, &topo.id)?;
 
     let redundancy = analyze_redundancy(&datasets, &placements);
-    let rpo = analyze_rpo(&datasets, &placements, &sync_regimes);
+    let rpo = analyze_rpo(&datasets, &sync_regimes);
     let capacity = analyze_capacity(&datasets, &volumes, &placements, warn_months);
 
     match format {
@@ -385,10 +384,9 @@ fn run_rpo(
 ) -> Result<()> {
     let topo = resolve_active_topology(db, topology_override)?;
     let datasets = load_datasets(db, &topo.id)?;
-    let placements = load_placements_with_context(db, &topo.id)?;
-    let sync_regimes = load_sync_regimes(db, &topo.id)?;
+    let sync_regimes = load_sync_regimes_with_context(db, &topo.id)?;
 
-    let report = analyze_rpo(&datasets, &placements, &sync_regimes);
+    let report = analyze_rpo(&datasets, &sync_regimes);
 
     match format {
         OutputFormat::Text => print_rpo_text(&report, verbose),
@@ -742,7 +740,7 @@ fn run_bandwidth(
     format: OutputFormat,
 ) -> Result<()> {
     let topo = resolve_active_topology(db, topology_override)?;
-    let sync_regimes = load_sync_regimes(db, &topo.id)?;
+    let sync_regimes = load_sync_regimes_with_context(db, &topo.id)?;
     let volumes = load_volumes(db, &topo.id)?;
     let datasets = load_datasets(db, &topo.id)?;
     let links = load_links(db, &topo.id)?;
@@ -778,7 +776,7 @@ fn print_bandwidth_text(
     report: &BandwidthReport,
     node_names: &std::collections::HashMap<&str, &str>,
 ) {
-    let score_pct = report.score * 100.0;
+    let score_pct = report.score;
     let issue_count = report
         .results
         .iter()
@@ -1375,14 +1373,14 @@ fn run_compare(
     let volumes_a = load_volumes(db, &topo_a.id)?;
     let datasets_a = load_datasets(db, &topo_a.id)?;
     let placements_a = load_placements_with_context(db, &topo_a.id)?;
-    let sync_regimes_a = load_sync_regimes(db, &topo_a.id)?;
+    let sync_regimes_a = load_sync_regimes_with_context(db, &topo_a.id)?;
 
     // Load data for topology B
     let nodes_b = load_nodes(db, &topo_b.id)?;
     let volumes_b = load_volumes(db, &topo_b.id)?;
     let datasets_b = load_datasets(db, &topo_b.id)?;
     let placements_b = load_placements_with_context(db, &topo_b.id)?;
-    let sync_regimes_b = load_sync_regimes(db, &topo_b.id)?;
+    let sync_regimes_b = load_sync_regimes_with_context(db, &topo_b.id)?;
 
     // Compute catalog-derived costs for each topology
     let cost_a = catalog_one_time_dollars(db, &nodes_a, &volumes_a)?;
@@ -1765,11 +1763,6 @@ fn load_links(db: &Database, topology_id: &str) -> Result<Vec<Link>> {
         rows.collect::<Result<Vec<_>, _>>()?
     };
     Ok(results)
-}
-
-/// Load all sync regimes for a topology with context (via the JOINed loader).
-fn load_sync_regimes(db: &Database, topology_id: &str) -> Result<Vec<SyncRegimeWithContext>> {
-    load_sync_regimes_with_context(db, topology_id)
 }
 
 /// Print a colored analysis header line.

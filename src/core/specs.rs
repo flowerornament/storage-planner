@@ -154,57 +154,6 @@ impl fmt::Display for NoiseLevel {
     }
 }
 
-/// Parse a spec value from JSON based on expected type
-#[allow(dead_code)]
-pub fn parse_spec<T>(specs: &serde_json::Value, key: &str) -> Option<T>
-where
-    T: std::str::FromStr,
-{
-    specs.get(key)?.as_str()?.parse().ok()
-}
-
-/// Get capacity from specs
-#[allow(dead_code)]
-pub fn get_capacity(specs: &serde_json::Value) -> Option<Capacity> {
-    specs
-        .get("capacity")
-        .and_then(|v| v.as_str())
-        .and_then(|s| Capacity::parse(s).ok())
-}
-
-/// Get read speed from specs
-#[allow(dead_code)]
-pub fn get_read_speed(specs: &serde_json::Value) -> Option<Speed> {
-    specs
-        .get("read_speed")
-        .and_then(|v| v.as_str())
-        .and_then(|s| Speed::parse(s).ok())
-}
-
-/// Get write speed from specs
-#[allow(dead_code)]
-pub fn get_write_speed(specs: &serde_json::Value) -> Option<Speed> {
-    specs
-        .get("write_speed")
-        .and_then(|v| v.as_str())
-        .and_then(|s| Speed::parse(s).ok())
-}
-
-/// Get noise level from specs
-#[allow(dead_code)]
-pub fn get_noise(specs: &serde_json::Value) -> Option<NoiseLevel> {
-    specs
-        .get("noise_db")
-        .and_then(|v| v.as_f64())
-        .map(|db| NoiseLevel { db })
-        .or_else(|| {
-            specs
-                .get("noise")
-                .and_then(|v| v.as_str())
-                .and_then(|s| NoiseLevel::parse(s).ok())
-        })
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -252,15 +201,5 @@ mod tests {
         assert_eq!(NoiseLevel::parse("0db").unwrap().db, 0.0);
         assert!(NoiseLevel { db: 25.0 }.within(30.0));
         assert!(!NoiseLevel { db: 35.0 }.within(30.0));
-    }
-
-    #[test]
-    fn test_get_capacity_from_specs() {
-        let specs = serde_json::json!({
-            "capacity": "4TB",
-            "read_speed": "560MB/s"
-        });
-        let cap = get_capacity(&specs).unwrap();
-        assert_eq!(cap.bytes, 4 * Capacity::TB);
     }
 }

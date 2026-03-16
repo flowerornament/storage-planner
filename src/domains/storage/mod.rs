@@ -1,7 +1,6 @@
 //! Storage domain
 //!
-//! Storage-specific models and analysis.
+//! Storage-specific analysis functions.
 //! Topology entity types are defined in core::models.
 
 pub mod analysis;
-pub mod models;

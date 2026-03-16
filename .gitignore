@@ -52,3 +52,10 @@ target/
 # Project specific
 *.log
 export/
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db
+
+# Desloppify
+.desloppify/

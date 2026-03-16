@@ -534,13 +534,7 @@ pub fn cron_interval_hours(schedule: &str) -> Option<f64> {
 ///
 /// Score = (datasets_ok / datasets_analyzed) * 100. If no datasets have
 /// max_rpo_hours, score is 100.0.
-pub fn analyze_rpo(
-    datasets: &[Dataset],
-    placements: &[PlacementWithContext],
-    sync_regimes: &[SyncRegimeWithContext],
-) -> RpoReport {
-    let _ = placements; // Reserved for future use (e.g., checking placement coverage)
-
+pub fn analyze_rpo(datasets: &[Dataset], sync_regimes: &[SyncRegimeWithContext]) -> RpoReport {
     let mut issues = Vec::new();
     let mut datasets_analyzed = 0usize;
     let mut datasets_skipped = Vec::new();
@@ -1160,9 +1154,9 @@ pub fn analyze_bandwidth(
         .count();
 
     let score = if results.is_empty() {
-        1.0
+        100.0
     } else {
-        adequate_or_tight as f64 / results.len() as f64
+        (adequate_or_tight as f64 / results.len() as f64) * 100.0
     };
 
     BandwidthReport { results, score }
@@ -1290,7 +1284,7 @@ pub fn compute_topology_metrics(
     let total_rack_units: f64 = nodes.iter().filter_map(|n| n.rack_units).sum();
     let redundancy_score = analyze_redundancy(datasets, placements).score;
     let capacity_score = analyze_capacity(datasets, volumes, placements, warn_months).score;
-    let rpo_score = analyze_rpo(datasets, placements, sync_regimes).score;
+    let rpo_score = analyze_rpo(datasets, sync_regimes).score;
 
     TopologyMetrics {
         name: name.to_string(),
@@ -1822,7 +1816,7 @@ mod tests {
 
         let sync = make_sync_regime(&ds, Some("0 */4 * * *")); // every 4h
 
-        let report = analyze_rpo(&[ds], &[], &[sync]);
+        let report = analyze_rpo(&[ds], &[sync]);
         assert_eq!(report.score, 100.0);
         assert!(report.issues.is_empty());
         assert_eq!(report.datasets_analyzed, 1);
@@ -1837,7 +1831,7 @@ mod tests {
         // Daily at 2am -- ~24h gap, exceeds 4h RPO
         let sync = make_sync_regime(&ds, Some("0 2 * * *"));
 
-        let report = analyze_rpo(&[ds], &[], &[sync]);
+        let report = analyze_rpo(&[ds], &[sync]);
         assert_eq!(report.score, 0.0);
         assert_eq!(report.issues.len(), 1);
         assert!(report.issues[0].problem.contains("exceeds max RPO"));
@@ -1850,7 +1844,7 @@ mod tests {
         ds.max_rpo_hours = Some(24);
 
         // No sync regimes at all
-        let report = analyze_rpo(&[ds], &[], &[]);
+        let report = analyze_rpo(&[ds], &[]);
         assert_eq!(report.score, 0.0);
         assert_eq!(report.issues.len(), 1);
         assert!(report.issues[0]
@@ -1865,7 +1859,7 @@ mod tests {
 
         let sync = make_sync_regime(&ds, None); // manual only
 
-        let report = analyze_rpo(&[ds], &[], &[sync]);
+        let report = analyze_rpo(&[ds], &[sync]);
         assert_eq!(report.score, 0.0);
         assert_eq!(report.issues.len(), 1);
         assert!(report.issues[0]
@@ -1878,7 +1872,7 @@ mod tests {
         let ds = make_dataset("t1", "photos", 500_000_000_000, None, "normal", 1, 1);
         // No max_rpo_hours set
 
-        let report = analyze_rpo(std::slice::from_ref(&ds), &[], &[]);
+        let report = analyze_rpo(std::slice::from_ref(&ds), &[]);
         assert_eq!(report.score, 100.0);
         assert!(report.issues.is_empty());
         assert_eq!(report.datasets_analyzed, 0);
@@ -2279,7 +2273,7 @@ mod tests {
         let report = analyze_bandwidth(&[sr], &[vol1, vol2], &[link], &[ds]);
         assert_eq!(report.results.len(), 1);
         assert_eq!(report.results[0].status, BandwidthStatus::Adequate);
-        assert!((report.score - 1.0).abs() < f64::EPSILON);
+        assert!((report.score - 100.0).abs() < f64::EPSILON);
     }
 
     #[test]

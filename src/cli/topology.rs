@@ -13,10 +13,11 @@ use rusqlite::params;
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::cli::export::TopologyExport;
 use crate::core::db::Database;
 use crate::core::events::{record_event, EventSource};
-use crate::core::models::{Dataset, Link, Node, Placement, SyncRegime, Topology, Volume};
+use crate::core::models::{
+    Dataset, Link, Node, Placement, SyncRegime, Topology, TopologyExport, Volume,
+};
 use crate::core::resolve::{resolve_active_topology, resolve_topology, validate_slug};
 use crate::core::specs::Capacity;
 
@@ -885,8 +886,6 @@ fn fork(
     let source_name_clone = source.name.clone();
     let source_id = source.id.clone();
 
-    // Load all entities from source BEFORE the transaction (D009 pattern)
-    // Each block scopes the prepared statement so borrows are dropped before transaction
     // Load all entities from source BEFORE the transaction (D009 pattern)
     // Each block scopes the prepared statement so borrows are dropped before transaction
     let nodes: Vec<Node> = {

@@ -294,7 +294,7 @@ impl Cli {
             }
             Commands::Prime => {
                 let mut db = open_db(&db_path)?;
-                prime::run_prime(&mut db)
+                prime::run(&mut db)
             }
             Commands::Current { topology } => {
                 let mut db = open_db(&db_path)?;
