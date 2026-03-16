@@ -12,8 +12,8 @@ use rusqlite::params;
 
 use crate::core::db::Database;
 use crate::core::events::{record_event, EventSource};
-use crate::core::models::{Dataset, Topology, Volume};
-use crate::core::resolve::resolve_topology;
+use crate::core::models::{Dataset, Volume};
+use crate::core::resolve::{resolve_active_topology, resolve_topology};
 use crate::domains::storage::analysis::{
     analyze_capacity, analyze_redundancy, load_placements_with_context,
 };
@@ -46,7 +46,7 @@ fn run_status_text(db: &mut Database) -> Result<()> {
 
     // --- Section 2: Current Topology ---
     println!("{}", style("Current Topology").bold());
-    match get_current_topology(db) {
+    match resolve_active_topology(db, None).ok() {
         Some(topo) => {
             let desc = if topo.description.is_empty() {
                 String::new()
@@ -161,7 +161,7 @@ fn run_status_text(db: &mut Database) -> Result<()> {
 fn run_status_json(db: &mut Database) -> Result<()> {
     let problems = gather_problems(db)?;
 
-    let current_topo = get_current_topology(db);
+    let current_topo = resolve_active_topology(db, None).ok();
     let topology_json = match &current_topo {
         Some(topo) => {
             let counts = count_topology_entities(db, &topo.id)?;
@@ -254,7 +254,7 @@ pub fn run_current(
 }
 
 fn show_current(db: &mut Database, format: OutputFormat) -> Result<()> {
-    match get_current_topology(db) {
+    match resolve_active_topology(db, None).ok() {
         Some(topo) => match format {
             OutputFormat::Text => {
                 println!("{} ({})", topo.name, &topo.id[..8]);
@@ -360,7 +360,7 @@ fn gather_problems(db: &mut Database) -> Result<Problems> {
     let mut alerts = Vec::new();
 
     // Only analyze if there's a current topology
-    if let Some(topo) = get_current_topology(db) {
+    if let Ok(topo) = resolve_active_topology(db, None) {
         let datasets = Dataset::load_for_topology(db, &topo.id)?;
         let volumes = Volume::load_for_topology(db, &topo.id)?;
         let placements = load_placements_with_context(db, &topo.id)?;
@@ -395,21 +395,6 @@ fn gather_problems(db: &mut Database) -> Result<Problems> {
     }
 
     Ok(Problems { alerts })
-}
-
-// ===========================================================================
-// Data loaders (specific to status)
-// ===========================================================================
-
-fn get_current_topology(db: &Database) -> Option<Topology> {
-    db.conn()
-        .query_row(
-            "SELECT id, name, description, parent_id, tag, created_at, updated_at \
-             FROM topologies WHERE tag = 'current'",
-            [],
-            Topology::from_row,
-        )
-        .ok()
 }
 
 struct EntityCounts {

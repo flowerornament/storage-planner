@@ -191,7 +191,7 @@ CREATE TABLE volumes (
     filesystem TEXT,
     raid_level TEXT,
     pool_type TEXT,
-    item_id TEXT,  -- FK added in Phase 6 when catalog is ported
+    item_id TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     UNIQUE(topology_id, node_id, name)

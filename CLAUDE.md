@@ -21,9 +21,9 @@ sp prime               # Get current context (catalog, prices, active decisions)
 
 ## Core Workflow
 
-1. **Add products** to the catalog → `sp catalog add --url=<product-url>`
-2. **Record prices** → `sp catalog price add <item> --price=X`
-3. **Build topologies** → `sp topology create`, `sp node add`, `sp volume add`
+1. **Add products** to the catalog → `sp catalog add <name> --category=ssd`
+2. **Record prices** → `sp catalog price add <item> --amount=X`
+3. **Build topologies** → `sp topology create <name>`, `sp node add`, `sp volume add`
 4. **Compare and decide** → `sp decision create`, `sp analyze compare`, `sp decision choose`
 
 The CLI is self-documenting. Use `--help` liberally.
