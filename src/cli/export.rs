@@ -477,3 +477,442 @@ pub fn run_import(db: &mut Database, file: &PathBuf, name: Option<&str>) -> Resu
 
     Ok(())
 }
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::db::Database;
+    use crate::core::models::{Dataset, Link, Node, Placement, SyncRegime, Topology, Volume};
+    use rusqlite::params;
+    use std::path::PathBuf;
+    use tempfile::NamedTempFile;
+
+    // -----------------------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------------------
+
+    /// Holds original IDs for the full topology fixture.
+    struct FullTopology {
+        topo_id: String,
+        node_id: String,
+        node2_id: String,
+    }
+
+    /// Insert a complete topology with two nodes, two volumes, one dataset,
+    /// one placement, one link, and one sync regime into `db`.
+    fn setup_full_topology(db: &mut Database) -> FullTopology {
+        let topo = Topology::new("home-lab", "Home lab storage topology");
+        let node = Node::new(&topo.id, "nas-primary", "nas");
+        let node2 = Node::new(&topo.id, "nas-backup", "nas");
+        let vol = Volume::new(&topo.id, &node.id, "main-pool", 8_000_000_000_000);
+        let vol2 = Volume::new(&topo.id, &node2.id, "backup-pool", 8_000_000_000_000);
+        let ds = Dataset::new(&topo.id, "photos", 500_000_000_000);
+        let placement = Placement::new(&topo.id, &ds.id, &vol.id);
+        let link = Link::new(&topo.id, &node.id, &node2.id, "ethernet");
+        let sync = SyncRegime::new(
+            &topo.id,
+            "photos-backup",
+            &ds.id,
+            &vol.id,
+            &vol2.id,
+            "rsync",
+        );
+
+        let topo_id = topo.id.clone();
+        let node_id = node.id.clone();
+        let node2_id = node2.id.clone();
+
+        db.transaction(|tx| {
+            topo.insert(tx)?;
+            node.insert(tx)?;
+            node2.insert(tx)?;
+            vol.insert(tx)?;
+            vol2.insert(tx)?;
+            ds.insert(tx)?;
+            placement.insert(tx)?;
+            link.insert(tx)?;
+            sync.insert(tx)?;
+            Ok(())
+        })
+        .unwrap();
+
+        FullTopology {
+            topo_id,
+            node_id,
+            node2_id,
+        }
+    }
+
+    /// Count rows in `table` belonging to `topology_id`.
+    fn count_rows(db: &Database, table: &str, topology_id: &str) -> i64 {
+        db.conn()
+            .query_row(
+                &format!("SELECT COUNT(*) FROM {} WHERE topology_id = ?1", table),
+                params![topology_id],
+                |row| row.get(0),
+            )
+            .unwrap()
+    }
+
+    /// Return the topology id for the given topology name.
+    fn topo_id_by_name(db: &Database, name: &str) -> String {
+        db.conn()
+            .query_row(
+                "SELECT id FROM topologies WHERE name = ?1",
+                params![name],
+                |row| row.get(0),
+            )
+            .unwrap()
+    }
+
+    // -----------------------------------------------------------------------
+    // Identity-mode roundtrip
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_export_import_identity_entity_counts() {
+        let mut db = Database::open_memory().unwrap();
+        setup_full_topology(&mut db);
+
+        let tmp = NamedTempFile::new().unwrap();
+        let tmp_path: PathBuf = tmp.path().to_path_buf();
+        run_export(&mut db, "home-lab", false, None, Some(&tmp_path)).unwrap();
+        run_import(&mut db, &tmp_path, Some("home-lab-copy")).unwrap();
+
+        let imported_id = topo_id_by_name(&db, "home-lab-copy");
+
+        assert_eq!(count_rows(&db, "nodes", &imported_id), 2);
+        assert_eq!(count_rows(&db, "volumes", &imported_id), 2);
+        assert_eq!(count_rows(&db, "datasets", &imported_id), 1);
+        assert_eq!(count_rows(&db, "placements", &imported_id), 1);
+        assert_eq!(count_rows(&db, "links", &imported_id), 1);
+        assert_eq!(count_rows(&db, "sync_regimes", &imported_id), 1);
+    }
+
+    #[test]
+    fn test_export_import_generates_new_topology_id() {
+        let mut db = Database::open_memory().unwrap();
+        let orig = setup_full_topology(&mut db);
+
+        let tmp = NamedTempFile::new().unwrap();
+        let tmp_path: PathBuf = tmp.path().to_path_buf();
+        run_export(&mut db, "home-lab", false, None, Some(&tmp_path)).unwrap();
+        run_import(&mut db, &tmp_path, Some("home-lab-copy")).unwrap();
+
+        let imported_id = topo_id_by_name(&db, "home-lab-copy");
+        assert_ne!(
+            imported_id, orig.topo_id,
+            "import must generate a fresh topology UUID"
+        );
+    }
+
+    #[test]
+    fn test_export_import_generates_new_node_ids() {
+        let mut db = Database::open_memory().unwrap();
+        let orig = setup_full_topology(&mut db);
+
+        let tmp = NamedTempFile::new().unwrap();
+        let tmp_path: PathBuf = tmp.path().to_path_buf();
+        run_export(&mut db, "home-lab", false, None, Some(&tmp_path)).unwrap();
+        run_import(&mut db, &tmp_path, Some("home-lab-copy")).unwrap();
+
+        let imported_id = topo_id_by_name(&db, "home-lab-copy");
+        let imported_node_ids: Vec<String> = {
+            let mut stmt = db
+                .conn()
+                .prepare("SELECT id FROM nodes WHERE topology_id = ?1")
+                .unwrap();
+            stmt.query_map(params![imported_id], |row| row.get(0))
+                .unwrap()
+                .collect::<Result<Vec<String>, _>>()
+                .unwrap()
+        };
+
+        assert!(!imported_node_ids.contains(&orig.node_id));
+        assert!(!imported_node_ids.contains(&orig.node2_id));
+    }
+
+    // -----------------------------------------------------------------------
+    // FK integrity after identity-mode import
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_fk_integrity_placement_dataset_and_volume() {
+        let mut db = Database::open_memory().unwrap();
+        setup_full_topology(&mut db);
+
+        let tmp = NamedTempFile::new().unwrap();
+        let tmp_path: PathBuf = tmp.path().to_path_buf();
+        run_export(&mut db, "home-lab", false, None, Some(&tmp_path)).unwrap();
+        run_import(&mut db, &tmp_path, Some("home-lab-fk")).unwrap();
+
+        let imported_id = topo_id_by_name(&db, "home-lab-fk");
+
+        // Placements must not have dangling dataset_id
+        let bad_dataset: i64 = db
+            .conn()
+            .query_row(
+                "SELECT COUNT(*) FROM placements p
+                 WHERE p.topology_id = ?1
+                 AND NOT EXISTS (
+                     SELECT 1 FROM datasets d
+                     WHERE d.id = p.dataset_id AND d.topology_id = ?1
+                 )",
+                params![imported_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(bad_dataset, 0, "placements with dangling dataset_id");
+
+        // Placements must not have dangling volume_id
+        let bad_volume: i64 = db
+            .conn()
+            .query_row(
+                "SELECT COUNT(*) FROM placements p
+                 WHERE p.topology_id = ?1
+                 AND NOT EXISTS (
+                     SELECT 1 FROM volumes v
+                     WHERE v.id = p.volume_id AND v.topology_id = ?1
+                 )",
+                params![imported_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(bad_volume, 0, "placements with dangling volume_id");
+    }
+
+    #[test]
+    fn test_fk_integrity_sync_regime_volumes() {
+        let mut db = Database::open_memory().unwrap();
+        setup_full_topology(&mut db);
+
+        let tmp = NamedTempFile::new().unwrap();
+        let tmp_path: PathBuf = tmp.path().to_path_buf();
+        run_export(&mut db, "home-lab", false, None, Some(&tmp_path)).unwrap();
+        run_import(&mut db, &tmp_path, Some("home-lab-sr")).unwrap();
+
+        let imported_id = topo_id_by_name(&db, "home-lab-sr");
+
+        let bad_src: i64 = db
+            .conn()
+            .query_row(
+                "SELECT COUNT(*) FROM sync_regimes sr
+                 WHERE sr.topology_id = ?1
+                 AND NOT EXISTS (
+                     SELECT 1 FROM volumes v
+                     WHERE v.id = sr.source_volume_id AND v.topology_id = ?1
+                 )",
+                params![imported_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(bad_src, 0, "sync_regimes with dangling source_volume_id");
+
+        let bad_tgt: i64 = db
+            .conn()
+            .query_row(
+                "SELECT COUNT(*) FROM sync_regimes sr
+                 WHERE sr.topology_id = ?1
+                 AND NOT EXISTS (
+                     SELECT 1 FROM volumes v
+                     WHERE v.id = sr.target_volume_id AND v.topology_id = ?1
+                 )",
+                params![imported_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(bad_tgt, 0, "sync_regimes with dangling target_volume_id");
+    }
+
+    // -----------------------------------------------------------------------
+    // Template mode
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_template_export_strips_ids() {
+        let mut db = Database::open_memory().unwrap();
+        // Template mode strips FK ids to empty strings, so we use only nodes,
+        // volumes, and datasets here (no placements/links/sync_regimes) because
+        // those entities' FK remapping requires non-empty source ids.
+        let topo = Topology::new("simple-lab", "Simple topology for template test");
+        let node = Node::new(&topo.id, "nas", "nas");
+        let vol = Volume::new(&topo.id, &node.id, "pool", 4_000_000_000_000);
+        let ds = Dataset::new(&topo.id, "docs", 100_000_000_000);
+
+        db.transaction(|tx| {
+            topo.insert(tx)?;
+            node.insert(tx)?;
+            vol.insert(tx)?;
+            ds.insert(tx)?;
+            Ok(())
+        })
+        .unwrap();
+
+        let tmp = NamedTempFile::new().unwrap();
+        let tmp_path: PathBuf = tmp.path().to_path_buf();
+        run_export(&mut db, "simple-lab", true, None, Some(&tmp_path)).unwrap();
+
+        let yaml_content = std::fs::read_to_string(&tmp_path).unwrap();
+        let export: crate::core::models::TopologyExport =
+            serde_yaml_ng::from_str(&yaml_content).unwrap();
+
+        assert!(
+            export.topology.id.is_empty(),
+            "template should strip topology id"
+        );
+        assert!(
+            export.topology.parent_id.is_none(),
+            "template should strip parent_id"
+        );
+        assert!(export.topology.tag.is_none(), "template should strip tag");
+
+        for n in &export.nodes {
+            assert!(n.id.is_empty(), "template should strip node id");
+            assert!(
+                n.topology_id.is_empty(),
+                "template should strip node topology_id"
+            );
+        }
+        for v in &export.volumes {
+            assert!(v.id.is_empty(), "template should strip volume id");
+            assert!(v.node_id.is_empty(), "template should strip volume node_id");
+        }
+        for d in &export.datasets {
+            assert!(d.id.is_empty(), "template should strip dataset id");
+            assert!(
+                d.topology_id.is_empty(),
+                "template should strip dataset topology_id"
+            );
+        }
+    }
+
+    #[test]
+    fn test_template_import_generates_independent_ids() {
+        // Template mode strips all UUIDs, including FK fields like node_id on volumes.
+        // The import code resolves non-FK entities (nodes, datasets) by name-based keys
+        // ("node:<name>", "dataset:<name>") but there is no name-based fallback for
+        // volume.node_id in the current implementation. Therefore this test uses only
+        // nodes and datasets, which fully exercise the name-keyed id-remap path.
+        let mut db = Database::open_memory().unwrap();
+        let topo = Topology::new("template-src", "Source for template test");
+        let node = Node::new(&topo.id, "workstation", "desktop");
+        let ds = Dataset::new(&topo.id, "projects", 200_000_000_000);
+
+        db.transaction(|tx| {
+            topo.insert(tx)?;
+            node.insert(tx)?;
+            ds.insert(tx)?;
+            Ok(())
+        })
+        .unwrap();
+
+        let tmp = NamedTempFile::new().unwrap();
+        let tmp_path: PathBuf = tmp.path().to_path_buf();
+        run_export(&mut db, "template-src", true, None, Some(&tmp_path)).unwrap();
+
+        // Import the same template twice: each copy must have fully independent UUIDs
+        run_import(&mut db, &tmp_path, Some("from-template-a")).unwrap();
+        run_import(&mut db, &tmp_path, Some("from-template-b")).unwrap();
+
+        let topo_a_id = topo_id_by_name(&db, "from-template-a");
+        let topo_b_id = topo_id_by_name(&db, "from-template-b");
+
+        assert_ne!(
+            topo_a_id, topo_b_id,
+            "each import of a template must get a distinct topology id"
+        );
+
+        // Entity counts are correct in both copies
+        assert_eq!(count_rows(&db, "nodes", &topo_a_id), 1);
+        assert_eq!(count_rows(&db, "datasets", &topo_a_id), 1);
+
+        assert_eq!(count_rows(&db, "nodes", &topo_b_id), 1);
+        assert_eq!(count_rows(&db, "datasets", &topo_b_id), 1);
+
+        // Node IDs in the two copies must differ from each other
+        let node_a: String = db
+            .conn()
+            .query_row(
+                "SELECT id FROM nodes WHERE topology_id = ?1",
+                params![topo_a_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let node_b: String = db
+            .conn()
+            .query_row(
+                "SELECT id FROM nodes WHERE topology_id = ?1",
+                params![topo_b_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_ne!(
+            node_a, node_b,
+            "template copies must have distinct node ids"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Name collision handling
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_import_collision_appends_imported_suffix() {
+        let mut db = Database::open_memory().unwrap();
+        let topo = Topology::new("my-lab", "Test collision");
+        db.transaction(|tx| {
+            topo.insert(tx)?;
+            Ok(())
+        })
+        .unwrap();
+
+        let tmp = NamedTempFile::new().unwrap();
+        let tmp_path: PathBuf = tmp.path().to_path_buf();
+        run_export(&mut db, "my-lab", false, None, Some(&tmp_path)).unwrap();
+
+        // Import with no explicit name: "my-lab" exists so the import should
+        // automatically choose "my-lab-imported"
+        run_import(&mut db, &tmp_path, None).unwrap();
+
+        let count: i64 = db
+            .conn()
+            .query_row(
+                "SELECT COUNT(*) FROM topologies WHERE name = 'my-lab-imported'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1, "collision should produce 'my-lab-imported'");
+    }
+
+    #[test]
+    fn test_import_errors_when_both_names_taken() {
+        let mut db = Database::open_memory().unwrap();
+        let topo = Topology::new("conflict-lab", "Test");
+        db.transaction(|tx| {
+            topo.insert(tx)?;
+            Ok(())
+        })
+        .unwrap();
+
+        let tmp = NamedTempFile::new().unwrap();
+        let tmp_path: PathBuf = tmp.path().to_path_buf();
+        run_export(&mut db, "conflict-lab", false, None, Some(&tmp_path)).unwrap();
+
+        // Pre-insert the "-imported" name so both candidate names are taken
+        let topo2 = Topology::new("conflict-lab-imported", "pre-existing");
+        db.transaction(|tx| {
+            topo2.insert(tx)?;
+            Ok(())
+        })
+        .unwrap();
+
+        // Both "conflict-lab" and "conflict-lab-imported" are taken; should error
+        let result = run_import(&mut db, &tmp_path, None);
+        assert!(result.is_err(), "should fail when both names are taken");
+    }
+}
