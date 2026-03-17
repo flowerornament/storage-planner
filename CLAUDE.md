@@ -53,6 +53,14 @@ just test             # Run tests
 cargo build --release
 ```
 
+## Nix Packaging
+
+Built via `flake.nix` (`rustPlatform.buildRustPackage`). Installed system-wide from `~/.nix-config/flake.nix`.
+
+- Dev loop: `cargo run` / `just check` — no nix rebuild needed
+- Verify packaging: `nix build .` then `./result/bin/sp --help`
+- Deploy: push to GitHub, then in nix-config: `nix flake update storage-planner && nx rebuild`
+
 ## Session Completion
 
 When ending a work session:
