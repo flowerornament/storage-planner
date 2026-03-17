@@ -1442,3 +1442,343 @@ fn reopen(db: &mut Database, name: &str, format: OutputFormat) -> Result<()> {
 // ---------------------------------------------------------------------------
 // Shared helpers for decision commands
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::db::Database;
+    use crate::core::models::Topology;
+    use crate::core::resolve::resolve_decision;
+
+    fn setup_db() -> Database {
+        Database::open_memory().unwrap()
+    }
+
+    /// Insert a topology directly and return it. Used to create prerequisite
+    /// data for consider/choose without going through the topology CLI.
+    fn insert_topology(db: &mut Database, name: &str) -> Topology {
+        let topo = Topology::new(name, "test topology");
+        db.transaction(|tx| {
+            topo.insert(tx)?;
+            Ok(())
+        })
+        .unwrap();
+        topo
+    }
+
+    /// Helper: fetch the current status of a decision from the DB.
+    fn decision_status(db: &Database, title: &str) -> String {
+        db.conn()
+            .query_row(
+                "SELECT status FROM decisions WHERE title = ?1",
+                rusqlite::params![title],
+                |row| row.get(0),
+            )
+            .unwrap()
+    }
+
+    // -----------------------------------------------------------------------
+    // Create
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_create_decision_draft_status() {
+        let mut db = setup_db();
+
+        create(&mut db, "NAS Upgrade 2026", "", None, OutputFormat::Text).unwrap();
+
+        let status = decision_status(&db, "NAS Upgrade 2026");
+        assert_eq!(status, "draft");
+    }
+
+    #[test]
+    fn test_create_decision_duplicate_title_fails() {
+        let mut db = setup_db();
+
+        create(&mut db, "Duplicate Title", "", None, OutputFormat::Text).unwrap();
+
+        let result = create(&mut db, "Duplicate Title", "", None, OutputFormat::Text);
+        assert!(result.is_err());
+        let msg = result.unwrap_err().to_string();
+        assert!(msg.contains("already exists"), "Got: {}", msg);
+    }
+
+    // -----------------------------------------------------------------------
+    // Open (draft → open via update --open)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_open_decision_transitions_to_open() {
+        let mut db = setup_db();
+
+        create(&mut db, "Drive Choice", "", None, OutputFormat::Text).unwrap();
+        update(
+            &mut db,
+            "Drive Choice",
+            None,
+            None,
+            true,
+            OutputFormat::Text,
+        )
+        .unwrap();
+
+        let status = decision_status(&db, "Drive Choice");
+        assert_eq!(status, "open");
+    }
+
+    #[test]
+    fn test_open_already_open_decision_fails() {
+        let mut db = setup_db();
+
+        create(&mut db, "Drive Choice", "", None, OutputFormat::Text).unwrap();
+        update(
+            &mut db,
+            "Drive Choice",
+            None,
+            None,
+            true,
+            OutputFormat::Text,
+        )
+        .unwrap();
+
+        // Attempting to open an already-open decision should fail
+        let result = update(
+            &mut db,
+            "Drive Choice",
+            None,
+            None,
+            true,
+            OutputFormat::Text,
+        );
+        assert!(result.is_err());
+        let msg = result.unwrap_err().to_string();
+        assert!(msg.contains("must be 'draft'"), "Got: {}", msg);
+    }
+
+    // -----------------------------------------------------------------------
+    // Choose (open → decided)
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_choose_transitions_to_decided() {
+        let mut db = setup_db();
+
+        // Create and open a decision
+        create(&mut db, "SSD Choice", "", None, OutputFormat::Text).unwrap();
+        update(&mut db, "SSD Choice", None, None, true, OutputFormat::Text).unwrap();
+
+        // Add a topology to consider
+        let topo = insert_topology(&mut db, "option-a");
+
+        // Link it to the decision
+        consider(&mut db, "SSD Choice", "option-a", OutputFormat::Text).unwrap();
+
+        // Choose the topology
+        choose(
+            &mut db,
+            "SSD Choice",
+            "option-a",
+            "Best price per TB",
+            OutputFormat::Text,
+        )
+        .unwrap();
+
+        let decision = resolve_decision(&db, "SSD Choice").unwrap();
+        assert_eq!(decision.status, "decided");
+        assert_eq!(
+            decision.chosen_topology_id.as_deref(),
+            Some(topo.id.as_str())
+        );
+        assert_eq!(decision.rationale.as_deref(), Some("Best price per TB"));
+        assert!(decision.closed_at.is_some());
+    }
+
+    #[test]
+    fn test_choose_on_draft_decision_fails() {
+        let mut db = setup_db();
+
+        create(&mut db, "SSD Choice", "", None, OutputFormat::Text).unwrap();
+        let topo = insert_topology(&mut db, "option-a");
+
+        // Insert a decision_topology row manually since consider() doesn't
+        // enforce status — but choose() does. We need to verify the status guard.
+        let decision = resolve_decision(&db, "SSD Choice").unwrap();
+        db.transaction(|tx| {
+            tx.execute(
+                "INSERT INTO decision_topologies (id, decision_id, topology_id, added_at) \
+                 VALUES (?, ?, ?, datetime('now'))",
+                rusqlite::params![uuid::Uuid::new_v4().to_string(), decision.id, topo.id],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+        let result = choose(
+            &mut db,
+            "SSD Choice",
+            "option-a",
+            "some rationale",
+            OutputFormat::Text,
+        );
+        assert!(result.is_err());
+        let msg = result.unwrap_err().to_string();
+        assert!(msg.contains("must be 'open'"), "Got: {}", msg);
+    }
+
+    // -----------------------------------------------------------------------
+    // Abandon
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_abandon_open_decision() {
+        let mut db = setup_db();
+
+        create(&mut db, "HDD vs SSD", "", None, OutputFormat::Text).unwrap();
+        update(&mut db, "HDD vs SSD", None, None, true, OutputFormat::Text).unwrap();
+
+        abandon(
+            &mut db,
+            "HDD vs SSD",
+            Some("Budget cut"),
+            OutputFormat::Text,
+        )
+        .unwrap();
+
+        let decision = resolve_decision(&db, "HDD vs SSD").unwrap();
+        assert_eq!(decision.status, "abandoned");
+        assert!(decision.closed_at.is_some());
+    }
+
+    #[test]
+    fn test_abandon_draft_decision() {
+        let mut db = setup_db();
+
+        create(&mut db, "Draft Decision", "", None, OutputFormat::Text).unwrap();
+
+        abandon(&mut db, "Draft Decision", None, OutputFormat::Text).unwrap();
+
+        let status = decision_status(&db, "Draft Decision");
+        assert_eq!(status, "abandoned");
+    }
+
+    #[test]
+    fn test_abandon_already_decided_fails() {
+        let mut db = setup_db();
+
+        create(&mut db, "Decided Already", "", None, OutputFormat::Text).unwrap();
+        update(
+            &mut db,
+            "Decided Already",
+            None,
+            None,
+            true,
+            OutputFormat::Text,
+        )
+        .unwrap();
+
+        let topo = insert_topology(&mut db, "winner");
+        consider(&mut db, "Decided Already", "winner", OutputFormat::Text).unwrap();
+        choose(
+            &mut db,
+            "Decided Already",
+            "winner",
+            "it won",
+            OutputFormat::Text,
+        )
+        .unwrap();
+
+        let result = abandon(&mut db, "Decided Already", None, OutputFormat::Text);
+        assert!(result.is_err());
+        let msg = result.unwrap_err().to_string();
+        assert!(
+            msg.contains("already decided") || msg.contains("reopen"),
+            "Got: {}",
+            msg
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // Reopen
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_reopen_abandoned_decision() {
+        let mut db = setup_db();
+
+        create(&mut db, "Abandoned One", "", None, OutputFormat::Text).unwrap();
+        update(
+            &mut db,
+            "Abandoned One",
+            None,
+            None,
+            true,
+            OutputFormat::Text,
+        )
+        .unwrap();
+        abandon(&mut db, "Abandoned One", None, OutputFormat::Text).unwrap();
+
+        reopen(&mut db, "Abandoned One", OutputFormat::Text).unwrap();
+
+        let decision = resolve_decision(&db, "Abandoned One").unwrap();
+        assert_eq!(decision.status, "open");
+        assert!(decision.closed_at.is_none());
+        assert!(decision.chosen_topology_id.is_none());
+        assert!(decision.rationale.is_none());
+    }
+
+    #[test]
+    fn test_reopen_decided_decision() {
+        let mut db = setup_db();
+
+        create(&mut db, "Decided One", "", None, OutputFormat::Text).unwrap();
+        update(&mut db, "Decided One", None, None, true, OutputFormat::Text).unwrap();
+
+        let topo = insert_topology(&mut db, "chosen-topo");
+        consider(&mut db, "Decided One", "chosen-topo", OutputFormat::Text).unwrap();
+        choose(
+            &mut db,
+            "Decided One",
+            "chosen-topo",
+            "good price",
+            OutputFormat::Text,
+        )
+        .unwrap();
+
+        reopen(&mut db, "Decided One", OutputFormat::Text).unwrap();
+
+        let decision = resolve_decision(&db, "Decided One").unwrap();
+        assert_eq!(decision.status, "open");
+        assert!(decision.closed_at.is_none());
+        assert!(decision.chosen_topology_id.is_none());
+        // topology should still be in the consideration set after reopen
+        let topo_count: i64 = db
+            .conn()
+            .query_row(
+                "SELECT COUNT(*) FROM decision_topologies WHERE decision_id = ?1",
+                rusqlite::params![decision.id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            topo_count, 1,
+            "Topology should still be considered after reopen"
+        );
+        let _ = topo; // suppress unused warning
+    }
+
+    #[test]
+    fn test_reopen_draft_decision_fails() {
+        let mut db = setup_db();
+
+        create(&mut db, "Still Draft", "", None, OutputFormat::Text).unwrap();
+
+        let result = reopen(&mut db, "Still Draft", OutputFormat::Text);
+        assert!(result.is_err());
+        let msg = result.unwrap_err().to_string();
+        assert!(msg.contains("already"), "Got: {}", msg);
+    }
+}

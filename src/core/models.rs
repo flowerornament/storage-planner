@@ -10,6 +10,27 @@ use chrono::{DateTime, Utc};
 use rusqlite::{params, Row, Transaction};
 use serde::{Deserialize, Serialize};
 
+/// Parse a timestamp string, accepting both RFC3339 (`2026-03-16T23:50:00+00:00`)
+/// and SQLite's `datetime('now')` format (`2026-03-16 23:50:00`).
+fn parse_timestamp(s: &str) -> rusqlite::Result<DateTime<Utc>> {
+    // Try RFC3339 first (what Rust serializes)
+    if let Ok(dt) = DateTime::parse_from_rfc3339(s) {
+        return Ok(dt.with_timezone(&Utc));
+    }
+    // Fall back to SQLite's datetime format
+    if let Ok(naive) = chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S") {
+        return Ok(naive.and_utc());
+    }
+    Err(rusqlite::Error::FromSqlConversionFailure(
+        0,
+        rusqlite::types::Type::Text,
+        Box::new(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            format!("unparseable timestamp: {s}"),
+        )),
+    ))
+}
+
 use crate::core::db::Database;
 
 // ---------------------------------------------------------------------------
@@ -69,12 +90,8 @@ impl Topology {
             description: row.get("description")?,
             parent_id: row.get("parent_id")?,
             tag: row.get("tag")?,
-            created_at: DateTime::parse_from_rfc3339(&created_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
-            updated_at: DateTime::parse_from_rfc3339(&updated_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
+            created_at: parse_timestamp(&created_str)?,
+            updated_at: parse_timestamp(&updated_str)?,
         })
     }
 
@@ -172,12 +189,8 @@ impl Node {
             noise_db: row.get("noise_db")?,
             rack_units: row.get("rack_units")?,
             item_id: row.get("item_id")?,
-            created_at: DateTime::parse_from_rfc3339(&created_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
-            updated_at: DateTime::parse_from_rfc3339(&updated_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
+            created_at: parse_timestamp(&created_str)?,
+            updated_at: parse_timestamp(&updated_str)?,
         })
     }
 
@@ -282,12 +295,8 @@ impl Volume {
             raid_level: row.get("raid_level")?,
             pool_type: row.get("pool_type")?,
             item_id: row.get("item_id")?,
-            created_at: DateTime::parse_from_rfc3339(&created_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
-            updated_at: DateTime::parse_from_rfc3339(&updated_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
+            created_at: parse_timestamp(&created_str)?,
+            updated_at: parse_timestamp(&updated_str)?,
         })
     }
 
@@ -383,12 +392,8 @@ impl Dataset {
             min_copies: row.get("min_copies")?,
             min_locations: row.get("min_locations")?,
             max_rpo_hours: row.get("max_rpo_hours")?,
-            created_at: DateTime::parse_from_rfc3339(&created_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
-            updated_at: DateTime::parse_from_rfc3339(&updated_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
+            created_at: parse_timestamp(&created_str)?,
+            updated_at: parse_timestamp(&updated_str)?,
         })
     }
 
@@ -472,9 +477,7 @@ impl Placement {
             volume_id: row.get("volume_id")?,
             role: row.get("role")?,
             priority: row.get("priority")?,
-            created_at: DateTime::parse_from_rfc3339(&created_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
+            created_at: parse_timestamp(&created_str)?,
         })
     }
 
@@ -561,12 +564,8 @@ impl Link {
             latency_ms: row.get("latency_ms")?,
             is_metered: row.get::<_, i32>("is_metered")? != 0,
             cost_per_gb_cents: row.get("cost_per_gb_cents")?,
-            created_at: DateTime::parse_from_rfc3339(&created_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
-            updated_at: DateTime::parse_from_rfc3339(&updated_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
+            created_at: parse_timestamp(&created_str)?,
+            updated_at: parse_timestamp(&updated_str)?,
         })
     }
 
@@ -669,12 +668,8 @@ impl SyncRegime {
             sync_type: row.get("sync_type")?,
             schedule: row.get("schedule")?,
             direction: row.get("direction")?,
-            created_at: DateTime::parse_from_rfc3339(&created_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
-            updated_at: DateTime::parse_from_rfc3339(&updated_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
+            created_at: parse_timestamp(&created_str)?,
+            updated_at: parse_timestamp(&updated_str)?,
         })
     }
 
@@ -756,12 +751,8 @@ impl Decision {
             chosen_topology_id: row.get("chosen_topology_id")?,
             rationale: row.get("rationale")?,
             snapshot: row.get("snapshot")?,
-            created_at: DateTime::parse_from_rfc3339(&created_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
-            updated_at: DateTime::parse_from_rfc3339(&updated_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
+            created_at: parse_timestamp(&created_str)?,
+            updated_at: parse_timestamp(&updated_str)?,
             closed_at: closed_str.and_then(|s| {
                 DateTime::parse_from_rfc3339(&s)
                     .map(|dt| dt.with_timezone(&Utc))
@@ -827,9 +818,7 @@ impl DecisionConstraint {
             decision_id: row.get("decision_id")?,
             constraint_type: row.get("constraint_type")?,
             max_value: row.get("max_value")?,
-            created_at: DateTime::parse_from_rfc3339(&created_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
+            created_at: parse_timestamp(&created_str)?,
         })
     }
 
@@ -882,9 +871,7 @@ impl DecisionTopology {
             id: row.get("id")?,
             decision_id: row.get("decision_id")?,
             topology_id: row.get("topology_id")?,
-            added_at: DateTime::parse_from_rfc3339(&added_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
+            added_at: parse_timestamp(&added_str)?,
         })
     }
 
@@ -977,9 +964,7 @@ impl Event {
             after_state: row.get("after_state")?,
             source: row.get("source")?,
             actor: row.get("actor")?,
-            timestamp: DateTime::parse_from_rfc3339(&timestamp_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
+            timestamp: parse_timestamp(&timestamp_str)?,
         })
     }
 
@@ -1051,12 +1036,8 @@ impl CatalogItem {
             specs: serde_json::from_str(&specs_str).unwrap_or_default(),
             url: row.get("url")?,
             notes: row.get("notes")?,
-            created_at: DateTime::parse_from_rfc3339(&created_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
-            updated_at: DateTime::parse_from_rfc3339(&updated_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
+            created_at: parse_timestamp(&created_str)?,
+            updated_at: parse_timestamp(&updated_str)?,
         })
     }
 
@@ -1125,9 +1106,7 @@ impl Price {
             source: row.get("source")?,
             condition: row.get("condition")?,
             price_type: row.get("price_type")?,
-            observed_at: DateTime::parse_from_rfc3339(&observed_str)
-                .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|_| Utc::now()),
+            observed_at: parse_timestamp(&observed_str)?,
         })
     }
 
