@@ -317,6 +317,20 @@ impl Volume {
         };
         Ok(results)
     }
+
+    /// Load all volumes for a node, ordered by name.
+    pub fn load_for_node(db: &Database, node_id: &str) -> Result<Vec<Self>> {
+        let results = {
+            let mut stmt = db.conn().prepare(
+                "SELECT id, topology_id, node_id, name, capacity_bytes, usable_bytes, \
+                 filesystem, raid_level, pool_type, item_id, created_at, updated_at \
+                 FROM volumes WHERE node_id = ?1 ORDER BY name",
+            )?;
+            let rows = stmt.query_map(params![node_id], Volume::from_row)?;
+            rows.collect::<Result<Vec<_>, _>>()?
+        };
+        Ok(results)
+    }
 }
 
 // ---------------------------------------------------------------------------

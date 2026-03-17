@@ -383,14 +383,7 @@ fn show(
     let node = resolve_node(db, &topo.id, name)?;
 
     // Query volumes for this node
-    let mut vol_stmt = db.conn().prepare(
-        "SELECT id, topology_id, node_id, name, capacity_bytes, usable_bytes, \
-         filesystem, raid_level, pool_type, item_id, created_at, updated_at \
-         FROM volumes WHERE node_id = ?1 ORDER BY name",
-    )?;
-    let volumes: Vec<Volume> = vol_stmt
-        .query_map(params![node.id], Volume::from_row)?
-        .collect::<Result<Vec<_>, _>>()?;
+    let volumes = Volume::load_for_node(db, &node.id)?;
 
     match format {
         OutputFormat::Text => {
@@ -472,17 +465,7 @@ fn remove(
     let node_name = node.name.clone();
 
     // Capture composite snapshot: node + volumes + placements (for undo)
-    let volumes: Vec<Volume> = {
-        let mut stmt = db.conn().prepare(
-            "SELECT id, topology_id, node_id, name, capacity_bytes, usable_bytes, filesystem, \
-             raid_level, pool_type, item_id, created_at, updated_at \
-             FROM volumes WHERE node_id = ?1 ORDER BY name",
-        )?;
-        let result = stmt
-            .query_map(params![node_id], Volume::from_row)?
-            .collect::<Result<Vec<_>, _>>()?;
-        result
-    };
+    let volumes = Volume::load_for_node(db, &node_id)?;
 
     let volume_ids: Vec<String> = volumes.iter().map(|v| v.id.clone()).collect();
     let placements: Vec<Placement> = if !volume_ids.is_empty() {

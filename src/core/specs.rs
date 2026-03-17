@@ -124,6 +124,20 @@ impl fmt::Display for Speed {
     }
 }
 
+/// Format a bandwidth value in bytes/sec to a human-readable string.
+pub fn format_bandwidth(bytes_per_sec: i64) -> String {
+    let bps = bytes_per_sec as f64;
+    if bps >= Capacity::GB as f64 {
+        format!("{:.1} GB/s", bps / Capacity::GB as f64)
+    } else if bps >= Capacity::MB as f64 {
+        format!("{:.1} MB/s", bps / Capacity::MB as f64)
+    } else if bps >= Capacity::KB as f64 {
+        format!("{:.1} KB/s", bps / Capacity::KB as f64)
+    } else {
+        format!("{} B/s", bytes_per_sec)
+    }
+}
+
 /// A noise level in decibels
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]

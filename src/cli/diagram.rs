@@ -10,7 +10,7 @@ use rusqlite::params;
 use crate::core::db::Database;
 use crate::core::models::{Dataset, Link, Node, Placement, Volume};
 use crate::core::resolve::resolve_active_topology;
-use crate::core::specs::Capacity;
+use crate::core::specs::{format_bandwidth, Capacity};
 
 /// Run the diagram command
 pub fn run(
@@ -76,17 +76,7 @@ fn print_tree(db: &Database, topology_id: &str, topology_name: &str) -> Result<(
         println!("{} {}", node_connector, node_detail);
 
         // Load volumes for this node
-        let volumes: Vec<Volume> = {
-            let mut stmt = db.conn().prepare(
-                "SELECT id, topology_id, node_id, name, capacity_bytes, usable_bytes, \
-                 filesystem, raid_level, pool_type, item_id, created_at, updated_at \
-                 FROM volumes WHERE node_id = ?1 ORDER BY name",
-            )?;
-            let result = stmt
-                .query_map(params![node.id], Volume::from_row)?
-                .collect::<Result<Vec<_>, _>>()?;
-            result
-        };
+        let volumes = Volume::load_for_node(db, &node.id)?;
 
         let node_prefix = if is_last_node { "    " } else { "\u{2502}   " };
 
@@ -280,17 +270,4 @@ fn format_link_label(link: &Link) -> String {
         parts.push(format_bandwidth(bw));
     }
     parts.join(", ")
-}
-
-fn format_bandwidth(bytes_per_sec: i64) -> String {
-    let bps = bytes_per_sec as f64;
-    if bps >= Capacity::GB as f64 {
-        format!("{:.0}GB/s", bps / Capacity::GB as f64)
-    } else if bps >= Capacity::MB as f64 {
-        format!("{:.0}MB/s", bps / Capacity::MB as f64)
-    } else if bps >= Capacity::KB as f64 {
-        format!("{:.0}KB/s", bps / Capacity::KB as f64)
-    } else {
-        format!("{}B/s", bytes_per_sec)
-    }
 }

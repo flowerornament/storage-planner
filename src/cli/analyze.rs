@@ -14,7 +14,7 @@ use rusqlite::params;
 use crate::core::db::Database;
 use crate::core::models::{Dataset, DecisionConstraint, Link, Node, Price, Volume};
 use crate::core::resolve::{resolve_active_topology, resolve_decision, resolve_topology};
-use crate::core::specs::Capacity;
+use crate::core::specs::{format_bandwidth, Capacity};
 use crate::domains::storage::analysis::{
     analyze_bandwidth, analyze_capacity, analyze_cost, analyze_redundancy, analyze_rpo,
     check_constraints, compare_topologies, compute_tco_cents, compute_topology_metrics,
@@ -835,18 +835,6 @@ fn print_bandwidth_text(
 }
 
 /// Format bandwidth in human-readable units.
-fn format_bandwidth(bytes_sec: i64) -> String {
-    let bps = bytes_sec as f64;
-    if bps >= 1_000_000_000.0 {
-        format!("{:.1} GB/s", bps / 1_000_000_000.0)
-    } else if bps >= 1_000_000.0 {
-        format!("{:.1} MB/s", bps / 1_000_000.0)
-    } else if bps >= 1_000.0 {
-        format!("{:.1} KB/s", bps / 1_000.0)
-    } else {
-        format!("{} B/s", bytes_sec)
-    }
-}
 
 // ---------------------------------------------------------------------------
 // Cost (ANLZ-07)
