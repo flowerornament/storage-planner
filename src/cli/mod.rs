@@ -109,22 +109,8 @@ pub enum Commands {
     Decision(decision::DecisionCommands),
 
     /// Run analysis reports against topology data
-    Analyze {
-        #[command(subcommand)]
-        command: Option<analyze::AnalyzeCommands>,
-
-        /// Target topology (defaults to active) -- used when no subcommand
-        #[arg(long)]
-        topology: Option<String>,
-
-        /// Show full details -- used when no subcommand
-        #[arg(long)]
-        verbose: bool,
-
-        /// Warn when volume is projected full within N months -- used when no subcommand
-        #[arg(long, default_value = "12")]
-        warn_months: i32,
-    },
+    #[command(subcommand)]
+    Analyze(analyze::AnalyzeCommands),
 
     /// Show ASCII diagram of topology structure
     Diagram {
@@ -252,14 +238,9 @@ impl Cli {
                 let mut db = open_db(&db_path)?;
                 decision::run(cmd, &mut db, format)
             }
-            Commands::Analyze {
-                command,
-                topology,
-                verbose,
-                warn_months,
-            } => {
+            Commands::Analyze(cmd) => {
                 let mut db = open_db(&db_path)?;
-                analyze::run(command, &mut db, format, topology, verbose, warn_months)
+                analyze::run(cmd, &mut db, format)
             }
             Commands::Diagram {
                 topology,

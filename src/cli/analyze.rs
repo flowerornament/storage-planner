@@ -27,6 +27,21 @@ use super::OutputFormat;
 
 #[derive(Subcommand)]
 pub enum AnalyzeCommands {
+    /// Run combined analysis dashboard (default when no subcommand given)
+    Dashboard {
+        /// Target topology (defaults to active)
+        #[arg(long)]
+        topology: Option<String>,
+
+        /// Show full details
+        #[arg(long)]
+        verbose: bool,
+
+        /// Warn when volume is projected full within N months
+        #[arg(long, default_value = "12")]
+        warn_months: i32,
+    },
+
     /// Check dataset redundancy against min_copies and min_locations requirements
     Redundancy {
         /// Target topology (defaults to active)
@@ -134,57 +149,46 @@ pub enum AnalyzeCommands {
     },
 }
 
-/// Run analysis with optional subcommand. When None, runs the combined dashboard.
-pub fn run(
-    cmd: Option<AnalyzeCommands>,
-    db: &mut Database,
-    format: OutputFormat,
-    topology_override: Option<String>,
-    verbose: bool,
-    warn_months: i32,
-) -> Result<()> {
+/// Run an analysis subcommand.
+pub fn run(cmd: AnalyzeCommands, db: &mut Database, format: OutputFormat) -> Result<()> {
     match cmd {
-        None => run_dashboard(
-            db,
-            topology_override.as_deref(),
-            verbose,
-            warn_months,
-            format,
-        ),
-        Some(AnalyzeCommands::Redundancy { topology, verbose }) => {
-            run_redundancy(db, topology.as_deref(), verbose, format)
-        }
-        Some(AnalyzeCommands::Capacity {
+        AnalyzeCommands::Dashboard {
             topology,
             verbose,
             warn_months,
-        }) => run_capacity(db, topology.as_deref(), verbose, warn_months, format),
-        Some(AnalyzeCommands::Rpo { topology, verbose }) => {
+        } => run_dashboard(db, topology.as_deref(), verbose, warn_months, format),
+        AnalyzeCommands::Redundancy { topology, verbose } => {
+            run_redundancy(db, topology.as_deref(), verbose, format)
+        }
+        AnalyzeCommands::Capacity {
+            topology,
+            verbose,
+            warn_months,
+        } => run_capacity(db, topology.as_deref(), verbose, warn_months, format),
+        AnalyzeCommands::Rpo { topology, verbose } => {
             run_rpo(db, topology.as_deref(), verbose, format)
         }
-        Some(AnalyzeCommands::Failure {
+        AnalyzeCommands::Failure {
             nodes,
             topology,
             verbose,
-        }) => run_failure(db, topology.as_deref(), &nodes, verbose, format),
-        Some(AnalyzeCommands::Bandwidth { topology }) => {
-            run_bandwidth(db, topology.as_deref(), format)
-        }
-        Some(AnalyzeCommands::Cost {
+        } => run_failure(db, topology.as_deref(), &nodes, verbose, format),
+        AnalyzeCommands::Bandwidth { topology } => run_bandwidth(db, topology.as_deref(), format),
+        AnalyzeCommands::Cost {
             topology,
             summary,
             tco,
-        }) => run_cost(db, topology.as_deref(), summary, tco.as_deref(), format),
-        Some(AnalyzeCommands::Constraints { decision, topology }) => {
+        } => run_cost(db, topology.as_deref(), summary, tco.as_deref(), format),
+        AnalyzeCommands::Constraints { decision, topology } => {
             run_constraints(db, &decision, topology.as_deref(), format)
         }
-        Some(AnalyzeCommands::Compare {
+        AnalyzeCommands::Compare {
             a,
             b,
             diff,
             decision,
             warn_months,
-        }) => run_compare(db, &a, &b, diff, decision.as_deref(), warn_months, format),
+        } => run_compare(db, &a, &b, diff, decision.as_deref(), warn_months, format),
     }
 }
 
