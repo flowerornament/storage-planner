@@ -1680,7 +1680,7 @@ mod tests {
         )
         .unwrap();
 
-        let topo = insert_topology(&mut db, "winner");
+        insert_topology(&mut db, "winner");
         consider(&mut db, "Decided Already", "winner", OutputFormat::Text).unwrap();
         choose(
             &mut db,
