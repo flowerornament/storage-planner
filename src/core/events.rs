@@ -528,7 +528,7 @@ pub fn redo(db: &mut Database, skip: bool) -> Result<String> {
             "SELECT id, sequence, event_type, entity_type, entity_id, summary, before_state, after_state, source, actor, timestamp FROM events WHERE sequence = ?1",
             params![next_seq],
             Event::from_row,
-        ).map_err(|_| anyhow::anyhow!("Nothing to redo"))?;
+        ).context("Nothing to redo")?;
 
         if skip {
             // Skip mode: just move pointer without re-applying

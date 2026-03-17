@@ -487,33 +487,30 @@ fn build_tree_json(db: &Database, topo: &Topology) -> Result<serde_json::Value> 
             .query_map(params![node.id], Volume::from_row)?
             .collect::<Result<Vec<_>, _>>()?;
 
-        let vol_json: Vec<serde_json::Value> = volumes
-            .iter()
-            .map(|v| {
-                let mut val = serde_json::to_value(v).unwrap_or_default();
-                // Add placements for this volume
-                if let Ok(mut pstmt) = db.conn().prepare(
-                    "SELECT d.name, p.role, d.size_bytes, d.criticality \
-                     FROM placements p JOIN datasets d ON p.dataset_id = d.id \
-                     WHERE p.volume_id = ?1 ORDER BY d.name",
-                ) {
-                    if let Ok(rows) = pstmt.query_map(params![v.id], |row| {
-                        Ok(serde_json::json!({
-                            "dataset": row.get::<_, String>(0)?,
-                            "role": row.get::<_, String>(1)?,
-                            "size_bytes": row.get::<_, i64>(2)?,
-                            "criticality": row.get::<_, String>(3)?,
-                        }))
-                    }) {
-                        let pl_json: Vec<serde_json::Value> = rows.filter_map(|r| r.ok()).collect();
-                        if let serde_json::Value::Object(ref mut map) = val {
-                            map.insert("placements".to_string(), serde_json::Value::Array(pl_json));
-                        }
-                    }
-                }
-                val
-            })
-            .collect();
+        let mut vol_json: Vec<serde_json::Value> = Vec::new();
+        for v in &volumes {
+            let mut val = serde_json::to_value(v)?;
+            // Add placements for this volume
+            let mut pstmt = db.conn().prepare(
+                "SELECT d.name, p.role, d.size_bytes, d.criticality \
+                 FROM placements p JOIN datasets d ON p.dataset_id = d.id \
+                 WHERE p.volume_id = ?1 ORDER BY d.name",
+            )?;
+            let pl_json: Vec<serde_json::Value> = pstmt
+                .query_map(params![v.id], |row| {
+                    Ok(serde_json::json!({
+                        "dataset": row.get::<_, String>(0)?,
+                        "role": row.get::<_, String>(1)?,
+                        "size_bytes": row.get::<_, i64>(2)?,
+                        "criticality": row.get::<_, String>(3)?,
+                    }))
+                })?
+                .collect::<Result<Vec<_>, _>>()?;
+            if let serde_json::Value::Object(ref mut map) = val {
+                map.insert("placements".to_string(), serde_json::Value::Array(pl_json));
+            }
+            vol_json.push(val);
+        }
 
         let mut node_val = serde_json::to_value(node)?;
         if let serde_json::Value::Object(ref mut map) = node_val {
