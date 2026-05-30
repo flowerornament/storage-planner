@@ -59,3 +59,15 @@ export/
 
 # Desloppify
 .desloppify/
+scorecard.png
+
+# Nix build symlinks
+result
+result-*
+
+# Local agent dirs
+.claude/skills/
+
+# beads local runtime state (config and issues.jsonl stay tracked)
+.beads/.beads-credential-key
+.beads/embeddeddolt/
