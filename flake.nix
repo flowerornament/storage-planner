@@ -16,7 +16,7 @@
       packages = forAllSystems ({ pkgs }: {
         default = pkgs.rustPlatform.buildRustPackage {
           pname = "storage-planner";
-          version = "0.1.0";
+          version = "1.0.1";
 
           src = ./.;
 
