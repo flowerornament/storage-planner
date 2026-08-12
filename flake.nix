@@ -1,6 +1,13 @@
 {
   description = "sp - Storage planning and purchase decision CLI";
 
+  nixConfig = {
+    extra-substituters = [ "https://flowerornament.cachix.org" ];
+    extra-trusted-public-keys = [
+      "flowerornament.cachix.org-1:gSODgIXgfRANrEGITBOF8XWaEKNy8hkNGfRVwqUG46c="
+    ];
+  };
+
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   };
@@ -16,7 +23,7 @@
       packages = forAllSystems ({ pkgs }: {
         default = pkgs.rustPlatform.buildRustPackage {
           pname = "storage-planner";
-          version = "1.0.1";
+          version = "1.0.2";
 
           src = ./.;
 
@@ -29,6 +36,12 @@
             license = licenses.mit;
             mainProgram = "sp";
           };
+        };
+      });
+      apps = forAllSystems ({ pkgs }: {
+        default = {
+          type = "app";
+          program = "${self.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/sp";
         };
       });
     };

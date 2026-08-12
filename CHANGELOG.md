@@ -2,6 +2,14 @@
 
 All notable changes to `storage-planner` are documented in this file.
 
+## v1.0.2 - 2026-08-12
+
+### Changed
+
+- publishes producer-locked native Nix packages to the public flowerornament
+  Cachix cache and proves substitution before a release can be tagged
+- exposes a default flake app and standalone cache-aware Nix installation
+
 ## v1.0.1 - 2026-05-29
 
 ### Added
@@ -25,4 +33,3 @@ All notable changes to `storage-planner` are documented in this file.
 ### Fixed
 
 - `compare` and constraint budget checks use catalog prices.
-

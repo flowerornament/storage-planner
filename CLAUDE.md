@@ -57,6 +57,12 @@ cargo build --release
 
 Built via `flake.nix` (`rustPlatform.buildRustPackage`). Installed system-wide from `~/.nix-config/flake.nix`.
 
+The producer's committed `flake.lock` defines the cached package identity.
+Standalone users can run `nix run github:flowerornament/storage-planner/release`
+or install with `nix profile add github:flowerornament/storage-planner/release`.
+The flake advertises the public flowerornament Cachix cache; source builds remain
+available when the cache is unavailable.
+
 - Dev loop: `cargo run` / `just check` — no nix rebuild needed
 - Verify packaging: `nix build .` then `./result/bin/sp --help`
 - Deploy: push to GitHub, then in nix-config: `nix flake update storage-planner && nx rebuild`
@@ -91,6 +97,10 @@ git ls-remote origin refs/heads/release 'refs/tags/v0.2.1^{}'
 `just release-verify` intentionally requires a clean worktree. Commit the release-prep changes before running it so the Nix build sees the same git-tracked source that will be tagged.
 
 `just release-verify` checks version alignment across `Cargo.toml`, `Cargo.lock`, and `flake.nix`; CHANGELOG readiness with no `TODO`/`TBD` placeholders; then runs `just check`, `just build`, `nix build .`, `nix run . -- --help`, and `./target/release/sp --help`.
+
+After pushing the release commit, wait for the Nix Cache workflow and run
+`just cache-verify`. `just release-tag` repeats that cache gate before creating
+the tag or moving `origin/release`.
 
 `just release-tag` creates and pushes `vX.Y.Z`, then publishes `origin/release` at the same commit. It prompts before running because this is the public release step; use `just --yes release-tag X.Y.Z` only for explicit automation. The final `git ls-remote` check should show matching object IDs for `refs/heads/release` and the peeled tag.
 
