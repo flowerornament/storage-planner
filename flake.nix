@@ -25,7 +25,12 @@
           pname = "storage-planner";
           version = "1.0.2";
 
-          src = ./.;
+          src = pkgs.lib.fileset.toSource {
+            root = ./.;
+            fileset = pkgs.lib.fileset.unions [
+              ./Cargo.toml ./Cargo.lock ./src ./examples
+            ];
+          };
 
           cargoLock = {
             lockFile = ./Cargo.lock;
